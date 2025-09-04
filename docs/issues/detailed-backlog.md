@@ -10,17 +10,17 @@
 Initialiser solution .NET + React, config Docker (api, db, proxy), variables d'env, README démarrage.
 
 #### Critères d'acceptation
-- [ ] Solution .NET 8 avec structure clean architecture
-- [ ] Application Next.js configurée avec TypeScript
-- [ ] Docker Compose avec services : API, DB PostgreSQL, proxy Nginx
-- [ ] Variables d'environnement documentées dans .env.example
-- [ ] README avec instructions de démarrage en < 5 minutes
-- [ ] Tous les services démarrent avec `docker-compose up`
+- [x] Solution .NET 8 avec structure clean architecture
+- [x] Application Next.js configurée avec TypeScript
+- [x] Docker Compose avec services : API, DB PostgreSQL, proxy Nginx
+- [x] Variables d'environnement documentées dans .env.example
+- [x] README avec instructions de démarrage en < 5 minutes
+- [x] Tous les services démarrent avec `docker-compose up`
 
 #### Tests
-- [ ] Test d'intégration: `docker-compose up` démarre tous les services
-- [ ] Test de santé: endpoints `/health` retournent 200
-- [ ] Test de connectivité: API peut se connecter à PostgreSQL
+- [x] Test d'intégration: `docker-compose up` démarre tous les services
+- [x] Test de santé: endpoints `/health` retournent 200
+- [x] Test de connectivité: API peut se connecter à PostgreSQL
 
 ---
 
