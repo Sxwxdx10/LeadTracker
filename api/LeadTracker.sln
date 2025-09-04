@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadTracker.Api", "LeadTracker.Api\LeadTracker.Api.csproj", "{2E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadTracker.Core", "LeadTracker.Core\LeadTracker.Core.csproj", "{3E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadTracker.Infrastructure", "LeadTracker.Infrastructure\LeadTracker.Infrastructure.csproj", "{4E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadTracker.UnitTests", "tests\LeadTracker.UnitTests\LeadTracker.UnitTests.csproj", "{6E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadTracker.IntegrationTests", "tests\LeadTracker.IntegrationTests\LeadTracker.IntegrationTests.csproj", "{7E8B6B8A-1234-4567-8901-123456789ABC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E8B6B8A-1234-4567-8901-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E8B6B8A-1234-4567-8901-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6E8B6B8A-1234-4567-8901-123456789ABC} = {5E8B6B8A-1234-4567-8901-123456789ABC}
+		{7E8B6B8A-1234-4567-8901-123456789ABC} = {5E8B6B8A-1234-4567-8901-123456789ABC}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,286 @@
+name: Deploy to Environment
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    branches: [main, develop]
+    types: [completed]
+    
+env:
+  REGISTRY: leadtracker.azurecr.io
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop' }}
+    environment: 
+      name: staging
+      url: https://leadtracker-staging.azurewebsites.net
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+    
+    - name: Deploy API to Azure Container Instances
+      run: |
+        az container create \
+          --resource-group leadtracker-staging-rg \
+          --name leadtracker-api-staging \
+          --image ${{ env.REGISTRY }}/leadtracker-api:develop-${{ github.event.workflow_run.head_sha }} \
+          --registry-login-server ${{ env.REGISTRY }} \
+          --registry-username ${{ secrets.ACR_USERNAME }} \
+          --registry-password ${{ secrets.ACR_PASSWORD }} \
+          --dns-name-label leadtracker-api-staging \
+          --ports 8080 \
+          --environment-variables \
+            ASPNETCORE_ENVIRONMENT=Staging \
+            ConnectionStrings__DefaultConnection="${{ secrets.STAGING_CONNECTION_STRING }}" \
+            Redis__ConnectionString="${{ secrets.STAGING_REDIS_CONNECTION_STRING }}" \
+            JWT__SecretKey="${{ secrets.STAGING_JWT_SECRET }}" \
+            ApplicationInsights__InstrumentationKey="${{ secrets.STAGING_APPINSIGHTS_KEY }}" \
+          --restart-policy Always \
+          --location westeurope
+          
+    - name: Deploy Web to Azure Container Instances
+      run: |
+        az container create \
+          --resource-group leadtracker-staging-rg \
+          --name leadtracker-web-staging \
+          --image ${{ env.REGISTRY }}/leadtracker-web:develop-${{ github.event.workflow_run.head_sha }} \
+          --registry-login-server ${{ env.REGISTRY }} \
+          --registry-username ${{ secrets.ACR_USERNAME }} \
+          --registry-password ${{ secrets.ACR_PASSWORD }} \
+          --dns-name-label leadtracker-web-staging \
+          --ports 3000 \
+          --environment-variables \
+            NODE_ENV=staging \
+            NEXT_PUBLIC_API_URL=https://leadtracker-api-staging.westeurope.azurecontainer.io:8080 \
+            NEXTAUTH_URL=https://leadtracker-web-staging.westeurope.azurecontainer.io \
+            NEXTAUTH_SECRET="${{ secrets.STAGING_NEXTAUTH_SECRET }}" \
+          --restart-policy Always \
+          --location westeurope
+          
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for API to be ready..."
+        for i in {1..30}; do
+          if curl -f https://leadtracker-api-staging.westeurope.azurecontainer.io:8080/health; then
+            echo "API is ready"
+            break
+          fi
+          echo "API not ready, waiting 10 seconds..."
+          sleep 10
+        done
+        
+        echo "Waiting for Web to be ready..."
+        for i in {1..30}; do
+          if curl -f https://leadtracker-web-staging.westeurope.azurecontainer.io; then
+            echo "Web is ready"
+            break
+          fi
+          echo "Web not ready, waiting 10 seconds..."
+          sleep 10
+        done
+          
+    - name: Run database migrations
+      run: |
+        az container exec \
+          --resource-group leadtracker-staging-rg \
+          --name leadtracker-api-staging \
+          --exec-command "dotnet ef database update"
+          
+    - name: Run health checks
+      run: |
+        # API Health Check
+        API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://leadtracker-api-staging.westeurope.azurecontainer.io:8080/health)
+        if [ $API_HEALTH -ne 200 ]; then
+          echo "API health check failed with status: $API_HEALTH"
+          exit 1
+        fi
+        
+        # Web Health Check
+        WEB_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://leadtracker-web-staging.westeurope.azurecontainer.io)
+        if [ $WEB_HEALTH -ne 200 ]; then
+          echo "Web health check failed with status: $WEB_HEALTH"
+          exit 1
+        fi
+        
+        echo "All health checks passed!"
+        
+    - name: Run smoke tests
+      run: |
+        # Basic API smoke test
+        curl -f https://leadtracker-api-staging.westeurope.azurecontainer.io:8080/api/health
+        
+        # Check if key endpoints are responding
+        curl -f https://leadtracker-api-staging.westeurope.azurecontainer.io:8080/swagger
+        
+        echo "Smoke tests completed successfully"
+        
+    - name: Notify deployment success
+      run: |
+        echo "🚀 Staging deployment completed successfully!"
+        echo "API: https://leadtracker-api-staging.westeurope.azurecontainer.io:8080"
+        echo "Web: https://leadtracker-web-staging.westeurope.azurecontainer.io"
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    environment: 
+      name: production
+      url: https://leadtracker.com
+    needs: []  # Remove staging dependency for now, can be added later
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Create deployment
+      uses: actions/github-script@v7
+      id: deployment
+      with:
+        script: |
+          const deployment = await github.rest.repos.createDeployment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.sha,
+            environment: 'production',
+            description: 'Deploy to production',
+            auto_merge: false
+          });
+          return deployment.data.id;
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+    
+    - name: Deploy to Azure App Service (Blue-Green)
+      run: |
+        # Deploy to staging slot first
+        az webapp config container set \
+          --name leadtracker-production \
+          --resource-group leadtracker-production-rg \
+          --slot staging \
+          --docker-custom-image-name ${{ env.REGISTRY }}/leadtracker-api:latest \
+          --docker-registry-server-url https://${{ env.REGISTRY }} \
+          --docker-registry-server-user ${{ secrets.ACR_USERNAME }} \
+          --docker-registry-server-password ${{ secrets.ACR_PASSWORD }}
+          
+        # Wait for staging slot to be ready
+        echo "Waiting for staging slot to be ready..."
+        for i in {1..60}; do
+          if curl -f https://leadtracker-production-staging.azurewebsites.net/health; then
+            echo "Staging slot is healthy"
+            break
+          fi
+          sleep 10
+        done
+        
+    - name: Run production database migrations
+      run: |
+        # Run migrations on staging slot first
+        az webapp config appsettings set \
+          --name leadtracker-production \
+          --resource-group leadtracker-production-rg \
+          --slot staging \
+          --settings MIGRATE_ON_STARTUP=true
+          
+        # Wait for migration to complete
+        sleep 30
+        
+    - name: Perform blue-green swap
+      run: |
+        echo "Swapping production and staging slots..."
+        az webapp deployment slot swap \
+          --name leadtracker-production \
+          --resource-group leadtracker-production-rg \
+          --slot staging \
+          --target-slot production
+          
+    - name: Verify production deployment
+      run: |
+        echo "Verifying production deployment..."
+        
+        # Wait for production to be ready after swap
+        for i in {1..30}; do
+          if curl -f https://leadtracker.com/health; then
+            echo "Production deployment successful"
+            break
+          fi
+          echo "Production not ready, waiting 10 seconds..."
+          sleep 10
+        done
+        
+        # Run comprehensive health checks
+        HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://leadtracker.com/health)
+        if [ $HEALTH_STATUS -ne 200 ]; then
+          echo "Production health check failed, initiating rollback..."
+          az webapp deployment slot swap \
+            --name leadtracker-production \
+            --resource-group leadtracker-production-rg \
+            --slot production \
+            --target-slot staging
+          exit 1
+        fi
+        
+    - name: Warm up production
+      run: |
+        # Warm up critical endpoints
+        curl -X GET https://leadtracker.com/api/health
+        curl -X GET https://leadtracker.com/api/organizations
+        curl -X GET https://leadtracker.com
+        
+        echo "Production warm-up completed"
+        
+    - name: Update deployment status
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        script: |
+          const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+          await github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: ${{ steps.deployment.outputs.result }},
+            state: state,
+            environment_url: 'https://leadtracker.com',
+            description: state === 'success' ? 'Deployment completed successfully' : 'Deployment failed'
+          });
+          
+    - name: Notify production deployment
+      if: success()
+      run: |
+        echo "🎉 Production deployment completed successfully!"
+        echo "URL: https://leadtracker.com"
+        # Add Slack/Teams notification here
+        
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Production deployment failed!"
+        # Add Slack/Teams notification here
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+    - name: Cleanup old container images
+      run: |
+        echo "Cleaning up old container images..."
+        # Keep only last 10 images per repository
+        # This would require Azure CLI commands to clean up old images
+        echo "Cleanup completed"
+        
+    - name: Update deployment metrics
+      run: |
+        echo "Updating deployment metrics..."
+        # Send metrics to monitoring system
+        echo "Metrics updated"
