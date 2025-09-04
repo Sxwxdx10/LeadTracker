@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   experimental: {
-    appDir: true,
+    // appDir: true, // Not needed in Next.js 14
   },
   
   // Environment variables
@@ -108,12 +108,12 @@ const nextConfig = {
   // Power-ups
   poweredByHeader: false,
   
-  // Internationalization
-  i18n: {
-    locales: ['en', 'fr'],
-    defaultLocale: 'fr',
-    localeDetection: true,
-  },
+  // Internationalization (disabled for app directory)
+  // i18n: {
+  //   locales: ['en', 'fr'],
+  //   defaultLocale: 'fr',
+  //   localeDetection: true,
+  // },
 };
 
 // Bundle analyzer

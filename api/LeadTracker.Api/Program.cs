@@ -1,11 +1,16 @@
 using LeadTracker.Infrastructure.Data;
 using LeadTracker.Infrastructure.Configuration;
+using LeadTracker.Api.Services;
+using LeadTracker.Api.Middleware;
+using LeadTracker.Api.Filters;
+using LeadTracker.Infrastructure.Seed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Serilog;
+using Serilog.Events;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.OpenApi.Models;
@@ -13,8 +18,9 @@ using System.Reflection;
 using FluentValidation;
 using MediatR;
 using AutoMapper;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
+// Rate limiting for .NET 7
+// using Microsoft.AspNetCore.RateLimiting;
+// using System.Threading.RateLimiting;
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -31,9 +37,7 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
         .WriteTo.Console()
-        .WriteTo.ApplicationInsights(
-            services.GetService<Microsoft.ApplicationInsights.TelemetryClient>(),
-            Microsoft.ApplicationInsights.Extensibility.TelemetryConverter.Traces));
+        .WriteTo.File("logs/leadtracker-.txt", rollingInterval: RollingInterval.Day));
 
     // Add services to the container
     builder.Services.AddControllers();
@@ -160,26 +164,29 @@ try
         });
     });
 
-    // Rate Limiting
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.User?.Identity?.Name ?? context.Request.Headers.Host.ToString(),
-                factory: partition => new FixedWindowRateLimiterOptions
-                {
-                    AutoReplenishment = true,
-                    PermitLimit = 100,
-                    Window = TimeSpan.FromMinutes(1)
-                }));
-    });
+    // Rate Limiting (commented out for .NET 7 compatibility)
+    // builder.Services.AddRateLimiter(options =>
+    // {
+    //     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    //         RateLimitPartition.GetFixedWindowLimiter(
+    //             partitionKey: context.User?.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+    //             factory: partition => new FixedWindowRateLimiterOptions
+    //             {
+    //                 AutoReplenishment = true,
+    //                 PermitLimit = 100,
+    //                 Window = TimeSpan.FromMinutes(1)
+    //             }));
+    // });
 
     // Hangfire
     builder.Services.AddHangfire(config => config
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
-        .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+        .UsePostgreSqlStorage(options =>
+        {
+            options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+        }));
     
     builder.Services.AddHangfireServer();
 
@@ -188,11 +195,7 @@ try
 
     // Health Checks
     builder.Services.AddHealthChecks()
-        .AddDbContext<LeadTrackerDbContext>()
-        .AddHangfire(options =>
-        {
-            options.MinimumAvailableServers = 1;
-        });
+        .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
     // Redis Cache
     var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
@@ -236,7 +239,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("DefaultPolicy");
-    app.UseRateLimiter();
+    // app.UseRateLimiter(); // Commented out for .NET 7 compatibility
 
     // Custom Middleware
     app.UseMiddleware<RequestCorrelationMiddleware>();
