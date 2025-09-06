@@ -7,12 +7,45 @@ namespace LeadTracker.Infrastructure.Data;
 
 public class ApplicationUser : IdentityUser<Guid>
 {
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public Guid OrganizationId { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? LastLoginAt { get; set; }
+    /// <summary>
+    /// First name of the user
+    /// </summary>
+    public string? FirstName { get; set; }
+
+    /// <summary>
+    /// Last name of the user
+    /// </summary>
+    public string? LastName { get; set; }
+
+    /// <summary>
+    /// Organization ID this user belongs to
+    /// </summary>
+    public Guid? OrganizationId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the organization
+    /// </summary>
+    public virtual Organization? Organization { get; set; }
+
+    /// <summary>
+    /// Full name of the user (computed property)
+    /// </summary>
+    public string FullName => $"{FirstName} {LastName}".Trim();
+
+    /// <summary>
+    /// Whether the user is active
+    /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// When the user was created
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// When the user was last updated
+    /// </summary>
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
