@@ -1,0 +1,10 @@
+Title,Description,Labels,Milestone,Weight,Due Date,Confidential
+"Tests unitaires & intégration","Tests unitaires complets pour toutes les couches de l'application.","backend,testing","Jalon C - Novembre 2025",3,,
+"Déploiement Azure","Configuration et déploiement de l'application sur Azure.","infra,deployment","Jalon C - Novembre 2025",4,,
+"CI/CD pipeline complet","Pipeline CI/CD complet avec tests automatisés et déploiement.","infra,ci","Jalon C - Novembre 2025",3,,
+"Documentation technique","Documentation technique complète de l'architecture.","docs,technical","Jalon C - Novembre 2025",2,,
+"Optimisation performance","Optimisation des performances de l'application.","backend,performance","Jalon C - Novembre 2025",3,,
+"Sécurité & audit","Audit de sécurité et implémentation des bonnes pratiques.","security,audit","Jalon C - Novembre 2025",3,,
+"Monitoring & observabilité","Mise en place du monitoring et de l'observabilité.","infra,monitoring","Jalon C - Novembre 2025",2,,
+"Tests de charge","Tests de charge et de performance.","testing,performance","Jalon C - Novembre 2025",2,,
+"Finalisation & présentation","Finalisation de l'application et préparation de la présentation.","docs,presentation","Jalon Final - Décembre 2025",2,,
