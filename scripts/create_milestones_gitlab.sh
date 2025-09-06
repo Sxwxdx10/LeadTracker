@@ -5,7 +5,7 @@ set -euo pipefail
 # Utilise l'API GitLab au lieu de GitHub CLI
 
 GITLAB_URL="https://depot.dinf.usherbrooke.ca"
-PROJECT_ID="dinf/projets/a25/eq24/leadtracker"
+PROJECT_ID="4232"
 
 # Fonction pour créer un milestone via l'API GitLab
 create_milestone() {
@@ -15,15 +15,23 @@ create_milestone() {
     
     echo "Création du milestone: $title"
     
+    # Créer un fichier JSON temporaire pour éviter les problèmes d'échappement
+    local json_file=$(mktemp)
+    cat > "$json_file" << EOF
+{
+    "title": "$title",
+    "description": "$description",
+    "due_date": "$due_date"
+}
+EOF
+    
     curl -X POST \
         -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
         -H "Content-Type: application/json" \
-        "$GITLAB_URL/api/v4/projects/$(echo $PROJECT_ID | sed 's/\//%2F/g')/milestones" \
-        -d "{
-            \"title\": \"$title\",
-            \"description\": \"$description\",
-            \"due_date\": \"$due_date\"
-        }" 2>/dev/null || echo "Erreur: Vérifiez votre token GitLab"
+        "$GITLAB_URL/api/v4/projects/$PROJECT_ID/milestones" \
+        -d @"$json_file" || echo "Erreur: Vérifiez votre token GitLab"
+    
+    rm -f "$json_file"
 }
 
 # Vérifier que le token GitLab est défini
@@ -40,48 +48,22 @@ echo "🚀 Création des milestones sur GitLab..."
 
 # Jalon A — Septembre 2025
 create_milestone "Jalon A - Septembre 2025" \
-    "Setup + base API/DB/UI - 4 semaines (80h)
-
-Semaine 1 (fait) ✅: Bootstraper le repo, Docker, CI/CD minimal
-Semaine 2 (30h): Modèle de données + Auth multi-tenant JWT
-Semaine 3 (25h): CRUD Leads + UI Next.js
-Semaine 4 (25h): Kanban drag & drop (entamé) + Buffer + relecture
-
-Livrable: API Auth + CRUD leads, UI de base avec pipeline Kanban partiel" \
+    "Setup + base API/DB/UI - 4 semaines (80h)" \
     "2025-09-30"
 
 # Jalon B — Octobre 2025
 create_milestone "Jalon B - Octobre 2025" \
-    "Features principales + analytics - 4 semaines (80h)
-
-Semaine 5 (25h): Kanban (fin) + Tâches & rappels
-Semaine 6 (25h): Recherche & filtres + Rapports & analytics
-Semaine 7 (20h): Import/Export CSV + Notifications email
-Semaine 8 (20h): Tests unitaires initiaux + Buffer
-
-Livrable: Application complète MVP (CRUD + Kanban + filtres + rappels + rapports + CSV)" \
+    "Features principales + analytics - 4 semaines (80h)" \
     "2025-10-31"
 
 # Jalon C — Novembre 2025
 create_milestone "Jalon C - Novembre 2025" \
-    "Stabilité + DevOps + qualité - 4 semaines (80h)
-
-Semaine 9 (20h): Tests unitaires & intégration + Déploiement Azure
-Semaine 10 (20h): CI/CD pipeline complet + Documentation technique
-Semaine 11 (20h): Optimisation performance + Sécurité & audit
-Semaine 12 (20h): Monitoring & observabilité + Tests de charge + Buffer
-
-Livrable: Application déployée en Azure avec CI/CD, docs, monitoring, tests" \
+    "Stabilité + DevOps + qualité - 4 semaines (80h)" \
     "2025-11-30"
 
 # Jalon Final — Décembre 2025
 create_milestone "Jalon Final - Décembre 2025" \
-    "Polish + présentation - 1 semaine (30h)
-
-Semaine 13 (30h): Finalisation & présentation + Revue globale + Polish UI/UX
-Buffer final (~10h)
-
-Livrable final (12 déc.): Application multi-tenant fonctionnelle" \
+    "Polish + présentation - 1 semaine (30h)" \
     "2025-12-12"
 
 echo "✅ Milestones créés avec succès sur GitLab !"

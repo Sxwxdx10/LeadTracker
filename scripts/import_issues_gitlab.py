@@ -3,7 +3,7 @@ import csv, subprocess, shlex, os, json, requests
 
 # Configuration GitLab
 GITLAB_URL = "https://depot.dinf.usherbrooke.ca"
-PROJECT_ID = "dinf/projets/a25/eq24/leadtracker"
+PROJECT_ID = "4232"
 GITLAB_TOKEN = os.getenv('GITLAB_TOKEN')
 
 if not GITLAB_TOKEN:
@@ -67,7 +67,7 @@ detailed_issues = {
 
 def get_milestone_id(milestone_title):
     """Récupère l'ID du milestone depuis GitLab"""
-    url = f"{GITLAB_URL}/api/v4/projects/{PROJECT_ID.replace('/', '%2F')}/milestones"
+    url = f"{GITLAB_URL}/api/v4/projects/{PROJECT_ID}/milestones"
     headers = {"PRIVATE-TOKEN": GITLAB_TOKEN}
     
     response = requests.get(url, headers=headers)
@@ -117,7 +117,7 @@ def create_issue(title, description, labels, milestone_title, weight):
         data["milestone_id"] = milestone_id
 
     # Créer l'issue
-    url = f"{GITLAB_URL}/api/v4/projects/{PROJECT_ID.replace('/', '%2F')}/issues"
+    url = f"{GITLAB_URL}/api/v4/projects/{PROJECT_ID}/issues"
     headers = {
         "PRIVATE-TOKEN": GITLAB_TOKEN,
         "Content-Type": "application/json"
