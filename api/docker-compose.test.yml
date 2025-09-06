@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:15
+    container_name: leadtracker-postgres-test
+    environment:
+      POSTGRES_DB: leadtracker_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"  # Port différent pour éviter les conflits
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d leadtracker_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: leadtracker-redis-test
+    ports:
+      - "6380:6379"  # Port différent pour éviter les conflits
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test-network
+
+volumes:
+  postgres_test_data:
+
+networks:
+  test-network:
+    driver: bridge
