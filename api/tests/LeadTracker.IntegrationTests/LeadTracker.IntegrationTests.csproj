@@ -20,11 +20,15 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="3.6.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../LeadTracker.Core/LeadTracker.Core.csproj" />
     <ProjectReference Include="../../LeadTracker.Infrastructure/LeadTracker.Infrastructure.csproj" />
+    <ProjectReference Include="../../LeadTracker.Api/LeadTracker.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

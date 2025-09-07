@@ -54,3 +54,6 @@ build/
 
 # Docker
 .dockerignore
+
+# Cursor IDE
+.cursor-context

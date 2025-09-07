@@ -305,3 +305,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Public Program class for testing
+public partial class Program { }

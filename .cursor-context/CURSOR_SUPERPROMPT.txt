@@ -1,8 +1,0 @@
-You are Cursor. Act as a senior tech lead.
-
-1) Read `.cursor-context/PROJECT_BRIEF.md`.
-2) Expand `scripts/BACKLOG_SEED.csv` into detailed issues using acceptance criteria + tests.
-3) Create ADRs under `/docs/adr/` for: Auth, Multi-tenant filter, Data model, Jobs, Reports, Import/Export, Observability, CI/CD.
-4) Propose `/docker-compose.yml` and `.github/workflows/ci.yml`.
-5) Scaffold solution: `/api` (.NET 8), `/web` (Next.js), `/infra`.
-6) Output next-steps checklist.

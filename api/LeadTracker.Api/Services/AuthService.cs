@@ -9,26 +9,31 @@ namespace LeadTracker.Api.Services;
 /// <summary>
 /// Authentication service implementation
 /// </summary>
-public class AuthService : IAuthService
-{
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IJwtService _jwtService;
-    private readonly LeadTrackerDbContext _context;
-    private readonly ILogger<AuthService> _logger;
+    public class AuthService : IAuthService
+    {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IJwtService _jwtService;
+        private readonly LeadTrackerDbContext _context;
+        private readonly ILogger<AuthService> _logger;
+        private readonly Func<string, Task<Organization?>>? _getOrganizationByDomain;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IJwtService jwtService,
         LeadTrackerDbContext context,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        Func<string, Task<Organization?>>? getOrganizationByDomain = null)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _jwtService = jwtService;
         _context = context;
         _logger = logger;
+        _getOrganizationByDomain = getOrganizationByDomain;
+        
+        _logger.LogInformation("AuthService initialized with mock: {HasMock}", _getOrganizationByDomain != null);
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -147,8 +152,17 @@ public class AuthService : IAuthService
         try
         {
             // Find organization by domain
-            var organization = await _context.Organizations
-                .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain && o.IsActive);
+            Organization? organization;
+            if (_getOrganizationByDomain != null)
+            {
+                organization = await _getOrganizationByDomain(request.OrganizationDomain);
+            }
+            else
+            {
+                // Fallback to synchronous query for unit tests
+                organization = _context.Organizations
+                    .FirstOrDefault(o => o.Domain == request.OrganizationDomain && o.IsActive);
+            }
             
             if (organization == null)
             {
@@ -156,7 +170,7 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _userManager.Users
+            var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.OrganizationId == organization.Id && u.IsActive);
             
             if (user == null)
@@ -170,8 +184,13 @@ public class AuthService : IAuthService
             {
                 if (result.IsLockedOut)
                 {
+                    _logger.LogWarning("Account locked out for user {Email}", user.Email);
                     throw new UnauthorizedAccessException("Account is locked out");
                 }
+                
+                // Log security event for failed login attempt
+                _logger.LogWarning("Failed login attempt for user {Email} from organization {OrganizationDomain}", 
+                    user.Email, request.OrganizationDomain);
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
 
@@ -179,6 +198,9 @@ public class AuthService : IAuthService
             var roles = await _userManager.GetRolesAsync(user);
             var accessToken = _jwtService.GenerateAccessToken(user, roles);
             var refreshToken = _jwtService.GenerateRefreshToken();
+
+            // Reset access failed count on successful login
+            await _userManager.ResetAccessFailedCountAsync(user);
 
             // Update last login
             user.LastLoginAt = DateTime.UtcNow;
@@ -243,8 +265,17 @@ public class AuthService : IAuthService
         try
         {
             // Find organization by domain
-            var organization = await _context.Organizations
-                .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain && o.IsActive);
+            Organization? organization;
+            if (_getOrganizationByDomain != null)
+            {
+                organization = await _getOrganizationByDomain(request.OrganizationDomain);
+            }
+            else
+            {
+                // Fallback to synchronous query for unit tests
+                organization = _context.Organizations
+                    .FirstOrDefault(o => o.Domain == request.OrganizationDomain && o.IsActive);
+            }
             
             if (organization == null)
             {
@@ -252,7 +283,7 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _userManager.Users
+            var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.OrganizationId == organization.Id && u.IsActive);
             
             if (user == null)
@@ -317,8 +348,17 @@ public class AuthService : IAuthService
         try
         {
             // Find organization by domain
-            var organization = await _context.Organizations
-                .FirstOrDefaultAsync(o => o.Domain == organizationDomain && o.IsActive);
+            Organization? organization;
+            if (_getOrganizationByDomain != null)
+            {
+                organization = await _getOrganizationByDomain(organizationDomain);
+            }
+            else
+            {
+                // Fallback to synchronous query for unit tests
+                organization = _context.Organizations
+                    .FirstOrDefault(o => o.Domain == organizationDomain && o.IsActive);
+            }
             
             if (organization == null)
             {
@@ -326,7 +366,7 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _userManager.Users
+            var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email && u.OrganizationId == organization.Id && u.IsActive);
             
             if (user == null)
