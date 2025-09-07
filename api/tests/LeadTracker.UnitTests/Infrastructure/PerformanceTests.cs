@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using LeadTracker.Infrastructure.Data;
+using LeadTracker.Infrastructure;
 using LeadTracker.Core.Entities;
 using LeadTracker.Core.Enums;
 using Xunit;

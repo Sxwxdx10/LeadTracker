@@ -3,6 +3,7 @@ using System;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LeadTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(LeadTrackerDbContext))]
-    partial class LeadTrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250907001901_AddApplicationUserFields")]
+    partial class AddApplicationUserFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -279,8 +282,8 @@ namespace LeadTracker.Infrastructure.Migrations
 
                     b.Property<string>("TimeZone")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasDefaultValue("UTC");
 
                     b.Property<DateTime>("UpdatedAt")

@@ -1,6 +1,6 @@
 using FluentAssertions;
 using LeadTracker.Core.Entities;
-using LeadTracker.Infrastructure.Data;
+using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TaskEntity = LeadTracker.Core.Entities.Task;

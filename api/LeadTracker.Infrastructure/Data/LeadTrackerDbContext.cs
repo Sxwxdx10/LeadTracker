@@ -3,50 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Core.Entities;
 
-namespace LeadTracker.Infrastructure.Data;
-
-public class ApplicationUser : IdentityUser<Guid>
-{
-    /// <summary>
-    /// First name of the user
-    /// </summary>
-    public string? FirstName { get; set; }
-
-    /// <summary>
-    /// Last name of the user
-    /// </summary>
-    public string? LastName { get; set; }
-
-    /// <summary>
-    /// Organization ID this user belongs to
-    /// </summary>
-    public Guid? OrganizationId { get; set; }
-
-    /// <summary>
-    /// Navigation property to the organization
-    /// </summary>
-    public virtual Organization? Organization { get; set; }
-
-    /// <summary>
-    /// Full name of the user (computed property)
-    /// </summary>
-    public string FullName => $"{FirstName} {LastName}".Trim();
-
-    /// <summary>
-    /// Whether the user is active
-    /// </summary>
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
-    /// When the user was created
-    /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    /// <summary>
-    /// When the user was last updated
-    /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-}
+namespace LeadTracker.Infrastructure;
 
 public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
@@ -79,8 +36,25 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
         {
             entity.Property(e => e.FirstName).HasMaxLength(100).IsRequired();
             entity.Property(e => e.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.JobTitle).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.DomainUser)
+                  .WithOne()
+                  .HasForeignKey<ApplicationUser>(e => e.DomainUserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            
+            // Indexes
             entity.HasIndex(e => new { e.OrganizationId, e.Email }).IsUnique();
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.CreatedAt);
         });
 
         // Configure Organization
@@ -90,7 +64,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Domain).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.TimeZone).HasMaxLength(10).HasDefaultValue("UTC");
+            entity.Property(e => e.TimeZone).HasMaxLength(50).HasDefaultValue("UTC");
             entity.Property(e => e.Currency).HasMaxLength(5).HasDefaultValue("USD");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");

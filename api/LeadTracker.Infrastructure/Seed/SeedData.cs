@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using LeadTracker.Infrastructure.Data;
+using LeadTracker.Infrastructure;
 using LeadTracker.Core.Entities;
 using TaskEntity = LeadTracker.Core.Entities.Task;
 
@@ -18,6 +18,9 @@ public static class SeedData
 
         try
         {
+            // Seed Roles
+            await SeedRolesAsync(leadTrackerContext, logger);
+            
             // Seed Organizations
             await SeedOrganizationsAsync(leadTrackerContext, logger);
             
@@ -41,6 +44,40 @@ public static class SeedData
             logger.LogError(ex, "An error occurred while seeding the database");
             throw;
         }
+    }
+
+    private static async System.Threading.Tasks.Task SeedRolesAsync(LeadTrackerDbContext context, ILogger logger)
+    {
+        if (await context.Roles.AnyAsync())
+        {
+            logger.LogInformation("Roles already exist, skipping seed");
+            return;
+        }
+
+        var roles = new[]
+        {
+            new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name = "Admin",
+                NormalizedName = "ADMIN"
+            },
+            new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Name = "User",
+                NormalizedName = "USER"
+            },
+            new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                Name = "Manager",
+                NormalizedName = "MANAGER"
+            }
+        };
+
+        context.Roles.AddRange(roles);
+        logger.LogInformation("Seeded {Count} roles", roles.Length);
     }
 
     private static async System.Threading.Tasks.Task SeedOrganizationsAsync(LeadTrackerDbContext context, ILogger logger)

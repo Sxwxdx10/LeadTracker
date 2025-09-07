@@ -1,9 +1,10 @@
-using LeadTracker.Infrastructure.Data;
+using LeadTracker.Infrastructure;
 using LeadTracker.Infrastructure.Configuration;
 using LeadTracker.Api.Services;
 using LeadTracker.Api.Middleware;
 using LeadTracker.Api.Filters;
 using LeadTracker.Infrastructure.Seed;
+using LeadTracker.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -223,6 +224,8 @@ try
     // Custom Services
     builder.Services.AddScoped<ITenantContext, TenantContext>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+    builder.Services.AddScoped<IJwtService, JwtService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
 
     var app = builder.Build();
 

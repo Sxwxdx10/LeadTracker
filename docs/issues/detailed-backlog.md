@@ -32,18 +32,18 @@ Initialiser solution .NET + React, config Docker (api, db, proxy), variables d'e
 EF Core entities + migrations. Ajout des contraintes et indexes clés.
 
 #### Critères d'acceptation
-- [ ] Entités EF Core : Organization, User, Lead, Stage, Task
-- [ ] Relations correctes avec clés étrangères
-- [ ] Indexes sur colonnes fréquemment requêtées (org_id, email, created_at)
-- [ ] Contraintes d'intégrité (email unique par org, etc.)
-- [ ] Migration initiale appliquée automatiquement
-- [ ] Seed data basique pour développement
+- [x] Entités EF Core : Organization, User, Lead, Stage, Task
+- [x] Relations correctes avec clés étrangères
+- [x] Indexes sur colonnes fréquemment requêtées (org_id, email, created_at)
+- [x] Contraintes d'intégrité (email unique par org, etc.)
+- [x] Migration initiale appliquée automatiquement
+- [x] Seed data basique pour développement
 
 #### Tests
-- [ ] Tests unitaires pour validation des entités
-- [ ] Tests d'intégration pour migrations
-- [ ] Tests de contraintes d'intégrité
-- [ ] Tests de performance sur requêtes indexées
+- [x] Tests unitaires pour validation des entités
+- [x] Tests d'intégration pour migrations
+- [x] Tests de contraintes d'intégrité
+- [x] Tests de performance sur requêtes indexées
 
 ---
 
