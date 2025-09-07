@@ -181,9 +181,9 @@ public class AuthSecurityTests : TestBase
         var org = new Organization
         {
             Id = Guid.NewGuid(),
-            Name = "Test Corp",
-            Domain = "test-corp",
-            Description = "Test organization",
+            Name = "Test Corp Security",
+            Domain = "test-corp-security-" + Guid.NewGuid().ToString("N")[..8],
+            Description = "Test organization for security tests",
             TimeZone = "UTC",
             Currency = "USD",
             IsActive = true
@@ -213,7 +213,7 @@ public class AuthSecurityTests : TestBase
         {
             Email = "john.doe@example.com",
             Password = "CorrectPassword",
-            OrganizationDomain = "test-corp"
+            OrganizationDomain = org.Domain
         };
 
         var accessToken = "access-token";

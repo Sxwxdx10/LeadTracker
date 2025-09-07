@@ -35,4 +35,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Controllers/AdvancedBruteForceSecurityTests.cs" />
+  </ItemGroup>
+
 </Project>

@@ -188,6 +188,9 @@ namespace LeadTracker.Api.Services;
                     throw new UnauthorizedAccessException("Account is locked out");
                 }
                 
+                // Increment access failed count for security
+                await _userManager.AccessFailedAsync(user);
+                
                 // Log security event for failed login attempt
                 _logger.LogWarning("Failed login attempt for user {Email} from organization {OrganizationDomain}", 
                     user.Email, request.OrganizationDomain);

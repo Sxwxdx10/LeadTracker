@@ -21,6 +21,7 @@ public class AuthMultiTenantTests : TestBase
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
+    private readonly Mock<Func<string, Task<Organization?>>> _getOrganizationByDomainMock;
     private readonly AuthService _authService;
 
     public AuthMultiTenantTests()
@@ -37,13 +38,22 @@ public class AuthMultiTenantTests : TestBase
 
         _jwtServiceMock = new Mock<IJwtService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
+        _getOrganizationByDomainMock = new Mock<Func<string, Task<Organization?>>>();
 
         _authService = new AuthService(
             _userManagerMock.Object,
             _signInManagerMock.Object,
             _jwtServiceMock.Object,
             Context,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _getOrganizationByDomainMock.Object);
+    }
+
+    private void SetupOrganizationMock(Organization organization)
+    {
+        // Setup the mock to return the organization when called with the specific domain
+        _getOrganizationByDomainMock.Setup(x => x(organization.Domain))
+            .ReturnsAsync(organization);
     }
 
     [Fact]
@@ -53,6 +63,7 @@ public class AuthMultiTenantTests : TestBase
         await CleanupAsync();
         
         // Arrange
+        var uniqueDomain = "company1-" + Guid.NewGuid().ToString("N")[..8];
         var request = new RegisterRequest
         {
             FirstName = "John",
@@ -62,7 +73,7 @@ public class AuthMultiTenantTests : TestBase
             ConfirmPassword = "Password123!",
             OrganizationName = "Company 1",
             OrganizationDescription = "First company",
-            OrganizationDomain = "company1"
+            OrganizationDomain = uniqueDomain
         };
 
         var accessToken = "access-token";
@@ -89,14 +100,14 @@ public class AuthMultiTenantTests : TestBase
         // Assert
         Assert.NotNull(result);
         Assert.Equal("Company 1", result.Organization.Name);
-        Assert.Equal("company1", result.Organization.Domain);
+        Assert.Equal(uniqueDomain, result.Organization.Domain);
         
         // Verify organization was created with correct domain
         var organization = await Context.Organizations
-            .FirstOrDefaultAsync(o => o.Domain == "company1");
+            .FirstOrDefaultAsync(o => o.Domain == uniqueDomain);
         Assert.NotNull(organization);
         Assert.Equal("Company 1", organization.Name);
-        Assert.Equal("company1", organization.Domain);
+        Assert.Equal(uniqueDomain, organization.Domain);
     }
 
     [Fact]
@@ -119,6 +130,10 @@ public class AuthMultiTenantTests : TestBase
 
         await Context.Organizations.AddAsync(org1);
         await Context.SaveChangesAsync();
+
+        // Setup organization mock to return null for wrong domain
+        _getOrganizationByDomainMock.Setup(x => x("company2"))
+            .ReturnsAsync((Organization?)null);
 
         var user = new ApplicationUser
         {
@@ -150,11 +165,12 @@ public class AuthMultiTenantTests : TestBase
         await CleanupAsync();
         
         // Arrange - Create organization
+        var uniqueDomain = "company1-login-" + Guid.NewGuid().ToString("N")[..8];
         var org = new Organization
         {
             Id = Guid.NewGuid(),
             Name = "Company 1",
-            Domain = "company1",
+            Domain = uniqueDomain,
             Description = "First company",
             TimeZone = "UTC",
             Currency = "USD",
@@ -163,6 +179,9 @@ public class AuthMultiTenantTests : TestBase
 
         await Context.Organizations.AddAsync(org);
         await Context.SaveChangesAsync();
+
+        // Setup organization mock
+        SetupOrganizationMock(org);
 
         var user = new ApplicationUser
         {
@@ -173,11 +192,15 @@ public class AuthMultiTenantTests : TestBase
             OrganizationId = org.Id
         };
 
+        // Add user to database
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+
         var request = new LoginRequest
         {
             Email = "john.doe@company1.com",
             Password = "CorrectPassword",
-            OrganizationDomain = "company1" // Correct organization domain
+            OrganizationDomain = uniqueDomain // Correct organization domain
         };
 
         var accessToken = "access-token";
@@ -189,7 +212,7 @@ public class AuthMultiTenantTests : TestBase
         _userManagerMock.Setup(x => x.IsLockedOutAsync(user))
             .ReturnsAsync(false);
 
-        _signInManagerMock.Setup(x => x.CheckPasswordSignInAsync(user, request.Password, false))
+        _signInManagerMock.Setup(x => x.CheckPasswordSignInAsync(user, request.Password, true))
             .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
 
         _userManagerMock.Setup(x => x.ResetAccessFailedCountAsync(user))
@@ -315,6 +338,9 @@ public class AuthMultiTenantTests : TestBase
 
         await Context.Organizations.AddAsync(org);
         await Context.SaveChangesAsync();
+
+        // Setup organization mock to return the inactive organization
+        SetupOrganizationMock(org);
 
         var user = new ApplicationUser
         {

@@ -2,27 +2,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using LeadTracker.Infrastructure;
 using LeadTracker.Core.Entities;
+using LeadTracker.UnitTests.Common;
 using Xunit;
-using FluentAssertions;
 using TaskEntity = LeadTracker.Core.Entities.Task;
 
 namespace LeadTracker.UnitTests.Infrastructure;
 
 /// <summary>
-/// Tests for database integrity constraints
+/// Tests for database integrity constraints using PostgreSQL for realistic behavior
 /// </summary>
-public class IntegrityConstraintTests : IDisposable
+public class IntegrityConstraintTests : TestBase
 {
-    private readonly LeadTrackerDbContext _context;
-    private readonly DbContextOptions<LeadTrackerDbContext> _options;
-
-    public IntegrityConstraintTests()
+    public IntegrityConstraintTests() : base()
     {
-        _options = new DbContextOptionsBuilder<LeadTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new LeadTrackerDbContext(_options);
+        // Clean up before each test
+        CleanupAsync().Wait();
     }
 
     [Fact]
@@ -46,14 +40,13 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act & Assert
-        await _context.Organizations.AddAsync(org1);
-        await _context.SaveChangesAsync();
+        await Context.Organizations.AddAsync(org1);
+        await Context.SaveChangesAsync();
 
-        await _context.Organizations.AddAsync(org2);
+        await Context.Organizations.AddAsync(org2);
         
         // Should throw exception for duplicate domain
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("duplicate");
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
@@ -90,15 +83,14 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act & Assert
-        await _context.Organizations.AddAsync(org);
-        await _context.Users.AddAsync(user1);
-        await _context.SaveChangesAsync();
+        await Context.Organizations.AddAsync(org);
+        await Context.Users.AddAsync(user1);
+        await Context.SaveChangesAsync();
 
-        await _context.Users.AddAsync(user2);
+        await Context.Users.AddAsync(user2);
         
         // Should throw exception for duplicate email in same organization
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("duplicate");
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
@@ -117,15 +109,14 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act & Assert
-        await _context.Leads.AddAsync(lead);
+        await Context.Leads.AddAsync(lead);
         
         // Should throw exception for invalid foreign keys
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("foreign key");
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Enforce_Cascade_Delete_For_Organization()
+    public async System.Threading.Tasks.Task Should_Enforce_Restrict_Delete_For_Organization_With_Leads()
     {
         // Arrange
         var orgId = Guid.NewGuid();
@@ -157,21 +148,16 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act
-        await _context.Organizations.AddAsync(org);
-        await _context.Stages.AddAsync(stage);
-        await _context.Leads.AddAsync(lead);
-        await _context.SaveChangesAsync();
+        await Context.Organizations.AddAsync(org);
+        await Context.Stages.AddAsync(stage);
+        await Context.Leads.AddAsync(lead);
+        await Context.SaveChangesAsync();
 
-        // Delete organization (should cascade)
-        _context.Organizations.Remove(org);
-        await _context.SaveChangesAsync();
-
-        // Assert
-        var remainingStages = await _context.Stages.CountAsync();
-        var remainingLeads = await _context.Leads.CountAsync();
+        // Try to delete organization (should be restricted due to leads)
+        Context.Organizations.Remove(org);
         
-        remainingStages.Should().Be(0);
-        remainingLeads.Should().Be(0);
+        // Assert - EF Core throws InvalidOperationException for conceptual nulls
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
@@ -216,18 +202,21 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act
-        await _context.Organizations.AddAsync(org);
-        await _context.Stages.AddAsync(stage);
-        await _context.Leads.AddAsync(lead);
-        await _context.Tasks.AddAsync(task);
-        await _context.SaveChangesAsync();
+        await Context.Organizations.AddAsync(org);
+        await Context.Stages.AddAsync(stage);
+        await Context.Leads.AddAsync(lead);
+        await Context.Tasks.AddAsync(task);
+        await Context.SaveChangesAsync();
 
-        // Try to delete lead (should be restricted due to tasks)
-        _context.Leads.Remove(lead);
+        // Verify task exists and is linked to lead
+        var taskCount = await Context.Tasks.CountAsync(t => t.LeadId == lead.Id);
+        Assert.Equal(1, taskCount);
         
-        // Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("foreign key");
+        // Try to delete lead (should be restricted due to tasks)
+        Context.Leads.Remove(lead);
+        
+        // Assert - Should throw exception due to foreign key constraint
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
@@ -243,10 +232,9 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act & Assert
-        await _context.Leads.AddAsync(lead);
+        await Context.Leads.AddAsync(lead);
         
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("required");
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
     [Fact]
@@ -262,14 +250,9 @@ public class IntegrityConstraintTests : IDisposable
         };
 
         // Act & Assert
-        await _context.Organizations.AddAsync(org);
+        await Context.Organizations.AddAsync(org);
         
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _context.SaveChangesAsync());
-        exception.Message.Should().Contain("length");
+        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
     }
 
-    public void Dispose()
-    {
-        _context.Dispose();
-    }
 }
