@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Core.Entities;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 
 namespace LeadTracker.Infrastructure;
 

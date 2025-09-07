@@ -82,16 +82,16 @@ ASP.NET Identity, login/register/reset, JWT + refresh, résolution org par heade
 HasQueryFilter sur entités tenantées, tests d'isolation des données.
 
 #### Critères d'acceptation
-- [ ] QueryFilter global sur toutes les entités tenantées
-- [ ] Résolution automatique de org_id depuis le contexte utilisateur
-- [ ] Impossible d'accéder aux données d'une autre organisation
-- [ ] Tests d'isolation exhaustifs
+- [x] QueryFilter global sur toutes les entités tenantées
+- [x] Résolution automatique de org_id depuis le contexte utilisateur
+- [x] Impossible d'accéder aux données d'une autre organisation
+- [x] Tests d'isolation exhaustifs
 
 #### Tests
-- [ ] Tests unitaires pour query filters
-- [ ] Tests d'intégration multi-tenant
-- [ ] Tests de sécurité : tentatives d'accès cross-tenant
-- [ ] Tests de performance avec filtres
+- [x] Tests unitaires pour query filters
+- [x] Tests d'intégration multi-tenant
+- [x] Tests de sécurité : tentatives d'accès cross-tenant
+- [x] Tests de performance avec filtres
 
 ---
 

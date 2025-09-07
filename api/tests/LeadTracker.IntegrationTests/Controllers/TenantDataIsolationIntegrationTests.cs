@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
 using Xunit;

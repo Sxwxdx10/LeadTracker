@@ -29,7 +29,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\LeadTracker.Core\LeadTracker.Core.csproj" />
     <ProjectReference Include="..\..\LeadTracker.Infrastructure\LeadTracker.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\LeadTracker.Api\LeadTracker.Api.csproj" />
   </ItemGroup>
 
 </Project>

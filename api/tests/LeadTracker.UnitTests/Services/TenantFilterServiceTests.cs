@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 using Xunit;
 
 namespace LeadTracker.UnitTests.Services;

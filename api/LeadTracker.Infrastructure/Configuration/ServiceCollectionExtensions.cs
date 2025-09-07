@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 
 namespace LeadTracker.Infrastructure.Configuration;
 

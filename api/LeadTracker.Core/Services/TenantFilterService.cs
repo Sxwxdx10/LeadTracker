@@ -1,6 +1,6 @@
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Core.Services;
 
 /// <summary>
 /// Service implementation for tenant filtering in EF Core queries
