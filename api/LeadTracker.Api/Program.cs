@@ -179,17 +179,20 @@ try
     //             }));
     // });
 
-    // Hangfire
-    builder.Services.AddHangfire(config => config
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-        .UseSimpleAssemblyNameTypeSerializer()
-        .UseRecommendedSerializerSettings()
-        .UsePostgreSqlStorage(options =>
-        {
-            options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
-        }));
-    
-    builder.Services.AddHangfireServer();
+    // Hangfire - only in non-testing environments
+    if (!builder.Environment.IsEnvironment("Testing"))
+    {
+        builder.Services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options =>
+            {
+                options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+            }));
+        
+        builder.Services.AddHangfireServer();
+    }
 
     // Application Insights
     builder.Services.AddApplicationInsightsTelemetry();
@@ -276,9 +279,13 @@ try
         
         try
         {
-            logger.LogInformation("Applying database migrations...");
-            await context.Database.MigrateAsync();
-            logger.LogInformation("Database migrations applied successfully");
+            // Only run migrations for non-testing environments
+            if (!app.Environment.IsEnvironment("Testing"))
+            {
+                logger.LogInformation("Applying database migrations...");
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully");
+            }
             
             if (app.Environment.IsDevelopment())
             {
