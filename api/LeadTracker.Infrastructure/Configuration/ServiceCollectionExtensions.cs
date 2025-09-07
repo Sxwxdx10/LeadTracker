@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using LeadTracker.Api.Services;
 
 namespace LeadTracker.Infrastructure.Configuration;
 
@@ -6,7 +7,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-        // Add infrastructure services here
+        // Register tenant filter service
+        services.AddScoped<ITenantFilterService, TenantFilterService>();
+        
         return services;
     }
 }

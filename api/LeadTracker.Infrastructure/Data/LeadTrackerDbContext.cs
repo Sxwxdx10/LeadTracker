@@ -2,13 +2,21 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Core.Entities;
+using LeadTracker.Api.Services;
 
 namespace LeadTracker.Infrastructure;
 
 public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
+    private readonly ITenantFilterService? _tenantFilterService;
+
     public LeadTrackerDbContext(DbContextOptions<LeadTrackerDbContext> options) : base(options)
     {
+    }
+
+    public LeadTrackerDbContext(DbContextOptions<LeadTrackerDbContext> options, ITenantFilterService tenantFilterService) : base(options)
+    {
+        _tenantFilterService = tenantFilterService;
     }
 
     // Domain entities
@@ -184,7 +192,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasOne(e => e.Lead)
                   .WithMany(l => l.Tasks)
                   .HasForeignKey(e => e.LeadId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                  .OnDelete(DeleteBehavior.Restrict);
                   
             entity.HasOne(e => e.AssignedUser)
                   .WithMany(u => u.AssignedTasks)
@@ -199,5 +207,42 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
         });
+
+        // Apply global query filters for multi-tenant entities
+        ApplyTenantFilters(builder);
+    }
+
+    /// <summary>
+    /// Applies global query filters for multi-tenant entities
+    /// </summary>
+    private void ApplyTenantFilters(ModelBuilder builder)
+    {
+        if (_tenantFilterService == null)
+        {
+            // If no tenant filter service is available, apply a filter that returns no results
+            // This ensures data isolation when tenant context is not properly configured
+            builder.Entity<Lead>().HasQueryFilter(e => false);
+            builder.Entity<User>().HasQueryFilter(e => false);
+            builder.Entity<Stage>().HasQueryFilter(e => false);
+            builder.Entity<Core.Entities.Task>().HasQueryFilter(e => false);
+            return;
+        }
+
+        // Apply tenant filters for all multi-tenant entities
+        builder.Entity<Lead>().HasQueryFilter(e => 
+            _tenantFilterService.GetCurrentOrganizationId() == null || 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<User>().HasQueryFilter(e => 
+            _tenantFilterService.GetCurrentOrganizationId() == null || 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Stage>().HasQueryFilter(e => 
+            _tenantFilterService.GetCurrentOrganizationId() == null || 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Core.Entities.Task>().HasQueryFilter(e => 
+            _tenantFilterService.GetCurrentOrganizationId() == null || 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
     }
 }
