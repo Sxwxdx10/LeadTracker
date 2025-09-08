@@ -1,0 +1,5 @@
+# Cursor Rules
+- Respect MVP scope.
+- Préférer .NET 8 + EF Core.
+- Frontend: Next.js (ou React).
+- Docs/messages: FR; code comments: EN.

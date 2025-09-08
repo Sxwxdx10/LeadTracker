@@ -172,13 +172,27 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _context.Users
+            _logger.LogInformation("Looking for user with email: {Email} in organization: {OrgId} (domain: {Domain})", 
+                request.Email, organization.Id, organization.Domain);
+            var domainUser = await _context.BusinessUsers
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.OrganizationId == organization.Id && u.IsActive);
             
-            if (user == null)
+            if (domainUser == null)
             {
+                _logger.LogWarning("User not found with email: {Email} in organization: {OrgId}", request.Email, organization.Id);
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
+            _logger.LogInformation("Found domain user: {Email} with IdentityUserId: {IdentityUserId}", domainUser.Email, domainUser.IdentityUserId);
+
+            // Get the ApplicationUser from Identity
+            _logger.LogInformation("Looking for ApplicationUser with IdentityUserId: {IdentityUserId}", domainUser.IdentityUserId);
+            var user = await _userManager.FindByIdAsync(domainUser.IdentityUserId.ToString());
+            if (user == null)
+            {
+                _logger.LogWarning("ApplicationUser not found for IdentityUserId: {IdentityUserId}", domainUser.IdentityUserId);
+                throw new UnauthorizedAccessException("Invalid credentials");
+            }
+            _logger.LogInformation("Found ApplicationUser: {Email}", user.Email);
 
             // Validate password
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
@@ -288,9 +302,16 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _context.Users
+            var domainUser = await _context.BusinessUsers
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.OrganizationId == organization.Id && u.IsActive);
             
+            if (domainUser == null)
+            {
+                return false; // Don't reveal if user exists
+            }
+
+            // Get the ApplicationUser from Identity
+            var user = await _userManager.FindByIdAsync(domainUser.IdentityUserId.ToString());
             if (user == null)
             {
                 return false; // Don't reveal if user exists
@@ -371,9 +392,16 @@ public class AuthService : IAuthService
             }
 
             // Find user by email and organization
-            var user = await _context.Users
+            var domainUser = await _context.BusinessUsers
                 .FirstOrDefaultAsync(u => u.Email == email && u.OrganizationId == organization.Id && u.IsActive);
             
+            if (domainUser == null)
+            {
+                return null;
+            }
+
+            // Get the ApplicationUser from Identity
+            var user = await _userManager.FindByIdAsync(domainUser.IdentityUserId.ToString());
             if (user == null)
             {
                 return null;

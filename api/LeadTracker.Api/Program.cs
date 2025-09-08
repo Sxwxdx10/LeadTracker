@@ -52,6 +52,7 @@ try
             options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
     builder.Services.AddEndpointsApiExplorer();
     
@@ -255,6 +256,7 @@ try
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<ILeadService, LeadService>();
     
     // Seed Command
     builder.Services.AddSeedCommand();
@@ -278,11 +280,13 @@ try
 
     // Custom Middleware
     app.UseMiddleware<RequestCorrelationMiddleware>();
-    app.UseMiddleware<TenantResolutionMiddleware>();
     app.UseMiddleware<GlobalExceptionMiddleware>();
 
     app.UseAuthentication();
     app.UseAuthorization();
+    
+    // Tenant resolution must be after authentication
+    app.UseMiddleware<TenantResolutionMiddleware>();
 
     // Hangfire Dashboard - only in non-testing environments
     var isHangfireDashboardEnabled = builder.Configuration.GetValue<bool>("Hangfire:EnableDashboard", false);

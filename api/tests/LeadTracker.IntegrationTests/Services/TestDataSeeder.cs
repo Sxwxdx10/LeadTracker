@@ -401,4 +401,63 @@ public class TestDataSeeder : ITestDataSeeder
         
         Console.WriteLine($"Final verification: {orgCount} orgs, {leadCount} leads, {userCount} users, {stageCount} stages, {taskCount} tasks");
     }
+
+    /// <summary>
+    /// Creates default stages for a given organization
+    /// </summary>
+    public async System.Threading.Tasks.Task CreateDefaultStagesForOrganizationAsync(LeadTrackerDbContext context, Guid organizationId)
+    {
+        var stages = new List<Stage>
+        {
+            new Stage
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Name = "New Lead",
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Stage
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Name = "Qualified",
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Stage
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Name = "Proposal",
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Stage
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Name = "Negotiation",
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Stage
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Name = "Closed Won",
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+
+        context.Stages.AddRange(stages);
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Created {stages.Count} default stages for organization {organizationId}");
+    }
 }

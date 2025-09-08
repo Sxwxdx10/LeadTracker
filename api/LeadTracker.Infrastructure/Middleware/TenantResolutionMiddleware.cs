@@ -21,9 +21,43 @@ public class TenantResolutionMiddleware
     {
         try
         {
-            // Resolve tenant from X-Org-Id header
+            // Skip tenant resolution for certain endpoints that don't need it
+            var path = context.Request.Path.Value?.ToLowerInvariant();
+            if (path != null && (path.StartsWith("/health") || path.StartsWith("/swagger") || path.StartsWith("/api/health")))
+            {
+                await _next(context);
+                return;
+            }
+
+            Guid? orgId = null;
+            
+            // First, try to resolve tenant from X-Org-Id header
             var orgIdHeader = context.Request.Headers["X-Org-Id"].FirstOrDefault();
-            if (Guid.TryParse(orgIdHeader, out var orgId))
+            if (Guid.TryParse(orgIdHeader, out var headerOrgId))
+            {
+                orgId = headerOrgId;
+                _logger.LogInformation("Using organization ID from X-Org-Id header: {OrgId}", orgId);
+            }
+            // If no header, try to extract from JWT token if authenticated
+            else if (context.User.Identity?.IsAuthenticated == true)
+            {
+                _logger.LogInformation("User is authenticated, looking for org_id claim");
+                _logger.LogInformation("Available claims: {Claims}", 
+                    string.Join(", ", context.User.Claims.Select(c => $"{c.Type}={c.Value}")));
+                
+                var orgIdClaim = context.User.FindFirst("org_id");
+                if (orgIdClaim != null && Guid.TryParse(orgIdClaim.Value, out var jwtOrgId))
+                {
+                    orgId = jwtOrgId;
+                    _logger.LogInformation("Using organization ID from JWT token: {OrgId}", orgId);
+                }
+                else
+                {
+                    _logger.LogWarning("org_id claim not found or invalid in JWT token");
+                }
+            }
+            
+            if (orgId.HasValue)
             {
                 _logger.LogInformation("Looking for organization with ID: {OrgId}", orgId);
                 
@@ -51,7 +85,7 @@ public class TenantResolutionMiddleware
                 {
                     if (tenantContext is TenantContext mutableContext)
                     {
-                        mutableContext.OrganizationId = orgId;
+                        mutableContext.OrganizationId = orgId.Value;
                         mutableContext.OrganizationName = organization.Name;
                     }
                     
@@ -65,6 +99,10 @@ public class TenantResolutionMiddleware
             else if (!string.IsNullOrEmpty(orgIdHeader))
             {
                 _logger.LogWarning("Invalid organization ID format: {OrgId}", orgIdHeader);
+            }
+            else
+            {
+                _logger.LogWarning("No organization ID found in X-Org-Id header or JWT token");
             }
 
             // Resolve user from JWT token if authenticated
