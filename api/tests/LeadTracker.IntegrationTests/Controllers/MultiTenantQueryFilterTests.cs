@@ -6,7 +6,7 @@ using Xunit;
 using FluentAssertions;
 using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 using System.Threading.Tasks;
 using TaskEntity = LeadTracker.Core.Entities.Task;
 

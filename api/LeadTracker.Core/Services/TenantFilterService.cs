@@ -1,4 +1,5 @@
 using LeadTracker.Core.Services;
+using Microsoft.Extensions.Logging;
 
 namespace LeadTracker.Core.Services;
 
@@ -26,7 +27,7 @@ public class TenantFilterService : ITenantFilterService
         
         if (orgId.HasValue)
         {
-            _logger.LogDebug("Tenant filter applied for organization {OrganizationId}", orgId.Value);
+            _logger.LogInformation("Tenant filter applied for organization {OrganizationId}", orgId.Value);
         }
         else
         {

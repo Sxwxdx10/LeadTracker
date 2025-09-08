@@ -1,7 +1,7 @@
 using FluentValidation;
-using LeadTracker.Api.Models;
+using LeadTracker.Core.Models;
 
-namespace LeadTracker.Api.Validators;
+namespace LeadTracker.Core.Validators;
 
 /// <summary>
 /// Validator for RegisterRequest

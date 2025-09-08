@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using LeadTracker.IntegrationTests.Services;
 
 namespace LeadTracker.IntegrationTests;
 
@@ -14,6 +15,29 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Set environment variables before any configuration
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+        Environment.SetEnvironmentVariable("DISABLE_HANGFIRE", "true");
+        
+        // Override configuration to disable Hangfire and migrations
+        builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            // Load the testing configuration file first
+            config.AddJsonFile("appsettings.Testing.json", optional: false, reloadOnChange: true);
+            
+            // Override with in-memory configuration to ensure Hangfire is completely disabled
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Hangfire:EnableDashboard"] = "false",
+                ["Hangfire:Enabled"] = "false",
+                ["Hangfire:DisableForTesting"] = "true",
+                ["Hangfire:UseInMemoryStorage"] = "false",
+                ["Hangfire:SkipDatabaseConnection"] = "true",
+                ["Environment"] = "Testing"
+            });
+        });
+
         builder.ConfigureServices(services =>
         {
             // Remove the existing DbContext registration
@@ -21,47 +45,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (descriptor != null)
                 services.Remove(descriptor);
 
-            // Add in-memory database for testing
+            // Use PostgreSQL for integration tests (same as production)
             services.AddDbContext<LeadTrackerDbContext>(options =>
             {
-                options.UseInMemoryDatabase("TestDb_IntegrationTests");
+                var connectionString = "Server=localhost;Port=5433;Database=leadtracker_test;User Id=test;Password=test;";
+                options.UseNpgsql(connectionString);
             });
 
             // Add test data seeding
             services.AddScoped<ITestDataSeeder, TestDataSeeder>();
-
-            // Remove Hangfire services for testing
-            var hangfireServices = services.Where(s => 
-                s.ServiceType.FullName?.Contains("Hangfire") == true ||
-                s.ImplementationType?.FullName?.Contains("Hangfire") == true).ToList();
-            
-            foreach (var service in hangfireServices)
-            {
-                services.Remove(service);
-            }
-
-            // Remove Hangfire server
-            var hangfireServerDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(Hangfire.BackgroundJobServer));
-            if (hangfireServerDescriptor != null)
-                services.Remove(hangfireServerDescriptor);
-
-            // Remove Hangfire configuration
-            var hangfireConfigDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(Hangfire.IGlobalConfiguration));
-            if (hangfireConfigDescriptor != null)
-                services.Remove(hangfireConfigDescriptor);
-
-        });
-
-        // Override configuration to disable Hangfire and migrations
-        builder.UseEnvironment("Testing");
-        builder.ConfigureAppConfiguration((context, config) =>
-        {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Hangfire:EnableDashboard"] = "false"
-            });
         });
     }
 }

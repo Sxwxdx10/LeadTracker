@@ -1,6 +1,6 @@
 using FluentValidation.TestHelper;
-using LeadTracker.Api.Models;
-using LeadTracker.Api.Validators;
+using LeadTracker.Core.Models;
+using LeadTracker.Core.Validators;
 using Xunit;
 
 namespace LeadTracker.UnitTests.Services;

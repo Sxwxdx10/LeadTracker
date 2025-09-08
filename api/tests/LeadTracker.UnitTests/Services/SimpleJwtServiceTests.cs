@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Services;
 using LeadTracker.Core.Entities;
+using LeadTracker.Infrastructure.Services;
 using Xunit;
 using System.Collections.Generic;
 using System.Security.Claims;

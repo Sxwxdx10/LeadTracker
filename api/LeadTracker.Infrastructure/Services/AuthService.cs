@@ -1,22 +1,24 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using LeadTracker.Api.Models;
+using Microsoft.Extensions.Logging;
+using LeadTracker.Core.Models;
 using LeadTracker.Core.Entities;
+using LeadTracker.Core.Services;
 using LeadTracker.Infrastructure;
 
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Infrastructure.Services;
 
 /// <summary>
 /// Authentication service implementation
 /// </summary>
-    public class AuthService : IAuthService
-    {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IJwtService _jwtService;
-        private readonly LeadTrackerDbContext _context;
-        private readonly ILogger<AuthService> _logger;
-        private readonly Func<string, Task<Organization?>>? _getOrganizationByDomain;
+public class AuthService : IAuthService
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IJwtService _jwtService;
+    private readonly LeadTrackerDbContext _context;
+    private readonly ILogger<AuthService> _logger;
+    private readonly Func<string, Task<Organization?>>? _getOrganizationByDomain;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,

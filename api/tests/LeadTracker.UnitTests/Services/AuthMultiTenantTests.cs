@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using LeadTracker.Api.Models;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Models;
+using LeadTracker.Core.Services;
 using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
+using LeadTracker.Infrastructure.Services;
 using LeadTracker.UnitTests.Common;
 using Xunit;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ public class AuthMultiTenantTests : TestBase
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
-    private readonly Mock<Func<string, Task<Organization?>>> _getOrganizationByDomainMock;
+    private readonly Mock<Func<string, System.Threading.Tasks.Task<Organization?>>> _getOrganizationByDomainMock;
     private readonly AuthService _authService;
 
     public AuthMultiTenantTests()
@@ -38,7 +39,7 @@ public class AuthMultiTenantTests : TestBase
 
         _jwtServiceMock = new Mock<IJwtService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
-        _getOrganizationByDomainMock = new Mock<Func<string, Task<Organization?>>>();
+        _getOrganizationByDomainMock = new Mock<Func<string, System.Threading.Tasks.Task<Organization?>>>();
 
         _authService = new AuthService(
             _userManagerMock.Object,

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using LeadTracker.Api.Models;
-using LeadTracker.Api.Services;
+using LeadTracker.Core.Models;
+using LeadTracker.Core.Services;
 using FluentValidation;
 using System.Security.Claims;
 

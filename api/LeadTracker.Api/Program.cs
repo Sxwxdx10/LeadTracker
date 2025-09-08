@@ -1,7 +1,8 @@
 using LeadTracker.Infrastructure;
 using LeadTracker.Infrastructure.Configuration;
-using LeadTracker.Api.Services;
-using LeadTracker.Api.Middleware;
+using LeadTracker.Core.Services;
+using LeadTracker.Infrastructure.Middleware;
+using LeadTracker.Infrastructure.Services;
 using LeadTracker.Api.Filters;
 using LeadTracker.Infrastructure.Seed;
 using LeadTracker.Core.Entities;
@@ -10,6 +11,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 using Hangfire;
@@ -41,7 +44,14 @@ try
         .WriteTo.File("logs/leadtracker-.txt", rollingInterval: RollingInterval.Day));
 
     // Add services to the container
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            // Configure JSON serialization to handle circular references
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        });
     builder.Services.AddEndpointsApiExplorer();
     
     // Configure Swagger/OpenAPI
@@ -95,8 +105,10 @@ try
 
     // Database Configuration
     builder.Services.AddDbContext<LeadTrackerDbContext>(options =>
+    {
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
-            b => b.MigrationsAssembly("LeadTracker.Infrastructure")));
+            b => b.MigrationsAssembly("LeadTracker.Infrastructure"));
+    });
 
     // Identity Configuration
     builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -179,9 +191,20 @@ try
     //             }));
     // });
 
-    // Hangfire - only in non-testing environments
-    if (!builder.Environment.IsEnvironment("Testing"))
+    // Hangfire configuration - only if enabled and not in testing environment
+    var isHangfireEnabled = builder.Configuration.GetValue<bool>("Hangfire:Enabled", true);
+    var isHangfireDisabledForTesting = builder.Configuration.GetValue<bool>("Hangfire:DisableForTesting", false);
+    var skipDatabaseConnection = builder.Configuration.GetValue<bool>("Hangfire:SkipDatabaseConnection", false);
+    var isTestingEnvironment = builder.Environment.IsEnvironment("Testing") || 
+                              builder.Environment.IsEnvironment("Test") ||
+                              Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Testing" ||
+                              Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Test" ||
+                              Environment.GetEnvironmentVariable("DISABLE_HANGFIRE") == "true";
+    
+    // Only configure Hangfire if it's enabled and not in testing environment
+    if (isHangfireEnabled && !isTestingEnvironment && !isHangfireDisabledForTesting && !skipDatabaseConnection)
     {
+        // For production environment, use production database
         builder.Services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -193,6 +216,7 @@ try
         
         builder.Services.AddHangfireServer();
     }
+    // For testing environment, Hangfire is completely disabled
 
     // Application Insights
     builder.Services.AddApplicationInsightsTelemetry();
@@ -226,6 +250,7 @@ try
 
     // Custom Services
     builder.Services.AddScoped<ITenantContext, TenantContext>();
+    builder.Services.AddScoped<ITenantFilterService, TenantFilterService>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
@@ -255,8 +280,13 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // Hangfire Dashboard
-    if (builder.Configuration.GetValue<bool>("Hangfire:EnableDashboard"))
+    // Hangfire Dashboard - only in non-testing environments
+    var isHangfireDashboardEnabled = builder.Configuration.GetValue<bool>("Hangfire:EnableDashboard", false);
+    var isHangfireEnabledForDashboard = builder.Configuration.GetValue<bool>("Hangfire:Enabled", true);
+    var isHangfireDisabledForTestingDashboard = builder.Configuration.GetValue<bool>("Hangfire:DisableForTesting", false);
+    var skipDatabaseConnectionForDashboard = builder.Configuration.GetValue<bool>("Hangfire:SkipDatabaseConnection", false);
+    
+    if (isHangfireDashboardEnabled && isHangfireEnabledForDashboard && !isHangfireDisabledForTestingDashboard && !skipDatabaseConnectionForDashboard && !isTestingEnvironment)
     {
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {

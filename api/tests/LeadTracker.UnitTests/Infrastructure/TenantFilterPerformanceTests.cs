@@ -6,6 +6,7 @@ using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
 using System.Diagnostics;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace LeadTracker.UnitTests.Infrastructure;
 
@@ -26,7 +27,7 @@ public class TenantFilterPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_PerformanceWithLargeDataset_IsAcceptable()
+    public async System.Threading.Tasks.Task TenantFilter_PerformanceWithLargeDataset_IsAcceptable()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -101,7 +102,7 @@ public class TenantFilterPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_ComplexQueryPerformance_IsAcceptable()
+    public async System.Threading.Tasks.Task TenantFilter_ComplexQueryPerformance_IsAcceptable()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -167,7 +168,7 @@ public class TenantFilterPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_AggregateQueryPerformance_IsAcceptable()
+    public async System.Threading.Tasks.Task TenantFilter_AggregateQueryPerformance_IsAcceptable()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -238,7 +239,7 @@ public class TenantFilterPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_NoTenantContext_PerformanceIsStillAcceptable()
+    public async System.Threading.Tasks.Task TenantFilter_NoTenantContext_PerformanceIsStillAcceptable()
     {
         // Arrange
         _mockTenantFilterService.Setup(x => x.GetCurrentOrganizationId()).Returns((Guid?)null);

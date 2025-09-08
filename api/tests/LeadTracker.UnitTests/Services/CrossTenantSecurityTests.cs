@@ -5,6 +5,7 @@ using LeadTracker.Core.Services;
 using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace LeadTracker.UnitTests.Services;
 
@@ -25,7 +26,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_PreventsCrossTenantDataAccess()
+    public async System.Threading.Tasks.Task TenantFilter_PreventsCrossTenantDataAccess()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -66,7 +67,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_WithNoTenantContext_ReturnsNoData()
+    public async System.Threading.Tasks.Task TenantFilter_WithNoTenantContext_ReturnsNoData()
     {
         // Arrange
         _mockTenantFilterService.Setup(x => x.GetCurrentOrganizationId()).Returns((Guid?)null);
@@ -95,7 +96,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_WithInvalidTenantId_ReturnsNoData()
+    public async System.Threading.Tasks.Task TenantFilter_WithInvalidTenantId_ReturnsNoData()
     {
         // Arrange
         var validOrgId = Guid.NewGuid();
@@ -120,7 +121,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_IgnoresNonTenantEntities()
+    public async System.Threading.Tasks.Task TenantFilter_IgnoresNonTenantEntities()
     {
         // Arrange
         var orgId = Guid.NewGuid();
@@ -142,7 +143,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_WorksWithComplexQueries()
+    public async System.Threading.Tasks.Task TenantFilter_WorksWithComplexQueries()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -184,7 +185,7 @@ public class CrossTenantSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task TenantFilter_WorksWithAggregateQueries()
+    public async System.Threading.Tasks.Task TenantFilter_WorksWithAggregateQueries()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();

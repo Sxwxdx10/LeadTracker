@@ -3,9 +3,12 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using LeadTracker.Core.Entities;
+using LeadTracker.Core.Services;
 
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Infrastructure.Services;
 
 /// <summary>
 /// JWT service implementation

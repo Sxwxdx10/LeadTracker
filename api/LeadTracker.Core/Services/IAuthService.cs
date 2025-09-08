@@ -1,7 +1,7 @@
-using LeadTracker.Api.Models;
+using LeadTracker.Core.Models;
 using LeadTracker.Core.Entities;
 
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Core.Services;
 
 /// <summary>
 /// Authentication service interface

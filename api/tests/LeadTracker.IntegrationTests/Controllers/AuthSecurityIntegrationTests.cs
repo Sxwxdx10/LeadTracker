@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Xunit;
 using FluentAssertions;
-using LeadTracker.Api.Models;
+using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 

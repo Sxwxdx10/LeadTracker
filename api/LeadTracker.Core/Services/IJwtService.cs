@@ -1,6 +1,6 @@
 using LeadTracker.Core.Entities;
 
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Core.Services;
 
 /// <summary>
 /// Service for JWT token generation and validation

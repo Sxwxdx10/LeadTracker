@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using LeadTracker.Core.Services;
@@ -10,70 +11,39 @@ using Xunit;
 
 namespace LeadTracker.IntegrationTests.Controllers;
 
-public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
+[Collection("TenantIsolationTests")]
+public class TenantDataIsolationIntegrationTests : IDisposable
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TenantIsolationTestFixture _fixture;
     private readonly HttpClient _client;
-    private readonly Guid _orgId1 = Guid.NewGuid();
-    private readonly Guid _orgId2 = Guid.NewGuid();
+    private readonly Guid _orgId1 = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private readonly Guid _orgId2 = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
-    public TenantDataIsolationIntegrationTests(WebApplicationFactory<Program> factory)
+    public TenantDataIsolationIntegrationTests(TenantIsolationTestFixture fixture)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<LeadTrackerDbContext>));
-                if (descriptor != null) services.Remove(descriptor);
-
-                // Add in-memory database
-                services.AddDbContext<LeadTrackerDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("TenantIsolationTestDb");
-                });
-            });
-        });
-
-        _client = _factory.CreateClient();
-        SeedTestData();
-    }
-
-    private void SeedTestData()
-    {
-        using var scope = _factory.Services.CreateScope();
+        _fixture = fixture;
+        _client = _fixture.Factory.CreateClient();
+        
+        // Seed data using the same DbContext as the application
+        using var scope = _fixture.Factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
-
-        // Create organizations
-        var org1 = new Organization { Id = _orgId1, Name = "Organization 1", Domain = "org1.com" };
-        var org2 = new Organization { Id = _orgId2, Name = "Organization 2", Domain = "org2.com" };
-
-        // Create users for each organization
-        var user1 = new User { Id = Guid.NewGuid(), OrganizationId = _orgId1, FirstName = "User", LastName = "One", Email = "user1@org1.com" };
-        var user2 = new User { Id = Guid.NewGuid(), OrganizationId = _orgId2, FirstName = "User", LastName = "Two", Email = "user2@org2.com" };
-
-        // Create stages for each organization
-        var stage1 = new Stage { Id = Guid.NewGuid(), OrganizationId = _orgId1, Name = "Qualified", Order = 1 };
-        var stage2 = new Stage { Id = Guid.NewGuid(), OrganizationId = _orgId2, Name = "Qualified", Order = 1 };
-
-        // Create leads for each organization
-        var lead1 = new Lead { Id = Guid.NewGuid(), OrganizationId = _orgId1, Title = "Lead 1 Org 1", StageId = stage1.Id };
-        var lead2 = new Lead { Id = Guid.NewGuid(), OrganizationId = _orgId2, Title = "Lead 2 Org 2", StageId = stage2.Id };
-
-        // Create tasks for each organization
-        var task1 = new Core.Entities.Task { Id = Guid.NewGuid(), OrganizationId = _orgId1, Title = "Task 1 Org 1", LeadId = lead1.Id };
-        var task2 = new Core.Entities.Task { Id = Guid.NewGuid(), OrganizationId = _orgId2, Title = "Task 2 Org 2", LeadId = lead2.Id };
-
-        context.Organizations.AddRange(org1, org2);
-        context.BusinessUsers.AddRange(user1, user2);
-        context.Stages.AddRange(stage1, stage2);
-        context.Leads.AddRange(lead1, lead2);
-        context.Tasks.AddRange(task1, task2);
-        context.SaveChanges();
+        _fixture.SeedDataForTest(context);
+        
+        // Force the context to clear its cache and reload data from database
+        context.ChangeTracker.Clear();
+        
+        // Verify data is accessible from the same context
+        var orgCount = context.Organizations.Count();
+        var userCount = context.BusinessUsers.Count();
+        Console.WriteLine($"Post-seeding verification in test constructor: {orgCount} orgs, {userCount} users");
+        
+        // Store the context for later use in tests
+        _fixture.SetSharedContext(context);
     }
+
 
     [Fact]
-    public async Task GetLeads_WithOrg1Header_ReturnsOnlyOrg1Leads()
+    public async System.Threading.Tasks.Task GetLeads_WithOrg1Header_ReturnsOnlyOrg1Leads()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId1.ToString());
@@ -92,7 +62,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetLeads_WithOrg2Header_ReturnsOnlyOrg2Leads()
+    public async System.Threading.Tasks.Task GetLeads_WithOrg2Header_ReturnsOnlyOrg2Leads()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId2.ToString());
@@ -111,7 +81,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetLeads_WithInvalidOrgHeader_ReturnsEmptyList()
+    public async System.Threading.Tasks.Task GetLeads_WithInvalidOrgHeader_ReturnsEmptyList()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", Guid.NewGuid().ToString());
@@ -128,7 +98,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetLeads_WithoutOrgHeader_ReturnsEmptyList()
+    public async System.Threading.Tasks.Task GetLeads_WithoutOrgHeader_ReturnsEmptyList()
     {
         // Act
         var response = await _client.GetAsync("/api/leads");
@@ -142,7 +112,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetUsers_WithOrg1Header_ReturnsOnlyOrg1Users()
+    public async System.Threading.Tasks.Task GetUsers_WithOrg1Header_ReturnsOnlyOrg1Users()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId1.ToString());
@@ -161,7 +131,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetStages_WithOrg2Header_ReturnsOnlyOrg2Stages()
+    public async System.Threading.Tasks.Task GetStages_WithOrg2Header_ReturnsOnlyOrg2Stages()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId2.ToString());
@@ -180,7 +150,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task GetTasks_WithOrg1Header_ReturnsOnlyOrg1Tasks()
+    public async System.Threading.Tasks.Task GetTasks_WithOrg1Header_ReturnsOnlyOrg1Tasks()
     {
         // Arrange
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId1.ToString());
@@ -199,7 +169,7 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     }
 
     [Fact]
-    public async Task CrossTenantAccess_AttemptingToAccessOtherOrgData_ReturnsEmptyResults()
+    public async System.Threading.Tasks.Task CrossTenantAccess_AttemptingToAccessOtherOrgData_ReturnsEmptyResults()
     {
         // Arrange - Set up as Org 1
         _client.DefaultRequestHeaders.Add("X-Org-Id", _orgId1.ToString());
@@ -235,8 +205,5 @@ public class TenantDataIsolationIntegrationTests : IClassFixture<WebApplicationF
     public void Dispose()
     {
         _client?.Dispose();
-        using var scope = _factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
-        context.Database.EnsureDeleted();
     }
 }

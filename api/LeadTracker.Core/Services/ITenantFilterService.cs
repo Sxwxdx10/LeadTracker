@@ -1,4 +1,4 @@
-namespace LeadTracker.Api.Services;
+namespace LeadTracker.Core.Services;
 
 /// <summary>
 /// Service for providing tenant filtering capabilities in EF Core queries

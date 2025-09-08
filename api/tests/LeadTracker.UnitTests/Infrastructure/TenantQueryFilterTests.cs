@@ -5,6 +5,7 @@ using LeadTracker.Core.Services;
 using LeadTracker.Core.Entities;
 using LeadTracker.Infrastructure;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace LeadTracker.UnitTests.Infrastructure;
 
@@ -25,7 +26,7 @@ public class TenantQueryFilterTests : IDisposable
     }
 
     [Fact]
-    public async Task QueryFilters_WhenTenantServiceReturnsOrgId_FiltersDataByOrganization()
+    public async System.Threading.Tasks.Task QueryFilters_WhenTenantServiceReturnsOrgId_FiltersDataByOrganization()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -57,7 +58,7 @@ public class TenantQueryFilterTests : IDisposable
     }
 
     [Fact]
-    public async Task QueryFilters_WhenTenantServiceReturnsNull_ReturnsEmptyResults()
+    public async System.Threading.Tasks.Task QueryFilters_WhenTenantServiceReturnsNull_ReturnsEmptyResults()
     {
         // Arrange
         _mockTenantFilterService.Setup(x => x.GetCurrentOrganizationId()).Returns((Guid?)null);
@@ -80,7 +81,7 @@ public class TenantQueryFilterTests : IDisposable
     }
 
     [Fact]
-    public async Task QueryFilters_WhenNoTenantService_ReturnsEmptyResults()
+    public async System.Threading.Tasks.Task QueryFilters_WhenNoTenantService_ReturnsEmptyResults()
     {
         // Arrange
         using var context = new LeadTrackerDbContext(_options);
@@ -101,7 +102,7 @@ public class TenantQueryFilterTests : IDisposable
     }
 
     [Fact]
-    public async Task QueryFilters_AppliesToAllTenantEntities()
+    public async System.Threading.Tasks.Task QueryFilters_AppliesToAllTenantEntities()
     {
         // Arrange
         var orgId1 = Guid.NewGuid();
@@ -148,7 +149,7 @@ public class TenantQueryFilterTests : IDisposable
     }
 
     [Fact]
-    public async Task QueryFilters_IgnoresNonTenantEntities()
+    public async System.Threading.Tasks.Task QueryFilters_IgnoresNonTenantEntities()
     {
         // Arrange
         var orgId = Guid.NewGuid();

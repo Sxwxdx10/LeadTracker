@@ -48,6 +48,9 @@ public abstract class ControllerIntegrationTestBase : IAsyncLifetime
         Context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
         
         await Context.Database.EnsureCreatedAsync();
+        
+        // Clear any cached data to ensure fresh state
+        Context.ChangeTracker.Clear();
     }
 
     public virtual async Task DisposeAsync()

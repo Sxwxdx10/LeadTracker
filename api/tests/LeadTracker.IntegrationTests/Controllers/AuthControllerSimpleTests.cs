@@ -4,10 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
 using Xunit;
 using FluentAssertions;
-using LeadTracker.Api.Models;
+using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using System.Net;
 using System.Text.Json;
+using LeadTracker.IntegrationTests.Services;
 
 namespace LeadTracker.IntegrationTests.Controllers;
 
@@ -35,7 +36,7 @@ namespace LeadTracker.IntegrationTests.Controllers;
         await context.Database.EnsureCreatedAsync();
         
         var seeder = scope.ServiceProvider.GetRequiredService<ITestDataSeeder>();
-        await seeder.SeedAsync();
+        await seeder.SeedDataAsync(context);
     }
 
     public async System.Threading.Tasks.Task DisposeAsync()

@@ -1,12 +1,4 @@
-namespace LeadTracker.Api.Services;
-
-public interface ITenantContext
-{
-    Guid? OrganizationId { get; }
-    string? OrganizationName { get; }
-    Guid? UserId { get; }
-    string? UserEmail { get; }
-}
+namespace LeadTracker.Core.Services;
 
 public class TenantContext : ITenantContext
 {

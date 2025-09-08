@@ -1,8 +1,10 @@
-using LeadTracker.Api.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using LeadTracker.Core.Services;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace LeadTracker.Api.Middleware;
+namespace LeadTracker.Infrastructure.Middleware;
 
 public class TenantResolutionMiddleware
 {
@@ -23,9 +25,27 @@ public class TenantResolutionMiddleware
             var orgIdHeader = context.Request.Headers["X-Org-Id"].FirstOrDefault();
             if (Guid.TryParse(orgIdHeader, out var orgId))
             {
+                _logger.LogInformation("Looking for organization with ID: {OrgId}", orgId);
+                
+                   // Debug: Show database connection info
+                   try
+                   {
+                       var connectionString = dbContext.Database.GetConnectionString();
+                       _logger.LogInformation("Using database connection: {ConnectionString}", connectionString);
+                   }
+                   catch (InvalidOperationException)
+                   {
+                       _logger.LogInformation("Using InMemory database");
+                   }
+                
+                // Debug: List all organizations in database
+                var allOrgs = await dbContext.Organizations.ToListAsync();
+                _logger.LogInformation("Found {Count} organizations in database: {OrgIds}", 
+                    allOrgs.Count, 
+                    string.Join(", ", allOrgs.Select(o => $"{o.Name}({o.Id})")));
+                
                 // Verify organization exists and is active
-                var organization = await dbContext.Organizations
-                    .FirstOrDefaultAsync(o => o.Id == orgId && o.IsActive);
+                var organization = allOrgs.FirstOrDefault(o => o.Id == orgId && o.IsActive);
                 
                 if (organization != null)
                 {
@@ -35,7 +55,7 @@ public class TenantResolutionMiddleware
                         mutableContext.OrganizationName = organization.Name;
                     }
                     
-                    _logger.LogDebug("Resolved organization {OrgName} (ID: {OrgId})", organization.Name, orgId);
+                    _logger.LogInformation("Resolved organization {OrgName} (ID: {OrgId})", organization.Name, orgId);
                 }
                 else
                 {

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace LeadTracker.Api.Models;
+namespace LeadTracker.Core.Models;
 
 /// <summary>
 /// Request model for user registration
