@@ -6,6 +6,7 @@ using LeadTracker.Infrastructure.Services;
 using LeadTracker.Api.Filters;
 using LeadTracker.Infrastructure.Seed;
 using LeadTracker.Core.Entities;
+using LeadTracker.Api.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -254,6 +255,9 @@ try
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    
+    // Seed Command
+    builder.Services.AddSeedCommand();
 
     var app = builder.Build();
 
