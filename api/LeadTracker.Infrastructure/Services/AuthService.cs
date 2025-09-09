@@ -46,24 +46,33 @@ public class AuthService : IAuthService
             var existingOrg = await _context.Organizations
                 .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain);
             
+            Organization organization;
+            
             if (existingOrg != null)
             {
-                throw new InvalidOperationException("Organization with this domain already exists");
+                // Use existing organization if domain already exists
+                organization = existingOrg;
+                _logger.LogInformation("Using existing organization {OrgName} with domain {Domain}", 
+                    organization.Name, organization.Domain);
             }
-
-            // Create organization
-            var organization = new Organization
+            else
             {
-                Name = request.OrganizationName,
-                Description = request.OrganizationDescription,
-                Domain = request.OrganizationDomain ?? GenerateDomainFromName(request.OrganizationName),
-                TimeZone = "UTC",
-                Currency = "USD",
-                IsActive = true
-            };
+                // Create new organization
+                organization = new Organization
+                {
+                    Name = request.OrganizationName,
+                    Description = request.OrganizationDescription,
+                    Domain = request.OrganizationDomain ?? GenerateDomainFromName(request.OrganizationName),
+                    TimeZone = "UTC",
+                    Currency = "USD",
+                    IsActive = true
+                };
 
-            _context.Organizations.Add(organization);
-            await _context.SaveChangesAsync();
+                _context.Organizations.Add(organization);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Created new organization {OrgName} with domain {Domain}", 
+                    organization.Name, organization.Domain);
+            }
 
             // Create user
             var user = new ApplicationUser
@@ -174,25 +183,30 @@ public class AuthService : IAuthService
             // Find user by email and organization
             _logger.LogInformation("Looking for user with email: {Email} in organization: {OrgId} (domain: {Domain})", 
                 request.Email, organization.Id, organization.Domain);
-            var domainUser = await _context.BusinessUsers
-                .FirstOrDefaultAsync(u => u.Email == request.Email && u.OrganizationId == organization.Id && u.IsActive);
             
-            if (domainUser == null)
-            {
-                _logger.LogWarning("User not found with email: {Email} in organization: {OrgId}", request.Email, organization.Id);
-                throw new UnauthorizedAccessException("Invalid credentials");
-            }
-            _logger.LogInformation("Found domain user: {Email} with IdentityUserId: {IdentityUserId}", domainUser.Email, domainUser.IdentityUserId);
-
-            // Get the ApplicationUser from Identity
-            _logger.LogInformation("Looking for ApplicationUser with IdentityUserId: {IdentityUserId}", domainUser.IdentityUserId);
-            var user = await _userManager.FindByIdAsync(domainUser.IdentityUserId.ToString());
+            // First try to find the ApplicationUser directly by email
+            var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null)
             {
-                _logger.LogWarning("ApplicationUser not found for IdentityUserId: {IdentityUserId}", domainUser.IdentityUserId);
+                _logger.LogWarning("ApplicationUser not found with email: {Email}", request.Email);
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
-            _logger.LogInformation("Found ApplicationUser: {Email}", user.Email);
+            
+            // Verify the user belongs to the correct organization
+            if (user.OrganizationId != organization.Id)
+            {
+                _logger.LogWarning("User {Email} belongs to organization {UserOrgId} but trying to login to {RequestOrgId}", 
+                    request.Email, user.OrganizationId, organization.Id);
+                throw new UnauthorizedAccessException("Invalid credentials");
+            }
+            
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("User {Email} is not active", request.Email);
+                throw new UnauthorizedAccessException("Invalid credentials");
+            }
+            
+            _logger.LogInformation("Found ApplicationUser: {Email} in organization: {OrgId}", user.Email, organization.Id);
 
             // Validate password
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);

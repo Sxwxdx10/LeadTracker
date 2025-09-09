@@ -1,0 +1,140 @@
+import axios, { AxiosResponse } from 'axios';
+import { 
+  Lead, 
+  CreateLeadDto, 
+  UpdateLeadDto, 
+  LeadQueryParams, 
+  PaginatedLeadsResponse,
+  LeadStats,
+  Stage
+} from '@/types/lead';
+
+// Configuration de l'API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercepteur pour ajouter le token d'authentification
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Ajouter l'ID de l'organisation pour le multi-tenant
+    const organization = localStorage.getItem('organization');
+    if (organization) {
+      const orgData = JSON.parse(organization);
+      config.headers['X-Org-Id'] = orgData.id;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les erreurs
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Si erreur 401 et pas déjà en cours de rafraîchissement
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          // Importer dynamiquement pour éviter les dépendances circulaires
+          const { authApi } = await import('./auth');
+          const response = await authApi.refreshToken(refreshToken);
+          
+          // Sauvegarder le nouveau token
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const organization = JSON.parse(localStorage.getItem('organization') || '{}');
+          localStorage.setItem('accessToken', response.accessToken);
+          localStorage.setItem('refreshToken', response.refreshToken);
+          localStorage.setItem('tokenExpiry', response.expiresAt);
+          
+          // Retry la requête originale avec le nouveau token
+          originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        // Token de rafraîchissement invalide, rediriger vers login
+        localStorage.clear();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Services API pour les leads
+export const leadsApi = {
+  // Récupérer la liste paginée des leads
+  getLeads: async (params?: LeadQueryParams): Promise<PaginatedLeadsResponse> => {
+    const response: AxiosResponse<PaginatedLeadsResponse> = await apiClient.get('/api/leads', {
+      params,
+    });
+    return response.data;
+  },
+
+  // Récupérer un lead par ID
+  getLead: async (id: string): Promise<Lead> => {
+    const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
+    return response.data;
+  },
+
+  // Créer un nouveau lead
+  createLead: async (data: CreateLeadDto): Promise<Lead> => {
+    const response: AxiosResponse<Lead> = await apiClient.post('/api/leads', data);
+    return response.data;
+  },
+
+  // Mettre à jour un lead
+  updateLead: async (id: string, data: UpdateLeadDto): Promise<Lead> => {
+    const response: AxiosResponse<Lead> = await apiClient.put(`/api/leads/${id}`, data);
+    return response.data;
+  },
+
+  // Supprimer un lead
+  deleteLead: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/leads/${id}`);
+  },
+
+  // Récupérer les statistiques des leads
+  getLeadStats: async (): Promise<LeadStats> => {
+    const response: AxiosResponse<LeadStats> = await apiClient.get('/api/leads/stats');
+    return response.data;
+  },
+};
+
+// Services API pour les stages
+export const stagesApi = {
+  // Récupérer tous les stages
+  getStages: async (): Promise<Stage[]> => {
+    const response: AxiosResponse<Stage[]> = await apiClient.get('/api/stages');
+    return response.data;
+  },
+
+  // Récupérer un stage par ID
+  getStage: async (id: string): Promise<Stage> => {
+    const response: AxiosResponse<Stage> = await apiClient.get(`/api/stages/${id}`);
+    return response.data;
+  },
+};
+
+export default apiClient;

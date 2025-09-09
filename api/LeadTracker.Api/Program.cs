@@ -320,9 +320,9 @@ try
             // Only run migrations for non-testing environments
             if (!app.Environment.IsEnvironment("Testing"))
             {
-                logger.LogInformation("Applying database migrations...");
-                await context.Database.MigrateAsync();
-                logger.LogInformation("Database migrations applied successfully");
+                logger.LogInformation("Skipping database migrations for now...");
+                // TODO: Fix migration conflicts
+                // await context.Database.MigrateAsync();
             }
             
             if (app.Environment.IsDevelopment())
