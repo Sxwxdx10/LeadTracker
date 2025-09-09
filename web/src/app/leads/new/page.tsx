@@ -37,15 +37,19 @@ export default function NewLeadPage() {
   const onSubmit = async (data: CreateLeadFormData) => {
     try {
       // Convertir les chaînes vides en undefined
-      const cleanData = {
-        ...data,
-        phoneNumber: data.phoneNumber?.trim() || undefined,
-        company: data.company?.trim() || undefined,
-        jobTitle: data.jobTitle?.trim() || undefined,
-        notes: data.notes?.trim() || undefined,
-        source: data.source?.trim() || undefined,
-        estimatedValue: data.estimatedValue || undefined,
-        expectedCloseDate: data.expectedCloseDate || undefined,
+      const cleanData: CreateLeadDto = {
+        title: data.title,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        stageId: data.stageId,
+        ...(data.phoneNumber?.trim() && { phoneNumber: data.phoneNumber.trim() }),
+        ...(data.company?.trim() && { company: data.company.trim() }),
+        ...(data.jobTitle?.trim() && { jobTitle: data.jobTitle.trim() }),
+        ...(data.notes?.trim() && { notes: data.notes.trim() }),
+        ...(data.source?.trim() && { source: data.source.trim() }),
+        ...(data.estimatedValue && { estimatedValue: data.estimatedValue }),
+        ...(data.expectedCloseDate && { expectedCloseDate: data.expectedCloseDate }),
       };
 
       const result = await createLeadMutation.mutateAsync(cleanData);

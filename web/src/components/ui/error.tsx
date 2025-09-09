@@ -42,7 +42,7 @@ export const ErrorPage = ({
 }: ErrorProps) => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
     <div className="max-w-md mx-auto">
-      <ErrorDisplay title={title} message={message} onRetry={onRetry} />
+      <ErrorDisplay title={title} message={message} {...(onRetry && { onRetry })} />
     </div>
   </div>
 );
@@ -54,6 +54,6 @@ export const ErrorCard = ({
   className 
 }: ErrorProps) => (
   <div className={cn('bg-white shadow-sm rounded-lg p-8', className)}>
-    <ErrorDisplay title={title} message={message} onRetry={onRetry} />
+    <ErrorDisplay title={title} {...(message && { message })} {...(onRetry && { onRetry })} />
   </div>
 );

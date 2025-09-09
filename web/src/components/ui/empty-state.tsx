@@ -47,10 +47,10 @@ export const EmptyStateCard = ({
 }: EmptyStateProps) => (
   <div className={cn('bg-white shadow-sm rounded-lg p-8', className)}>
     <EmptyState 
-      icon={icon} 
+      {...(icon && { icon })} 
       title={title} 
-      description={description} 
-      action={action} 
+      {...(description && { description })} 
+      {...(action && { action })} 
     />
   </div>
 );
