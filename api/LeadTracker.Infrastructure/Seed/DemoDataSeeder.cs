@@ -63,11 +63,12 @@ public class DemoDataSeeder
     private async System.Threading.Tasks.Task EnsureBasicDataAsync()
     {
         // Ensure we have at least one organization
+        Organization? org = null;
         if (!await _context.Organizations.AnyAsync())
         {
-            var org = new Organization
+            org = new Organization
             {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(), // Use dynamic ID instead of static
                 Name = "Demo Corporation",
                 Domain = "demo-corp",
                 Description = "A demo organization for testing purposes",
@@ -76,6 +77,11 @@ public class DemoDataSeeder
                 IsActive = true
             };
             _context.Organizations.Add(org);
+            await _context.SaveChangesAsync(); // Save to get the ID
+        }
+        else
+        {
+            org = await _context.Organizations.FirstAsync();
         }
 
         // Ensure we have users
@@ -85,8 +91,8 @@ public class DemoDataSeeder
             {
                 new User
                 {
-                    Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
-                    OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Id = Guid.NewGuid(),
+                    OrganizationId = org.Id,
                     FirstName = "John",
                     LastName = "Doe",
                     Email = "john.doe@demo-corp.com",
@@ -96,8 +102,8 @@ public class DemoDataSeeder
                 },
                 new User
                 {
-                    Id = Guid.Parse("44444444-4444-4444-4444-444444444444"),
-                    OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Id = Guid.NewGuid(),
+                    OrganizationId = org.Id,
                     FirstName = "Jane",
                     LastName = "Smith",
                     Email = "jane.smith@demo-corp.com",
@@ -107,8 +113,8 @@ public class DemoDataSeeder
                 },
                 new User
                 {
-                    Id = Guid.Parse("55555555-5555-5555-5555-555555555555"),
-                    OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Id = Guid.NewGuid(),
+                    OrganizationId = org.Id,
                     FirstName = "Mike",
                     LastName = "Johnson",
                     Email = "mike.johnson@demo-corp.com",
@@ -125,12 +131,15 @@ public class DemoDataSeeder
     {
         if (await _context.Stages.CountAsync() >= 7) return; // Already have enough stages
 
+        // Get the organization ID
+        var org = await _context.Organizations.FirstAsync();
+
         var additionalStages = new[]
         {
             new Stage
             {
-                Id = Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Initial Contact",
                 Description = "First contact made with prospect",
                 Order = 1,
@@ -139,8 +148,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Qualified",
                 Description = "Lead has been qualified and shows interest",
                 Order = 2,
@@ -149,8 +158,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Needs Analysis",
                 Description = "Analyzing customer needs and requirements",
                 Order = 3,
@@ -159,8 +168,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Proposal",
                 Description = "Proposal sent to customer",
                 Order = 4,
@@ -169,8 +178,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Negotiation",
                 Description = "Negotiating terms and pricing",
                 Order = 5,
@@ -179,8 +188,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Closed Won",
                 Description = "Deal successfully closed",
                 Order = 6,
@@ -190,8 +199,8 @@ public class DemoDataSeeder
             },
             new Stage
             {
-                Id = Guid.Parse("99999999-9999-9999-9999-999999999999"),
-                OrganizationId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Id = Guid.NewGuid(),
+                OrganizationId = org.Id,
                 Name = "Closed Lost",
                 Description = "Deal lost to competitor or no decision",
                 Order = 7,
@@ -211,16 +220,20 @@ public class DemoDataSeeder
         var existingLeads = await _context.Leads.ToListAsync();
         _context.Leads.RemoveRange(existingLeads);
 
-        var leads = GenerateRealisticLeads();
+        // Get the organization and users
+        var org = await _context.Organizations.FirstAsync();
+        var users = await _context.BusinessUsers.ToListAsync();
+        var stages = await _context.Stages.ToListAsync();
+
+        var leads = GenerateRealisticLeads(org.Id, users, stages);
         _context.Leads.AddRange(leads);
         
         _logger.LogInformation("Generated {Count} realistic leads", leads.Count);
     }
 
-    private List<Lead> GenerateRealisticLeads()
+    private List<Lead> GenerateRealisticLeads(Guid orgId, List<User> users, List<Stage> stages)
     {
         var leads = new List<Lead>();
-        var orgId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
         // Realistic company data
         var companies = new[]
@@ -277,23 +290,9 @@ public class DemoDataSeeder
             "Automotive", "Aerospace", "Pharmaceuticals", "Food & Beverage", "Construction", "Entertainment"
         };
 
-        var stages = new[]
-        {
-            Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"), // Initial Contact
-            Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"), // Qualified
-            Guid.Parse("DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD"), // Needs Analysis
-            Guid.Parse("EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE"), // Proposal
-            Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), // Negotiation
-            Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"), // Closed Won
-            Guid.Parse("99999999-9999-9999-9999-999999999999")  // Closed Lost
-        };
-
-        var userIds = new[]
-        {
-            Guid.Parse("33333333-3333-3333-3333-333333333333"), // John Doe
-            Guid.Parse("44444444-4444-4444-4444-444444444444"), // Jane Smith
-            Guid.Parse("55555555-5555-5555-5555-555555555555")  // Mike Johnson
-        };
+        // Use the actual stages and users from the database
+        var stageIds = stages.Select(s => s.Id).ToArray();
+        var userIds = users.Select(u => u.Id).ToArray();
 
         // Generate 50 leads with realistic distribution
         for (int i = 0; i < 50; i++)
@@ -304,19 +303,22 @@ public class DemoDataSeeder
             var industry = industries[_random.Next(industries.Length)];
             var jobTitle = jobTitles[_random.Next(jobTitles.Length)];
             var source = sources[_random.Next(sources.Length)];
-            var stage = stages[_random.Next(stages.Length)];
-            var assignedUser = userIds[_random.Next(userIds.Length)];
+            var stageId = stageIds[_random.Next(stageIds.Length)];
+            var assignedUserId = userIds[_random.Next(userIds.Length)];
+
+            // Find the stage to get its properties
+            var selectedStage = stages.First(s => s.Id == stageId);
 
             // Create realistic probability based on stage
-            var probability = stage switch
+            var probability = selectedStage.Name switch
             {
-                var s when s == Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB") => _random.Next(10, 30), // Initial Contact
-                var s when s == Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC") => _random.Next(30, 50), // Qualified
-                var s when s == Guid.Parse("DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD") => _random.Next(50, 70), // Needs Analysis
-                var s when s == Guid.Parse("EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE") => _random.Next(70, 85), // Proposal
-                var s when s == Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") => _random.Next(85, 95), // Negotiation
-                var s when s == Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA") => 100, // Closed Won
-                var s when s == Guid.Parse("99999999-9999-9999-9999-999999999999") => 0,   // Closed Lost
+                "Initial Contact" => _random.Next(10, 30),
+                "Qualified" => _random.Next(30, 50),
+                "Needs Analysis" => _random.Next(50, 70),
+                "Proposal" => _random.Next(70, 85),
+                "Negotiation" => _random.Next(85, 95),
+                "Closed Won" => 100,
+                "Closed Lost" => 0,
                 _ => _random.Next(20, 80)
             };
 
@@ -332,15 +334,15 @@ public class DemoDataSeeder
             var estimatedValue = baseValue + (_random.Next(-20, 21) * baseValue / 100); // ±20% variation
 
             // Create realistic close date based on stage
-            var daysToClose = stage switch
+            var daysToClose = selectedStage.Name switch
             {
-                var s when s == Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB") => _random.Next(30, 120), // Initial Contact
-                var s when s == Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC") => _random.Next(20, 90),  // Qualified
-                var s when s == Guid.Parse("DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD") => _random.Next(15, 60),  // Needs Analysis
-                var s when s == Guid.Parse("EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE") => _random.Next(7, 30),   // Proposal
-                var s when s == Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") => _random.Next(1, 14),   // Negotiation
-                var s when s == Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA") => _random.Next(-30, 0),  // Closed Won (past)
-                var s when s == Guid.Parse("99999999-9999-9999-9999-999999999999") => _random.Next(-60, -1), // Closed Lost (past)
+                "Initial Contact" => _random.Next(30, 120),
+                "Qualified" => _random.Next(20, 90),
+                "Needs Analysis" => _random.Next(15, 60),
+                "Proposal" => _random.Next(7, 30),
+                "Negotiation" => _random.Next(1, 14),
+                "Closed Won" => _random.Next(-30, 0),  // Past
+                "Closed Lost" => _random.Next(-60, -1), // Past
                 _ => _random.Next(7, 90)
             };
 
@@ -362,12 +364,16 @@ public class DemoDataSeeder
                 Probability = probability,
                 ExpectedCloseDate = expectedCloseDate,
                 Source = source,
-                Status = stage == Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA") ? "Won" :
-                         stage == Guid.Parse("99999999-9999-9999-9999-999999999999") ? "Lost" : "Open",
-                StageId = stage,
-                AssignedUserId = assignedUser,
+                Status = selectedStage.Name switch
+                {
+                    "Closed Won" => "Won",
+                    "Closed Lost" => "Lost",
+                    _ => "Open"
+                },
+                StageId = stageId,
+                AssignedUserId = assignedUserId,
                 LastContactedAt = lastContactedAt,
-                Notes = GenerateRealisticNotes(industry, source, stage),
+                Notes = GenerateRealisticNotes(industry, source, selectedStage.Name),
                 CreatedAt = DateTime.UtcNow.AddDays(-_random.Next(1, 90)),
                 UpdatedAt = DateTime.UtcNow.AddDays(-_random.Next(0, 7))
             };
@@ -378,19 +384,8 @@ public class DemoDataSeeder
         return leads;
     }
 
-    private string GenerateRealisticNotes(string industry, string source, Guid stage)
+    private string GenerateRealisticNotes(string industry, string source, string stageName)
     {
-        var stageName = stage switch
-        {
-            var s when s == Guid.Parse("BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB") => "Initial Contact",
-            var s when s == Guid.Parse("CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC") => "Qualified",
-            var s when s == Guid.Parse("DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD") => "Needs Analysis",
-            var s when s == Guid.Parse("EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE") => "Proposal",
-            var s when s == Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF") => "Negotiation",
-            var s when s == Guid.Parse("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA") => "Closed Won",
-            var s when s == Guid.Parse("99999999-9999-9999-9999-999999999999") => "Closed Lost",
-            _ => "Unknown"
-        };
 
         var notes = new[]
         {

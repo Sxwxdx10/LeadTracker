@@ -28,10 +28,12 @@ public class DemoDataSeedIntegrationTests : IClassFixture<TestWebApplicationFact
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
         
-        // Clear existing data
-        context.Leads.RemoveRange(await context.Leads.ToListAsync());
-        context.Tasks.RemoveRange(await context.Tasks.ToListAsync());
-        await context.SaveChangesAsync();
+        // Clear existing data - use raw SQL to bypass foreign key constraints
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Tasks\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Leads\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Stages\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"BusinessUsers\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Organizations\"");
 
         // Act
         var seeder = new DemoDataSeeder(context, scope.ServiceProvider.GetRequiredService<ILogger<DemoDataSeeder>>());
@@ -76,7 +78,7 @@ public class DemoDataSeedIntegrationTests : IClassFixture<TestWebApplicationFact
             Assert.True(lead.EstimatedValue > 0);
             Assert.True(lead.Probability >= 0 && lead.Probability <= 100);
             Assert.NotNull(lead.Source);
-            Assert.NotNull(lead.StageId);
+            Assert.NotEqual(Guid.Empty, lead.StageId);
         });
 
         // Check distribution across stages
@@ -95,10 +97,12 @@ public class DemoDataSeedIntegrationTests : IClassFixture<TestWebApplicationFact
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
         
-        // Clear existing data
-        context.Leads.RemoveRange(await context.Leads.ToListAsync());
-        context.Tasks.RemoveRange(await context.Tasks.ToListAsync());
-        await context.SaveChangesAsync();
+        // Clear existing data - use raw SQL to bypass foreign key constraints
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Tasks\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Leads\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Stages\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"BusinessUsers\"");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Organizations\"");
 
         // Act
         var seeder = new DemoDataSeeder(context, scope.ServiceProvider.GetRequiredService<ILogger<DemoDataSeeder>>());

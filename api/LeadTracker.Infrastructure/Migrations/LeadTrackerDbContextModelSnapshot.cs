@@ -719,7 +719,7 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.HasOne("LeadTracker.Core.Entities.Lead", "Lead")
                         .WithMany("Tasks")
                         .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("LeadTracker.Core.Entities.Organization", "Organization")
                         .WithMany()

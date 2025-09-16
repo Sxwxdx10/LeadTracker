@@ -18,7 +18,7 @@ public abstract class TestBase : IDisposable
         // Generate unique database name for each test class
         DatabaseName = "TestDb_" + Guid.NewGuid().ToString();
         
-        var connectionString = $"Host=localhost;Port=5434;Database={DatabaseName};Username=postgres;Password=postgres";
+        var connectionString = $"Host=localhost;Port=5433;Database={DatabaseName};Username=test;Password=test";
         DbContextOptions = new DbContextOptionsBuilder<LeadTrackerDbContext>()
             .UseNpgsql(connectionString)
             .Options;
@@ -86,7 +86,7 @@ public abstract class TestBase : IDisposable
             // Drop the test database to clean up
             try
             {
-                var connectionString = $"Host=localhost;Port=5434;Database=postgres;Username=postgres;Password=postgres";
+                var connectionString = $"Host=localhost;Port=5433;Database=postgres;Username=test;Password=test";
                 using var masterContext = new LeadTrackerDbContext(new DbContextOptionsBuilder<LeadTrackerDbContext>()
                     .UseNpgsql(connectionString)
                     .Options);

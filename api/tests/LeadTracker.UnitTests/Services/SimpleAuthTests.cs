@@ -105,7 +105,7 @@ public class SimpleAuthTests : TestBase
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task RegisterAsync_WithExistingOrganizationDomain_ShouldThrowException()
+    public async System.Threading.Tasks.Task RegisterAsync_WithExistingOrganizationDomain_ShouldUseExistingOrganization()
     {
         // Clean up before test
         await CleanupAsync();
@@ -137,8 +137,36 @@ public class SimpleAuthTests : TestBase
             OrganizationDomain = "existing-corp" // Same domain as existing org
         };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _authService.RegisterAsync(request));
+        // Setup mocks to return successful results
+        _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        _userManagerMock.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        _userManagerMock.Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(new List<string> { "User" });
+
+        _jwtServiceMock.Setup(x => x.GenerateAccessToken(It.IsAny<ApplicationUser>(), It.IsAny<IList<string>>()))
+            .Returns("fake-access-token");
+        
+        _jwtServiceMock.Setup(x => x.GenerateRefreshToken())
+            .Returns("fake-refresh-token");
+
+        // Act
+        var result = await _authService.RegisterAsync(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("john.doe@example.com", result.User.Email);
+        Assert.Equal("John", result.User.FirstName);
+        Assert.Equal("Doe", result.User.LastName);
+        Assert.Equal(existingOrg.Id, result.Organization.Id);
+        Assert.Equal("Existing Corp", result.Organization.Name); // Should use existing org name, not new one
+        Assert.Equal("existing-corp", result.Organization.Domain);
     }
 
     [Fact]

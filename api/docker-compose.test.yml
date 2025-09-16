@@ -8,29 +8,18 @@ services:
       POSTGRES_DB: leadtracker_test
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     ports:
-      - "5433:5432"  # Port différent pour éviter les conflits
+      - "5433:5432"
     volumes:
       - postgres_test_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test -d leadtracker_test"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - test-network
-
-  redis-test:
-    image: redis:7-alpine
-    container_name: leadtracker-redis-test
-    ports:
-      - "6380:6379"  # Port différent pour éviter les conflits
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U test -d leadtracker_test -h localhost"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
     networks:
       - test-network
 

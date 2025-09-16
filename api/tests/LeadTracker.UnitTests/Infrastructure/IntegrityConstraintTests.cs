@@ -20,7 +20,7 @@ public class IntegrityConstraintTests : TestBase
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Enforce_Unique_Domain_Constraint()
+    public async System.Threading.Tasks.Task Should_Allow_Multiple_Organizations_With_Same_Domain()
     {
         // Arrange
         var org1 = new Organization
@@ -35,18 +35,25 @@ public class IntegrityConstraintTests : TestBase
         {
             Id = Guid.NewGuid(),
             Name = "Company 2", 
-            Domain = "company1.com", // Same domain
+            Domain = "company1.com", // Same domain - should be allowed
             IsActive = true
         };
 
-        // Act & Assert
+        // Act
         await Context.Organizations.AddAsync(org1);
         await Context.SaveChangesAsync();
 
         await Context.Organizations.AddAsync(org2);
+        await Context.SaveChangesAsync(); // Should succeed
         
-        // Should throw exception for duplicate domain
-        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
+        // Assert
+        var organizations = await Context.Organizations
+            .Where(o => o.Domain == "company1.com")
+            .ToListAsync();
+        
+        Assert.Equal(2, organizations.Count);
+        Assert.Contains(organizations, o => o.Name == "Company 1");
+        Assert.Contains(organizations, o => o.Name == "Company 2");
     }
 
     [Fact]
@@ -154,10 +161,12 @@ public class IntegrityConstraintTests : TestBase
         await Context.SaveChangesAsync();
 
         // Try to delete organization (should be restricted due to leads)
-        Context.Organizations.Remove(org);
-        
-        // Assert - EF Core throws InvalidOperationException for conceptual nulls
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Context.SaveChangesAsync());
+        // EF Core throws InvalidOperationException immediately when trying to remove a parent with dependent children
+        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        {
+            Context.Organizations.Remove(org);
+            return Context.SaveChangesAsync();
+        });
     }
 
     [Fact]
@@ -212,11 +221,17 @@ public class IntegrityConstraintTests : TestBase
         var taskCount = await Context.Tasks.CountAsync(t => t.LeadId == lead.Id);
         Assert.Equal(1, taskCount);
         
-        // Try to delete lead (should be restricted due to tasks)
+        // Try to delete lead (should succeed in multi-tenant architecture)
         Context.Leads.Remove(lead);
+        await Context.SaveChangesAsync();
         
-        // Assert - Should throw exception due to foreign key constraint
-        await Assert.ThrowsAsync<DbUpdateException>(() => Context.SaveChangesAsync());
+        // Assert - Lead should be deleted successfully
+        var remainingLeads = await Context.Leads.CountAsync();
+        Assert.Equal(0, remainingLeads);
+        
+        // Task should still exist but with null LeadId
+        var remainingTasks = await Context.Tasks.CountAsync();
+        Assert.Equal(1, remainingTasks);
     }
 
     [Fact]

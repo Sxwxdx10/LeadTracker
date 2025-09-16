@@ -1,79 +1,34 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using LeadTracker.Infrastructure;
 using Xunit;
 
 namespace LeadTracker.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Base class for integration tests with Docker Compose PostgreSQL
+/// Base class for integration tests with Docker Compose PostgreSQL using shared fixture
 /// </summary>
+[Collection("DockerComposeTests")]
 public abstract class DockerComposeTestBase : IAsyncLifetime
 {
-    protected readonly LeadTrackerDbContext _context;
-    protected readonly IServiceProvider _serviceProvider;
+    protected readonly DockerComposeTestFixture _fixture;
+    protected LeadTrackerDbContext _context => _fixture.Context;
+    protected IServiceProvider _serviceProvider => _fixture.ServiceProvider;
 
-    // Configuration pour Docker Compose
-    private const string ConnectionString = "Host=localhost;Port=5433;Database=leadtracker_test;Username=test;Password=test;";
-
-    protected DockerComposeTestBase()
+    protected DockerComposeTestBase(DockerComposeTestFixture fixture)
     {
-        // Configure services
-        var services = new ServiceCollection();
-        
-        // Add logging
-        services.AddLogging(builder => builder.AddConsole());
-        
-        // Add DbContext with PostgreSQL (Docker Compose)
-        services.AddDbContext<LeadTrackerDbContext>(options =>
-        {
-            options.UseNpgsql(ConnectionString);
-            options.EnableSensitiveDataLogging();
-        });
-
-        _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<LeadTrackerDbContext>();
+        _fixture = fixture;
     }
 
     public async Task InitializeAsync()
     {
-        // Wait for database to be ready
-        await WaitForDatabaseAsync();
-        
-        // Ensure database is created and migrations are applied
-        await _context.Database.EnsureCreatedAsync();
+        // Database is already initialized by the fixture
+        await Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
-        // Clean up
-        await _context.DisposeAsync();
-    }
-
-    /// <summary>
-    /// Wait for PostgreSQL to be ready
-    /// </summary>
-    private async Task WaitForDatabaseAsync()
-    {
-        var maxAttempts = 30;
-        var delay = TimeSpan.FromSeconds(2);
-
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            try
-            {
-                await _context.Database.CanConnectAsync();
-                return; // Database is ready
-            }
-            catch (Exception)
-            {
-                if (i == maxAttempts - 1)
-                    throw; // Last attempt failed
-                
-                await Task.Delay(delay);
-            }
-        }
+        // Clean up is handled by the fixture
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -81,21 +36,25 @@ public abstract class DockerComposeTestBase : IAsyncLifetime
     /// </summary>
     protected async Task CleanupAsync()
     {
-        // Use raw SQL to delete all data in reverse order of dependencies
-        // This ensures we delete ALL data, not just what's loaded in memory
-        // Safe for test databases that are isolated per test run
+        // Use raw SQL to delete all data in correct order to respect foreign key constraints
+        // Delete in reverse dependency order: child tables first, parent tables last
+        
+        // Identity tables first (ASP.NET Identity)
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserTokens\"");
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserRoles\"");
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserLogins\"");
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserClaims\"");
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
+        
+        // Application tables in dependency order
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Tasks\"");
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Leads\"");
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Stages\"");
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"BusinessUsers\"");
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Organizations\"");
         
-        // Also clean up Identity tables
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserTokens\"");
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserRoles\"");
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserLogins\"");
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"UserClaims\"");
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
+        // Clean up roles last (referenced by UserRoles)
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Roles\" WHERE \"Name\" NOT IN ('USER', 'ADMIN')");
     }
 
     /// <summary>

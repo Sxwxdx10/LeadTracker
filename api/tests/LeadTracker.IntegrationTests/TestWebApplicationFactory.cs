@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using LeadTracker.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using LeadTracker.IntegrationTests.Services;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 
 namespace LeadTracker.IntegrationTests;
 
@@ -34,7 +37,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Hangfire:DisableForTesting"] = "true",
                 ["Hangfire:UseInMemoryStorage"] = "false",
                 ["Hangfire:SkipDatabaseConnection"] = "true",
-                ["Environment"] = "Testing"
+                ["Environment"] = "Testing",
+                ["ConnectionStrings:DefaultConnection"] = "Server=localhost;Port=5433;Database=leadtracker_test;User Id=test;Password=test;"
             });
         });
 
@@ -50,10 +54,35 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             {
                 var connectionString = "Server=localhost;Port=5433;Database=leadtracker_test;User Id=test;Password=test;";
                 options.UseNpgsql(connectionString);
+                options.EnableSensitiveDataLogging();
             });
 
             // Add test data seeding
             services.AddScoped<ITestDataSeeder, TestDataSeeder>();
+            
+            // Add FluentValidation (missing in test configuration)
+            services.AddValidatorsFromAssembly(typeof(LeadTracker.Core.Models.RegisterRequest).Assembly);
+            
+            // Add logging for debugging
+            services.AddLogging(builder => builder.AddConsole());
+            
+            // Disable authentication for testing
+            services.AddAuthentication("Test")
+                .AddScheme<TestAuthenticationSchemeOptions, TestAuthenticationHandler>("Test", options => { });
+            
+            // Add authorization with test policy
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Test", policy => policy.RequireAuthenticatedUser());
+            });
+            
+            // Override the default authentication scheme
+            services.Configure<AuthenticationOptions>(options =>
+            {
+                options.DefaultAuthenticateScheme = "Test";
+                options.DefaultChallengeScheme = "Test";
+                options.DefaultScheme = "Test";
+            });
         });
     }
 }

@@ -2,13 +2,17 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using Xunit;
 using FluentAssertions;
-using LeadTracker.Api.Models;
+using LeadTracker.Core.DTOs;
+using LeadTracker.Core.Entities;
+using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using TaskEntity = LeadTracker.Core.Entities.Task;
 
-namespace LeadTracker.IntegrationTests.Controllers;
+namespace LeadTracker.IntegrationTests.Security;
 
 /// <summary>
 /// Advanced brute force security integration tests for AuthController endpoints
@@ -42,12 +46,12 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
         _context = _factory.Services.GetRequiredService<LeadTrackerDbContext>();
     }
 
-    public async Task InitializeAsync()
+    public async System.Threading.Tasks.Task InitializeAsync()
     {
         await _context.Database.EnsureCreatedAsync();
     }
 
-    public async Task DisposeAsync()
+    public async System.Threading.Tasks.Task DisposeAsync()
     {
         await _context.Database.EnsureDeletedAsync();
         _client.Dispose();
@@ -56,7 +60,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     #region Progressive Lockout Integration Tests
 
     [Fact]
-    public async Task Login_WithProgressiveLockout_ShouldEventuallyLockAccount()
+    public async System.Threading.Tasks.Task Login_WithProgressiveLockout_ShouldEventuallyLockAccount()
     {
         // Arrange - Create test data
         var org = new Organization
@@ -99,7 +103,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
             responses.Add(response);
             
             // Small delay to simulate real-world timing
-            await Task.Delay(100);
+            await System.Threading.Tasks.Task.Delay(100);
         }
 
         // Assert - All attempts should fail
@@ -112,7 +116,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithLockedAccount_ShouldReturnLockoutMessage()
+    public async System.Threading.Tasks.Task Login_WithLockedAccount_ShouldReturnLockoutMessage()
     {
         // Arrange - Create test data with locked account
         var org = new Organization
@@ -162,7 +166,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     #region Rate Limiting Integration Tests
 
     [Fact]
-    public async Task Login_WithRapidRequests_ShouldHandleGracefully()
+    public async System.Threading.Tasks.Task Login_WithRapidRequests_ShouldHandleGracefully()
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -173,13 +177,13 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
         };
 
         // Act - Simulate rapid concurrent requests
-        var tasks = new List<Task<HttpResponseMessage>>();
+        var tasks = new List<System.Threading.Tasks.Task<HttpResponseMessage>>();
         for (int i = 0; i < 20; i++)
         {
             tasks.Add(_client.PostAsJsonAsync("/api/auth/login", loginRequest));
         }
 
-        var responses = await Task.WhenAll(tasks);
+        var responses = await System.Threading.Tasks.Task.WhenAll(tasks);
 
         // Assert - All requests should be handled gracefully
         responses.Should().AllSatisfy(r => r.StatusCode.Should().BeOneOf(
@@ -189,7 +193,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithDistributedRequests_ShouldMaintainSecurity()
+    public async System.Threading.Tasks.Task Login_WithDistributedRequests_ShouldMaintainSecurity()
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -207,7 +211,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
             responses.Add(response);
             
             // Simulate distributed timing
-            await Task.Delay(200);
+            await System.Threading.Tasks.Task.Delay(200);
         }
 
         // Assert - Should maintain security posture
@@ -219,7 +223,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     #region Security Headers and Response Tests
 
     [Fact]
-    public async Task Login_WithFailedAttempts_ShouldIncludeSecurityHeaders()
+    public async System.Threading.Tasks.Task Login_WithFailedAttempts_ShouldIncludeSecurityHeaders()
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -239,7 +243,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithSuspiciousActivity_ShouldLogSecurityEvents()
+    public async System.Threading.Tasks.Task Login_WithSuspiciousActivity_ShouldLogSecurityEvents()
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -253,7 +257,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
         for (int i = 0; i < 5; i++)
         {
             await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-            await Task.Delay(50);
+            await System.Threading.Tasks.Task.Delay(50);
         }
 
         // Assert - This test verifies that the system handles suspicious activity
@@ -272,7 +276,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     [InlineData("invalid-email")]
     [InlineData("test@")]
     [InlineData("@test.com")]
-    public async Task Login_WithInvalidEmailFormats_ShouldReturnBadRequest(string invalidEmail)
+    public async System.Threading.Tasks.Task Login_WithInvalidEmailFormats_ShouldReturnBadRequest(string invalidEmail)
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -295,7 +299,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     [InlineData("password")]
     [InlineData("PASSWORD")]
     [InlineData("Password")]
-    public async Task Login_WithWeakPasswords_ShouldReturnBadRequest(string weakPassword)
+    public async System.Threading.Tasks.Task Login_WithWeakPasswords_ShouldReturnBadRequest(string weakPassword)
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -313,7 +317,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithNullRequestBody_ShouldReturnBadRequest()
+    public async System.Threading.Tasks.Task Login_WithNullRequestBody_ShouldReturnBadRequest()
     {
         // Act
         var response = await _client.PostAsJsonAsync("/api/auth/login", (object?)null);
@@ -323,7 +327,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithMalformedJson_ShouldReturnBadRequest()
+    public async System.Threading.Tasks.Task Login_WithMalformedJson_ShouldReturnBadRequest()
     {
         // Arrange
         var content = new StringContent("{ invalid json }", System.Text.Encoding.UTF8, "application/json");
@@ -340,7 +344,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     #region Performance Under Load Tests
 
     [Fact]
-    public async Task Login_UnderHighLoad_ShouldMaintainResponseTimes()
+    public async System.Threading.Tasks.Task Login_UnderHighLoad_ShouldMaintainResponseTimes()
     {
         // Arrange
         var loginRequest = new LoginRequest
@@ -352,14 +356,14 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
 
         // Act - Measure response times under load
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var tasks = new List<Task<HttpResponseMessage>>();
+        var tasks = new List<System.Threading.Tasks.Task<HttpResponseMessage>>();
         
         for (int i = 0; i < 50; i++)
         {
             tasks.Add(_client.PostAsJsonAsync("/api/auth/login", loginRequest));
         }
 
-        var responses = await Task.WhenAll(tasks);
+        var responses = await System.Threading.Tasks.Task.WhenAll(tasks);
         stopwatch.Stop();
 
         // Assert - Response times should be reasonable
@@ -368,7 +372,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
     }
 
     [Fact]
-    public async Task Login_WithConcurrentUsers_ShouldIsolateAttempts()
+    public async System.Threading.Tasks.Task Login_WithConcurrentUsers_ShouldIsolateAttempts()
     {
         // Arrange - Create multiple users
         var org = new Organization
@@ -397,11 +401,14 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
         }
 
         await _context.Organizations.AddAsync(org);
-        await _context.Users.AddRangeAsync(users);
+        foreach (var user in users)
+        {
+            await _context.Users.AddAsync(user);
+        }
         await _context.SaveChangesAsync();
 
         // Act - Simulate concurrent login attempts from different users
-        var tasks = new List<Task<HttpResponseMessage>>();
+        var tasks = new List<System.Threading.Tasks.Task<HttpResponseMessage>>();
         for (int i = 0; i < 5; i++)
         {
             var loginRequest = new LoginRequest
@@ -413,7 +420,7 @@ public class AdvancedBruteForceSecurityTests : IClassFixture<WebApplicationFacto
             tasks.Add(_client.PostAsJsonAsync("/api/auth/login", loginRequest));
         }
 
-        var responses = await Task.WhenAll(tasks);
+        var responses = await System.Threading.Tasks.Task.WhenAll(tasks);
 
         // Assert - All should fail independently
         responses.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.Unauthorized));

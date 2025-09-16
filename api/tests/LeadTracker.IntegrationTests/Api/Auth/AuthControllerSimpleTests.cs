@@ -41,10 +41,86 @@ namespace LeadTracker.IntegrationTests.Controllers;
 
     public async System.Threading.Tasks.Task DisposeAsync()
     {
-        // Clean up using the same scope as the application
+        // Clean up using proper cascade deletion to avoid constraint violations
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
-        await context.Database.EnsureDeletedAsync();
+        
+        try
+        {
+            // Clean in proper order to avoid constraint violations
+            // Clean user roles first (depends on users and roles)
+            await context.UserRoles.ExecuteDeleteAsync();
+            
+            // Clean tasks (depends on leads and users)
+            await context.Tasks.ExecuteDeleteAsync();
+            
+            // Clean leads (depends on stages and users)
+            await context.Leads.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining leads (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Leads\"");
+                Console.WriteLine("Force cleaned all leads in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup of leads failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean stages (depends on organizations)
+            await context.Stages.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining stages (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Stages\"");
+                Console.WriteLine("Force cleaned all stages in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup of stages failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean business users (depends on organizations)
+            await context.BusinessUsers.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining business users (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"BusinessUsers\"");
+                Console.WriteLine("Force cleaned all business users in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean ApplicationUsers (Identity users - depends on organizations)
+            await context.Users.ExecuteDeleteAsync();
+            
+            // Finally, clean organizations
+            await context.Organizations.ExecuteDeleteAsync();
+            
+            // Keep system roles for reuse across tests
+            Console.WriteLine("Test data cleaned successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not clean test data: {ex.Message}");
+            // Fallback to database recreation if cleanup fails
+            try
+            {
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
+                Console.WriteLine("Database recreated after cleanup failure");
+            }
+            catch (Exception recreateEx)
+            {
+                Console.WriteLine($"Warning: Could not recreate database: {recreateEx.Message}");
+            }
+        }
+        
         _client.Dispose();
     }
 

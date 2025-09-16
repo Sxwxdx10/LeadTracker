@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
 using Xunit;
@@ -25,6 +26,9 @@ public class MultiTenantQueryFilterTests : IClassFixture<WebApplicationFactory<P
 
     public MultiTenantQueryFilterTests(WebApplicationFactory<Program> factory)
     {
+        // Set environment variable to disable Hangfire
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+        
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
@@ -395,7 +399,7 @@ public class MultiTenantQueryFilterTests : IClassFixture<WebApplicationFactory<P
         {
             Id = orgId,
             Name = "Test Company",
-            Domain = "test.com",
+            Domain = $"test-{Guid.NewGuid():N}.com",
             IsActive = true
         };
 
@@ -420,7 +424,7 @@ public class MultiTenantQueryFilterTests : IClassFixture<WebApplicationFactory<P
         {
             Id = orgId,
             Name = "Test Company",
-            Domain = "test.com",
+            Domain = $"test-{Guid.NewGuid():N}.com",
             IsActive = true
         };
 

@@ -15,7 +15,6 @@ public class TenantIsolationTestFixture : IDisposable
 {
     public WebApplicationFactory<Program> Factory { get; }
         private readonly string _testDatabaseName = $"leadtracker_test_{Guid.NewGuid():N}";
-    private static bool _dataSeeded = false;
     private static readonly object _lock = new object();
     private readonly Guid _orgId1 = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private readonly Guid _orgId2 = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -56,8 +55,7 @@ public class TenantIsolationTestFixture : IDisposable
     {
         lock (_lock)
         {
-            // Reset _dataSeeded to false to allow re-seeding if needed
-            _dataSeeded = false;
+            // Reset data seeding state to allow re-seeding if needed
 
             Console.WriteLine("Starting data seeding...");
 
@@ -147,7 +145,6 @@ public class TenantIsolationTestFixture : IDisposable
             // Data existence check already done above, proceed with seeding
 
             // Store the entities for later use in tests
-            _dataSeeded = true;
         }
     }
 

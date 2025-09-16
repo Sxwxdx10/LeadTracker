@@ -9,14 +9,23 @@ namespace LeadTracker.Infrastructure;
 public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     private readonly ITenantFilterService? _tenantFilterService;
+    private readonly bool _disableTenantFiltering;
 
     public LeadTrackerDbContext(DbContextOptions<LeadTrackerDbContext> options) : base(options)
     {
+        _disableTenantFiltering = false;
     }
 
     public LeadTrackerDbContext(DbContextOptions<LeadTrackerDbContext> options, ITenantFilterService tenantFilterService) : base(options)
     {
         _tenantFilterService = tenantFilterService;
+        _disableTenantFiltering = false;
+    }
+
+    // Constructor for testing scenarios where tenant filtering should be disabled
+    public LeadTrackerDbContext(DbContextOptions<LeadTrackerDbContext> options, bool disableTenantFiltering) : base(options)
+    {
+        _disableTenantFiltering = disableTenantFiltering;
     }
 
     // Domain entities
@@ -77,8 +86,8 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             
-            // Indexes
-            entity.HasIndex(e => e.Domain).IsUnique();
+            // Indexes - Domain can be shared by multiple organizations
+            entity.HasIndex(e => e.Domain);
             entity.HasIndex(e => e.CreatedAt);
         });
 
@@ -209,7 +218,11 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
         });
 
         // Apply global query filters for multi-tenant entities
-        ApplyTenantFilters(builder);
+        // Note: Tenant filtering is disabled in testing mode to allow test data access
+        if (!IsTestingMode())
+        {
+            ApplyTenantFilters(builder);
+        }
     }
 
     /// <summary>
@@ -217,24 +230,39 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     /// </summary>
     private void ApplyTenantFilters(ModelBuilder builder)
     {
-        // For now, we'll apply tenant filtering at the query level
-        // This ensures data isolation when tenant context is not properly configured
-        // Note: These filters are disabled in testing mode to allow test data access
-        if (!IsTestingMode())
+        // Skip tenant filtering in testing mode to allow performance tests to access all data
+        if (IsTestingMode())
         {
-            builder.Entity<Lead>().HasQueryFilter(e => false);
-            builder.Entity<User>().HasQueryFilter(e => false);
-            builder.Entity<Stage>().HasQueryFilter(e => false);
-            builder.Entity<Core.Entities.Task>().HasQueryFilter(e => false);
+            return;
         }
+        
+        // Apply tenant filtering using a lambda that will be evaluated at query time
+        // This ensures the tenant context is available when the query is executed
+        builder.Entity<Lead>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<User>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Stage>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Core.Entities.Task>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
     }
 
     private bool IsTestingMode()
     {
-        // Check if we're in testing mode by looking for test-specific environment variables
-        // or by checking if we're using an in-memory database
-        return Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Testing" ||
-               Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        // Use the explicit constructor flag to determine if tenant filtering should be disabled
+        return _disableTenantFiltering;
     }
 
     /// <summary>

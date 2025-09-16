@@ -1,63 +1,40 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.Storage;
 using LeadTracker.Infrastructure;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace LeadTracker.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Base class for integration tests with PostgreSQL
+/// Base class for integration tests with PostgreSQL using shared fixture
 /// </summary>
+[Collection("PostgreSqlTests")]
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
-    protected readonly PostgreSqlContainer _postgresContainer;
-    protected readonly LeadTrackerDbContext _context;
-    protected readonly IServiceProvider _serviceProvider;
+    protected readonly PostgreSqlTestFixture _fixture;
+    protected LeadTrackerDbContext _context => _fixture.Context;
+    protected IServiceProvider _serviceProvider => _fixture.ServiceProvider;
+    protected IDbContextTransaction? _transaction;
 
-    protected IntegrationTestBase()
+    protected IntegrationTestBase(PostgreSqlTestFixture fixture)
     {
-        // Create PostgreSQL container
-        _postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:15")
-            .WithDatabase("leadtracker_test")
-            .WithUsername("test")
-            .WithPassword("test")
-            .WithPortBinding(5432, true)
-            .Build();
-
-        // Configure services
-        var services = new ServiceCollection();
-        
-        // Add logging
-        services.AddLogging(builder => builder.AddConsole());
-        
-        // Add DbContext with PostgreSQL
-        services.AddDbContext<LeadTrackerDbContext>(options =>
-        {
-            options.UseNpgsql(_postgresContainer.GetConnectionString());
-            options.EnableSensitiveDataLogging();
-        });
-
-        _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<LeadTrackerDbContext>();
+        _fixture = fixture;
     }
 
     public async Task InitializeAsync()
     {
-        // Start PostgreSQL container
-        await _postgresContainer.StartAsync();
-        
-        // Ensure database is created and migrations are applied
-        await _context.Database.EnsureCreatedAsync();
+        // Start a transaction for test isolation
+        _transaction = await _context.Database.BeginTransactionAsync();
     }
 
     public async Task DisposeAsync()
     {
-        // Clean up
-        await _context.DisposeAsync();
-        await _postgresContainer.DisposeAsync();
+        // Rollback transaction if it exists
+        if (_transaction != null)
+        {
+            await _transaction.RollbackAsync();
+            await _transaction.DisposeAsync();
+        }
     }
 
     /// <summary>
@@ -65,7 +42,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     /// </summary>
     protected async Task CleanupAsync()
     {
-        // Delete all data in reverse order of dependencies
+        if (_context == null) return;
+        
+        // Delete all data in reverse order of dependencies (children first, then parents)
         _context.Tasks.RemoveRange(_context.Tasks);
         _context.Leads.RemoveRange(_context.Leads);
         _context.Stages.RemoveRange(_context.Stages);

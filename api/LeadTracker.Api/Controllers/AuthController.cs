@@ -4,6 +4,7 @@ using LeadTracker.Core.Models;
 using LeadTracker.Core.Services;
 using FluentValidation;
 using System.Security.Claims;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LeadTracker.Api.Controllers;
 
@@ -38,6 +39,19 @@ public class AuthController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
+                return BadRequest(ModelState);
+            }
+
+            // Manual FluentValidation
+            var validator = HttpContext.RequestServices.GetRequiredService<IValidator<RegisterRequest>>();
+            var validationResult = await validator.ValidateAsync(request);
+            
+            if (!validationResult.IsValid)
+            {
+                foreach (var error in validationResult.Errors)
+                {
+                    ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                }
                 return BadRequest(ModelState);
             }
 

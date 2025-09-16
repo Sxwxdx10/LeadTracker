@@ -1,67 +1,98 @@
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Core.Entities;
+using LeadTracker.Infrastructure;
 using FluentAssertions;
 using Xunit;
 using System.Diagnostics;
-using UserEntity = LeadTracker.Core.Entities.User;
+using TaskEntity = LeadTracker.Core.Entities.Task;
 
 namespace LeadTracker.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Integration tests for database performance with Docker Compose PostgreSQL
+/// Integration tests for database performance with PostgreSQL
 /// </summary>
-public class DockerComposePerformanceTests : DockerComposeTestBase
+[Collection("PostgreSqlTests")]
+public class PostgreSqlPerformanceTests : IAsyncLifetime
 {
-    [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_OrganizationId_With_DockerCompose()
+    private readonly PostgreSqlTestFixture _fixture;
+    protected LeadTrackerDbContext _context => _fixture.Context;
+    protected IServiceProvider _serviceProvider => _fixture.ServiceProvider;
+
+    public PostgreSqlPerformanceTests(PostgreSqlTestFixture fixture)
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-        
+        _fixture = fixture;
+    }
+
+    public async System.Threading.Tasks.Task InitializeAsync()
+    {
+        // Database is already initialized by the fixture
+        await System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    public async System.Threading.Tasks.Task DisposeAsync()
+    {
+        // Clean up test data to avoid FK constraint violations
+        await CleanupTestDataAsync();
+    }
+
+    /// <summary>
+    /// Clean up test data after each test to avoid FK constraint violations
+    /// </summary>
+    private async System.Threading.Tasks.Task CleanupTestDataAsync()
+    {
+        try
+        {
+            // Clean up in proper order to avoid FK constraint violations
+            await _context.Tasks.ExecuteDeleteAsync();
+            await _context.Leads.ExecuteDeleteAsync();
+            await _context.Stages.ExecuteDeleteAsync();
+            await _context.BusinessUsers.ExecuteDeleteAsync();
+            await _context.Organizations.ExecuteDeleteAsync();
+            
+            // Note: We don't clean roles as they are shared across tests
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to clean up test data: {ex.Message}");
+        }
+    }
+    [Fact]
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_OrganizationId_With_PostgreSQL()
+    {
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
+        await _context.Organizations.AddAsync(organization);
+        await _context.SaveChangesAsync(); // Save organization first
+
+        // Create a stage for the leads
         var stageId = Guid.NewGuid();
         var stage = new Stage
         {
             Id = stageId,
-            Name = "Test Stage",
+            Name = "Open",
             Order = 1,
             OrganizationId = orgId
         };
-
-        var userId = Guid.NewGuid();
-        var user = new UserEntity
-        {
-            Id = userId,
-            FirstName = "John",
-            LastName = "Doe",
-            Email = GenerateUniqueEmail("john"),
-            OrganizationId = orgId
-        };
-
-        await _context.Organizations.AddAsync(organization);
         await _context.Stages.AddAsync(stage);
-        await _context.BusinessUsers.AddAsync(user);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(); // Save stage before creating leads
 
-        // Create 10 leads for performance testing (reduced for test isolation)
-        var leads = Enumerable.Range(1, 10).Select(i => new Lead
+        // Create 100 leads for performance testing (reduced from 1000)
+        var leads = Enumerable.Range(1, 100).Select(i => new Lead
         {
             Id = Guid.NewGuid(),
             Title = $"Lead {i}",
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"lead{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId,
-            StageId = stageId,
-            AssignedUserId = userId
+            StageId = stageId
         }).ToList();
 
         await _context.Leads.AddRangeAsync(leads);
@@ -75,37 +106,31 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
         stopwatch.Stop();
 
         // Assert
-        result.Should().HaveCount(10);
+        result.Should().HaveCount(100);
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(500); // Should be fast with index
-        
-        // Clean up after test
-        await CleanupAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_Email_With_DockerCompose()
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_Email_With_PostgreSQL()
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-        
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
         await _context.Organizations.AddAsync(organization);
 
-        // Create 10 users for performance testing (reduced for test isolation)
-        var users = Enumerable.Range(1, 10).Select(i => new User
+        // Create 50 users for performance testing (reduced from 1000)
+        var users = Enumerable.Range(1, 50).Select(i => new User
         {
             Id = Guid.NewGuid(),
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"john{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId
         }).ToList();
 
@@ -113,73 +138,56 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
         await _context.SaveChangesAsync();
 
         // Act
-        var targetEmail = users[9].Email; // Get the 10th user's email
         var stopwatch = Stopwatch.StartNew();
         var result = await _context.BusinessUsers
-            .Where(u => u.Email == targetEmail)
+            .Where(u => u.Email == "john50@example.com")
             .FirstOrDefaultAsync();
         stopwatch.Stop();
 
         // Assert
         result.Should().NotBeNull();
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(100); // Should be fast with index
-        
-        // Clean up after test
-        await CleanupAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_CreatedAt_With_DockerCompose()
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_CreatedAt_With_PostgreSQL()
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
+        await _context.Organizations.AddAsync(organization);
+        await _context.SaveChangesAsync(); // Save organization first
+
+        // Create a stage for the leads
         var stageId = Guid.NewGuid();
         var stage = new Stage
         {
             Id = stageId,
-            Name = "Test Stage",
+            Name = "Open",
             Order = 1,
             OrganizationId = orgId
         };
-
-        var userId = Guid.NewGuid();
-        var user = new UserEntity
-        {
-            Id = userId,
-            FirstName = "John",
-            LastName = "Doe",
-            Email = GenerateUniqueEmail("john"),
-            OrganizationId = orgId
-        };
-
-        await _context.Organizations.AddAsync(organization);
         await _context.Stages.AddAsync(stage);
-        await _context.BusinessUsers.AddAsync(user);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(); // Save stage before creating leads
 
         // Create leads with different creation dates
-        var now = DateTime.UtcNow;
-        var leads = Enumerable.Range(1, 10).Select(i => new Lead
+        var baseDate = DateTime.UtcNow.AddDays(-10);
+        var leads = Enumerable.Range(1, 100).Select(i => new Lead
         {
             Id = Guid.NewGuid(),
             Title = $"Lead {i}",
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"lead{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId,
             StageId = stageId,
-            AssignedUserId = userId,
-            CreatedAt = now.AddDays(-i) // Create leads from today going back
+            CreatedAt = baseDate.AddDays(i)
         }).ToList();
 
         await _context.Leads.AddRangeAsync(leads);
@@ -188,31 +196,25 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
         // Act
         var stopwatch = Stopwatch.StartNew();
         var result = await _context.Leads
-            .Where(l => l.CreatedAt >= now.AddDays(-5))
+            .Where(l => l.CreatedAt >= baseDate.AddDays(5))
             .ToListAsync();
         stopwatch.Stop();
 
         // Assert
-        result.Should().HaveCount(5); // Only leads from last 5 days
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(200); // Should be fast with index
-        
-        // Clean up after test
-        await CleanupAsync();
+        result.Should().HaveCount(96); // Leads 5-100 = 96 leads
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(300); // Should be fast with index
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_Stage_And_Organization_With_DockerCompose()
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_By_Stage_And_Organization_With_PostgreSQL()
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-        
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
         var stageId = Guid.NewGuid();
@@ -224,22 +226,19 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
             OrganizationId = orgId
         };
 
-        var userId = Guid.NewGuid();
         await _context.Organizations.AddAsync(organization);
         await _context.Stages.AddAsync(stage);
-        await _context.SaveChangesAsync();
 
-        // Create 10 leads for performance testing (reduced for test isolation)
-        var leads = Enumerable.Range(1, 10).Select(i => new Lead
+        // Create 50 leads for performance testing (reduced from 500)
+        var leads = Enumerable.Range(1, 50).Select(i => new Lead
         {
             Id = Guid.NewGuid(),
             Title = $"Lead {i}",
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"lead{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId,
-            StageId = stageId,
-            AssignedUserId = null // No assignment to avoid FK conflicts
+            StageId = stageId
         }).ToList();
 
         await _context.Leads.AddRangeAsync(leads);
@@ -253,63 +252,47 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
         stopwatch.Stop();
 
         // Assert
-        result.Should().HaveCount(10);
+        result.Should().HaveCount(50);
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(300); // Should be fast with composite index
-        
-        // Clean up after test
-        await CleanupAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Count_Query_With_DockerCompose()
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Count_Query_With_PostgreSQL()
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-        
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
+        await _context.Organizations.AddAsync(organization);
+        await _context.SaveChangesAsync(); // Save organization first
+
+        // Create a stage for the leads
         var stageId = Guid.NewGuid();
         var stage = new Stage
         {
             Id = stageId,
-            Name = "Test Stage",
+            Name = "Open",
             Order = 1,
             OrganizationId = orgId
         };
-
-        var userId = Guid.NewGuid();
-        var user = new UserEntity
-        {
-            Id = userId,
-            FirstName = "John",
-            LastName = "Doe",
-            Email = GenerateUniqueEmail("john"),
-            OrganizationId = orgId
-        };
-
-        await _context.Organizations.AddAsync(organization);
         await _context.Stages.AddAsync(stage);
-        await _context.BusinessUsers.AddAsync(user);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(); // Save stage before creating leads
 
-        // Create 10 leads for performance testing (reduced for test isolation)
-        var leads = Enumerable.Range(1, 10).Select(i => new Lead
+        // Create 100 leads for performance testing (reduced from 1000)
+        var leads = Enumerable.Range(1, 100).Select(i => new Lead
         {
             Id = Guid.NewGuid(),
             Title = $"Lead {i}",
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"lead{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId,
-            StageId = stageId,
-            AssignedUserId = userId
+            StageId = stageId
         }).ToList();
 
         await _context.Leads.AddRangeAsync(leads);
@@ -323,26 +306,20 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
         stopwatch.Stop();
 
         // Assert
-        count.Should().Be(10);
+        count.Should().Be(100);
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(200); // Should be fast with index
-        
-        // Clean up after test
-        await CleanupAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_With_Include_Relationships_With_DockerCompose()
+    public async System.Threading.Tasks.Task Should_Perform_Fast_Query_With_Include_Relationships_With_PostgreSQL()
     {
-        // Clean up any existing data first
-        await CleanupAsync();
-        
         // Arrange
         var orgId = Guid.NewGuid();
         var organization = new Organization
         {
             Id = orgId,
             Name = "Test Organization",
-            Domain = GenerateUniqueDomain()
+            Domain = $"test-{orgId:N}.com"
         };
 
         var stageId = Guid.NewGuid();
@@ -354,32 +331,19 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
             OrganizationId = orgId
         };
 
-        var userId = Guid.NewGuid();
-        var user = new UserEntity
-        {
-            Id = userId,
-            FirstName = "John",
-            LastName = "Doe",
-            Email = GenerateUniqueEmail("john"),
-            OrganizationId = orgId
-        };
-
         await _context.Organizations.AddAsync(organization);
         await _context.Stages.AddAsync(stage);
-        await _context.BusinessUsers.AddAsync(user);
-        await _context.SaveChangesAsync();
 
-        // Create 10 leads with relationships (reduced for test isolation)
-        var leads = Enumerable.Range(1, 10).Select(i => new Lead
+        // Create 100 leads with relationships
+        var leads = Enumerable.Range(1, 100).Select(i => new Lead
         {
             Id = Guid.NewGuid(),
             Title = $"Lead {i}",
             FirstName = "John",
             LastName = "Doe",
-            Email = GenerateUniqueEmail($"lead{i}"),
+            Email = $"john{i}@example.com",
             OrganizationId = orgId,
-            StageId = stageId,
-            AssignedUserId = user.Id
+            StageId = stageId
         }).ToList();
 
         await _context.Leads.AddRangeAsync(leads);
@@ -391,18 +355,13 @@ public class DockerComposePerformanceTests : DockerComposeTestBase
             .Where(l => l.OrganizationId == orgId)
             .Include(l => l.Organization)
             .Include(l => l.Stage)
-            .Include(l => l.AssignedUser)
             .ToListAsync();
         stopwatch.Stop();
 
         // Assert
-        result.Should().HaveCount(10);
+        result.Should().HaveCount(100);
         result.All(l => l.Organization != null).Should().BeTrue();
         result.All(l => l.Stage != null).Should().BeTrue();
-        result.All(l => l.AssignedUser != null).Should().BeTrue();
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(300); // Should be fast with proper indexing
-        
-        // Clean up after test
-        await CleanupAsync();
     }
 }

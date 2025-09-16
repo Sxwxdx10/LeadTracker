@@ -31,6 +31,7 @@ public abstract class AuthenticatedControllerTestBase : IClassFixture<TestWebApp
         // Set up authentication
         (_authToken, _organizationId, _userId) = SetupAuthenticationAsync().GetAwaiter().GetResult();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+        _client.DefaultRequestHeaders.Add("X-Org-Id", _organizationId.ToString());
     }
 
     private async Task<(string token, Guid organizationId, Guid userId)> SetupAuthenticationAsync()
@@ -47,16 +48,18 @@ public abstract class AuthenticatedControllerTestBase : IClassFixture<TestWebApp
         var organization = await context.Organizations.FirstAsync();
         var user = await context.BusinessUsers.FirstAsync();
 
-        // Create a test user account with a unique organization domain
-        var testDomain = "test-leadtracker.com";
+        // Create a test user account with a unique organization domain and email
+        var uniqueId = Guid.NewGuid().ToString("N")[..8]; // Short unique ID
+        var testDomain = $"test-leadtracker-{uniqueId}.com";
+        var testEmail = $"test-{uniqueId}@leadtracker.com";
         var registerDto = new RegisterRequest
         {
-            Email = "test@leadtracker.com",
+            Email = testEmail,
             Password = "TestPassword123!",
             ConfirmPassword = "TestPassword123!",
             FirstName = "Test",
             LastName = "User",
-            OrganizationName = "Test Organization",
+            OrganizationName = $"Test Organization {uniqueId}",
             OrganizationDomain = testDomain // Use unique domain for test
         };
 
@@ -109,7 +112,7 @@ public abstract class AuthenticatedControllerTestBase : IClassFixture<TestWebApp
         // Login to get token
         var loginDto = new LoginRequest
         {
-            Email = "test@leadtracker.com",
+            Email = testEmail,
             Password = "TestPassword123!",
             OrganizationDomain = organization.Domain // Use the actual domain from the organization
         };

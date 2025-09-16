@@ -212,7 +212,7 @@ public class LeadsControllerIntegrationTests : AuthenticatedControllerTestBase
         Assert.Equal(createDto.Notes, result.Notes);
         Assert.Equal(createDto.Source, result.Source);
         Assert.Equal(createDto.StageId, result.StageId);
-        Assert.NotNull(result.Id);
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.True(result.CreatedAt > DateTime.UtcNow.AddMinutes(-1));
     }
 

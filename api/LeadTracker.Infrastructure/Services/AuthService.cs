@@ -52,14 +52,15 @@ public class AuthService : IAuthService
             {
                 // Use existing organization if domain already exists
                 organization = existingOrg;
-                _logger.LogInformation("Using existing organization {OrgName} with domain {Domain}", 
-                    organization.Name, organization.Domain);
+                _logger.LogInformation("User {Email} joining existing organization {OrgName} with domain {Domain}", 
+                    request.Email, organization.Name, organization.Domain);
             }
             else
             {
-                // Create new organization
+                // Create new organization only if domain doesn't exist
                 organization = new Organization
                 {
+                    Id = Guid.NewGuid(), // Ensure ID is set
                     Name = request.OrganizationName,
                     Description = request.OrganizationDescription,
                     Domain = request.OrganizationDomain ?? GenerateDomainFromName(request.OrganizationName),
@@ -68,10 +69,36 @@ public class AuthService : IAuthService
                     IsActive = true
                 };
 
-                _context.Organizations.Add(organization);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Created new organization {OrgName} with domain {Domain}", 
-                    organization.Name, organization.Domain);
+                try
+                {
+                    _context.Organizations.Add(organization);
+                    await _context.SaveChangesAsync();
+                    
+                    // Ensure the organization is properly tracked and has an ID
+                    _context.Entry(organization).Reload();
+                    
+                    _logger.LogInformation("Created new organization {OrgName} with domain {Domain} and ID {OrgId} for user {Email}", 
+                        organization.Name, organization.Domain, organization.Id, request.Email);
+                }
+                catch (Exception ex)
+                {
+                    // If creation fails due to domain conflict, fetch the existing organization
+                    if (ex.Message.Contains("duplicate") || ex.Message.Contains("unique") || ex.Message.Contains("already exists"))
+                    {
+                        _logger.LogWarning("Organization domain {Domain} was created by another process, fetching existing organization", request.OrganizationDomain);
+                        organization = await _context.Organizations
+                            .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain);
+                        
+                        if (organization == null)
+                        {
+                            throw new InvalidOperationException($"Failed to create or find organization with domain {request.OrganizationDomain}");
+                        }
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
             }
 
             // Create user
@@ -86,11 +113,14 @@ public class AuthService : IAuthService
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
+            if (result == null || !result.Succeeded)
             {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"User creation failed: {errors}");
+                var errors = result?.Errors?.Select(e => e.Description) ?? new[] { "Unknown error during user creation" };
+                throw new InvalidOperationException($"User creation failed: {string.Join(", ", errors)}");
             }
+
+            // Ensure the user is properly saved before adding roles
+            await _context.SaveChangesAsync();
 
             // Add user to default role
             await _userManager.AddToRoleAsync(user, "User");
@@ -171,12 +201,13 @@ public class AuthService : IAuthService
             else
             {
                 // Fallback to synchronous query for unit tests
-                organization = _context.Organizations
-                    .FirstOrDefault(o => o.Domain == request.OrganizationDomain && o.IsActive);
+                organization = await _context.Organizations
+                    .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain && o.IsActive);
             }
             
             if (organization == null)
             {
+                _logger.LogWarning("Organization not found for domain: {Domain}", request.OrganizationDomain);
                 throw new UnauthorizedAccessException("Invalid organization domain");
             }
 

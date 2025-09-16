@@ -113,6 +113,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Vérifier si on est côté client
+        if (typeof window === 'undefined') {
+          dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+          return;
+        }
+
         const accessToken = tokenUtils.getAccessToken();
         const refreshToken = tokenUtils.getRefreshToken();
         const user = tokenUtils.getUser();
@@ -121,9 +127,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (accessToken && refreshToken && user && organization) {
           // Vérifier si le token est expiré
           if (tokenUtils.isTokenExpired()) {
-            // Essayer de rafraîchir le token
+            // Essayer de rafraîchir le token avec timeout
             try {
-              const refreshResponse = await authApi.refreshToken(refreshToken);
+              const refreshPromise = authApi.refreshToken(refreshToken);
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 3000)
+              );
+              
+              const refreshResponse = await Promise.race([refreshPromise, timeoutPromise]) as any;
+              
               tokenUtils.saveTokens({
                 accessToken: refreshResponse.accessToken,
                 refreshToken: refreshResponse.refreshToken,
@@ -142,6 +154,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 },
               });
             } catch (error) {
+              console.warn('Erreur lors du refresh du token:', error);
               // Token de rafraîchissement invalide, déconnecter
               tokenUtils.clearTokens();
               dispatch({ type: 'AUTH_LOGOUT' });
@@ -167,7 +180,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
-    initializeAuth();
+    // Délai pour éviter les problèmes d'hydratation
+    const timer = setTimeout(initializeAuth, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Fonction de connexion

@@ -27,25 +27,34 @@ using AutoMapper;
 // using Microsoft.AspNetCore.RateLimiting;
 // using System.Threading.RateLimiting;
 
-// Configure Serilog
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+// Configure Serilog only for non-testing environments
+if (!args.Contains("--environment") || !args.Contains("Testing"))
+{
+    Log.Logger = new LoggerConfiguration()
+        .WriteTo.Console()
+        .CreateBootstrapLogger();
+}
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
     
-    // Configure Serilog
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.File("logs/leadtracker-.txt", rollingInterval: RollingInterval.Day));
+    // Configure Serilog only for non-testing environments
+    if (!builder.Environment.IsEnvironment("Testing"))
+    {
+        builder.Host.UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.File("logs/leadtracker-.txt", rollingInterval: RollingInterval.Day));
+    }
 
     // Add services to the container
-    builder.Services.AddControllers()
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<FluentValidationFilter>();
+    })
         .AddJsonOptions(options =>
         {
             // Configure JSON serialization to handle circular references
@@ -246,6 +255,9 @@ try
 
     // FluentValidation
     builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+    builder.Services.AddValidatorsFromAssembly(typeof(LeadTracker.Core.Validators.RegisterRequestValidator).Assembly);
+    builder.Services.AddScoped<FluentValidationFilter>();
+    
 
     // AutoMapper
     builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
@@ -255,7 +267,7 @@ try
     builder.Services.AddScoped<ITenantFilterService, TenantFilterService>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IJwtService, JwtService>();
-    builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<IAuthService, LeadTracker.Infrastructure.Services.AuthService>();
     builder.Services.AddScoped<ILeadService, LeadService>();
     
     // Seed Command
@@ -287,6 +299,7 @@ try
     
     // Tenant resolution must be after authentication
     app.UseMiddleware<TenantResolutionMiddleware>();
+
 
     // Hangfire Dashboard - only in non-testing environments
     var isHangfireDashboardEnabled = builder.Configuration.GetValue<bool>("Hangfire:EnableDashboard", false);
@@ -339,16 +352,26 @@ try
         }
     }
 
-    Log.Information("Starting Lead Tracker API");
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        Log.Information("Starting Lead Tracker API");
+    }
     await app.RunAsync();
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    if (!args.Contains("--environment") || !args.Contains("Testing"))
+    {
+        Log.Fatal(ex, "Application terminated unexpectedly");
+    }
+    throw; // Re-throw the exception for proper error handling
 }
 finally
 {
-    Log.CloseAndFlush();
+    if (!args.Contains("--environment") || !args.Contains("Testing"))
+    {
+        Log.CloseAndFlush();
+    }
 }
 
 // Public Program class for testing

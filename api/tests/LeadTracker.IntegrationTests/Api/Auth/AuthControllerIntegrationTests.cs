@@ -9,54 +9,134 @@ using FluentAssertions;
 using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using LeadTracker.IntegrationTests.Services;
 
 namespace LeadTracker.IntegrationTests.Controllers;
 
 /// <summary>
 /// Integration tests for AuthController endpoints
 /// </summary>
-public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
+public class AuthControllerIntegrationTests : IClassFixture<TestWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly HttpClient _client;
-    private readonly LeadTrackerDbContext _context;
+    private readonly TestWebApplicationFactory _factory;
 
-    public AuthControllerIntegrationTests(WebApplicationFactory<Program> factory)
+    public AuthControllerIntegrationTests(TestWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<LeadTrackerDbContext>));
-                if (descriptor != null)
-                    services.Remove(descriptor);
-
-                // Add in-memory database for testing
-                services.AddDbContext<LeadTrackerDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid().ToString());
-                });
-            });
-        });
-
-        _client = _factory.CreateClient();
-        
-        // Get DbContext from the factory
-        var scope = _factory.Services.CreateScope();
-        _context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
+        _factory = factory;
     }
 
     public async Task InitializeAsync()
     {
-        await _context.Database.EnsureCreatedAsync();
+        // Seed data using the same scope as the application
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
+        
+        // Ensure database is created asynchronously
+        await context.Database.EnsureCreatedAsync();
+        
+        var seeder = scope.ServiceProvider.GetRequiredService<ITestDataSeeder>();
+        await seeder.SeedDataAsync(context);
     }
 
     public async Task DisposeAsync()
     {
-        await _context.Database.EnsureDeletedAsync();
-        _context.Dispose();
-        _client.Dispose();
+        // Clean up using proper cascade deletion to avoid constraint violations
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
+        
+        try
+        {
+            // Clean in proper order to avoid constraint violations
+            // Clean user roles first (depends on users and roles)
+            await context.UserRoles.ExecuteDeleteAsync();
+            
+            // Clean tasks (depends on leads and users)
+            await context.Tasks.ExecuteDeleteAsync();
+            
+            // Clean leads (depends on stages and users)
+            await context.Leads.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining leads (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Leads\"");
+                Console.WriteLine("Force cleaned all leads in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup of leads failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean stages (depends on organizations)
+            await context.Stages.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining stages (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Stages\"");
+                Console.WriteLine("Force cleaned all stages in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup of stages failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean business users (depends on organizations)
+            await context.BusinessUsers.ExecuteDeleteAsync();
+            
+            // Force cleanup of any remaining business users (more aggressive approach)
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("DELETE FROM \"BusinessUsers\"");
+                Console.WriteLine("Force cleaned all business users in DisposeAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Force cleanup failed in DisposeAsync: {ex.Message}");
+            }
+            
+            // Clean ApplicationUsers (Identity users - depends on organizations)
+            await context.Users.ExecuteDeleteAsync();
+            
+            // Finally, clean organizations
+            await context.Organizations.ExecuteDeleteAsync();
+            
+            // Keep system roles for reuse across tests
+            Console.WriteLine("Test data cleaned successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not clean test data: {ex.Message}");
+            // Fallback to database recreation if cleanup fails
+            try
+            {
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
+                Console.WriteLine("Database recreated after cleanup failure");
+            }
+            catch (Exception recreateEx)
+            {
+                Console.WriteLine($"Warning: Could not recreate database: {recreateEx.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a client with authentication for testing
+    /// </summary>
+    private HttpClient CreateAuthenticatedClient()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
+        return client;
+    }
+
+    /// <summary>
+    /// Creates a client without authentication for testing
+    /// </summary>
+    private HttpClient CreateUnauthenticatedClient()
+    {
+        return _factory.CreateClient();
     }
 
     #region Register Tests
@@ -64,7 +144,9 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Register_WithValidData_ShouldReturnAuthResponse()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new RegisterRequest
         {
             FirstName = "John",
@@ -77,7 +159,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await client.PostAsJsonAsync("/api/auth/register", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -100,7 +182,9 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Register_WithInvalidEmail_ShouldReturnBadRequest()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new RegisterRequest
         {
             FirstName = "John",
@@ -113,7 +197,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await client.PostAsJsonAsync("/api/auth/register", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -122,7 +206,9 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Register_WithPasswordMismatch_ShouldReturnBadRequest()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new RegisterRequest
         {
             FirstName = "John",
@@ -135,7 +221,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await client.PostAsJsonAsync("/api/auth/register", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -144,7 +230,10 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Register_WithDuplicateEmail_ShouldReturnBadRequest()
     {
-        // Arrange - First registration
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
+        // First registration
         var firstRequest = new RegisterRequest
         {
             FirstName = "John",
@@ -156,7 +245,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
             OrganizationDomain = "test-company"
         };
 
-        await _client.PostAsJsonAsync("/api/auth/register", firstRequest);
+        await client.PostAsJsonAsync("/api/auth/register", firstRequest);
 
         // Second registration with same email
         var secondRequest = new RegisterRequest
@@ -171,7 +260,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", secondRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/register", secondRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -184,7 +273,10 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Login_WithValidCredentials_ShouldReturnAuthResponse()
     {
-        // Arrange - Register first
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
+        // Register first
         var registerRequest = new RegisterRequest
         {
             FirstName = "John",
@@ -196,16 +288,17 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
             OrganizationDomain = "test-company"
         };
 
-        await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        await client.PostAsJsonAsync("/api/auth/register", registerRequest);
 
         var loginRequest = new LoginRequest
         {
             Email = "john.doe@example.com",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            OrganizationDomain = "test-company"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -226,15 +319,18 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Login_WithInvalidCredentials_ShouldReturnUnauthorized()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var loginRequest = new LoginRequest
         {
             Email = "nonexistent@example.com",
-            Password = "WrongPassword123!"
+            Password = "WrongPassword123!",
+            OrganizationDomain = "test-company"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -243,15 +339,18 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Login_WithInvalidEmail_ShouldReturnBadRequest()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var loginRequest = new LoginRequest
         {
             Email = "invalid-email",
-            Password = "TestPassword123!"
+            Password = "TestPassword123!",
+            OrganizationDomain = "test-company"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -264,7 +363,10 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task RefreshToken_WithValidToken_ShouldReturnNewTokens()
     {
-        // Arrange - Register and login first
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
+        // Register and login first
         var registerRequest = new RegisterRequest
         {
             FirstName = "John",
@@ -276,7 +378,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
             OrganizationDomain = "test-company"
         };
 
-        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
         var registerContent = await registerResponse.Content.ReadAsStringAsync();
         var authResponse = JsonSerializer.Deserialize<AuthResponse>(registerContent, new JsonSerializerOptions
         {
@@ -289,7 +391,7 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotImplemented); // Not implemented yet
@@ -298,14 +400,16 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task RefreshToken_WithInvalidToken_ShouldReturnUnauthorized()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var refreshRequest = new RefreshTokenRequest
         {
             RefreshToken = "invalid-refresh-token"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
+        var response = await client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -318,14 +422,17 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task ResetPassword_WithValidEmail_ShouldReturnOk()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new ResetPasswordRequest
         {
-            Email = "john.doe@example.com"
+            Email = "john.doe@example.com",
+            OrganizationDomain = "test-company"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/reset-password", request);
+        var response = await client.PostAsJsonAsync("/api/auth/reset-password", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -334,14 +441,17 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task ResetPassword_WithInvalidEmail_ShouldReturnBadRequest()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new ResetPasswordRequest
         {
-            Email = "invalid-email"
+            Email = "invalid-email",
+            OrganizationDomain = "test-company"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/reset-password", request);
+        var response = await client.PostAsJsonAsync("/api/auth/reset-password", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -350,16 +460,19 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task ConfirmResetPassword_WithValidToken_ShouldReturnOk()
     {
-        // Arrange
+        // Arrange - Create a client with authentication
+        var client = CreateAuthenticatedClient();
+        
         var request = new ConfirmResetPasswordRequest
         {
             Email = "john.doe@example.com",
             Token = "valid-token",
-            NewPassword = "NewPassword123!"
+            NewPassword = "NewPassword123!",
+            ConfirmPassword = "NewPassword123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/confirm-reset-password", request);
+        var response = await client.PostAsJsonAsync("/api/auth/confirm-reset-password", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -372,14 +485,16 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task Logout_WithoutAuthorization_ShouldReturnUnauthorized()
     {
-        // Arrange
+        // Arrange - Create a client without authentication
+        var client = CreateUnauthenticatedClient();
+        
         var request = new RefreshTokenRequest
         {
             RefreshToken = "some-refresh-token"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/logout", request);
+        var response = await client.PostAsJsonAsync("/api/auth/logout", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -392,8 +507,11 @@ public class AuthControllerIntegrationTests : IClassFixture<WebApplicationFactor
     [Fact]
     public async Task GetCurrentUser_WithoutAuthorization_ShouldReturnUnauthorized()
     {
+        // Arrange - Create a client without authentication
+        var client = CreateUnauthenticatedClient();
+        
         // Act
-        var response = await _client.GetAsync("/api/auth/me");
+        var response = await client.GetAsync("/api/auth/me");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
