@@ -177,7 +177,8 @@ export default function LoginPage() {
                 Mot de passe oublié ?
               </Link>
               
-              {/* Bouton de test temporaire pour l'ErrorBoundary */}
+              {/* Bouton de test temporaire pour l'ErrorBoundary - DÉSACTIVÉ */}
+              {/* 
               <div>
                 <button
                   type="button"
@@ -187,6 +188,7 @@ export default function LoginPage() {
                   🧪 Tester l'ErrorBoundary
                 </button>
               </div>
+              */}
             </div>
           </form>
         </div>

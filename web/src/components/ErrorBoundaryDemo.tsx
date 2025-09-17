@@ -58,10 +58,9 @@ export default function ErrorBoundaryDemo() {
     }
   };
 
-  // Temporairement activé pour test - à supprimer après
-  // if (process.env.NODE_ENV !== 'development') {
-  //   return null; // Ne pas afficher en production
-  // }
+  if (process.env.NODE_ENV !== 'development') {
+    return null; // Ne pas afficher en production
+  }
 
   return (
     <div className="fixed bottom-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 max-w-sm">
