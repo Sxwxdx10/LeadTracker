@@ -5,6 +5,8 @@ import {
   ResetPasswordRequest, 
   ConfirmResetPasswordRequest,
   RefreshTokenRequest,
+  VerifyEmailRequest,
+  ResendVerificationRequest,
   AuthResponse, 
   RefreshTokenResponse 
 } from '@/types/auth';
@@ -65,6 +67,16 @@ export const authApi = {
   // Confirmation de réinitialisation de mot de passe
   confirmPasswordReset: async (data: ConfirmResetPasswordRequest): Promise<void> => {
     await authClient.post('/api/auth/reset-password', data);
+  },
+
+  // Vérification d'email
+  verifyEmail: async (data: { email: string; token: string }): Promise<void> => {
+    await authClient.post('/api/auth/verify-email', data);
+  },
+
+  // Renvoyer l'email de vérification
+  resendVerificationEmail: async (data: { email: string; organizationDomain: string }): Promise<void> => {
+    await authClient.post('/api/auth/resend-verification', data);
   },
 
   // Déconnexion
