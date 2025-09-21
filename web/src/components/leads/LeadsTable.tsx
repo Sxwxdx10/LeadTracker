@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import Loading from '@/components/ui/loading';
 import ErrorDisplay from '@/components/ui/error';
 import EmptyState from '@/components/ui/empty-state';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { useLeads, useDeleteLead } from '@/hooks/useLeads';
 import { Lead, LeadQueryParams, LeadStatus } from '@/types/lead';
 import { cn } from '@/lib/utils';
@@ -163,7 +164,13 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
   );
 
   if (isLoading) {
-    return <Loading size="md" text="Chargement des leads..." className="py-12" />;
+    return (
+      <SkeletonTable 
+        rows={5} 
+        columns={9} 
+        className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden" 
+      />
+    );
   }
 
   if (error) {
@@ -316,6 +323,7 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
                     size="sm"
                     onClick={() => handleDelete(lead)}
                     className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    loading={deleteLeadMutation.isPending}
                     disabled={deleteLeadMutation.isPending}
                   >
                     <TrashIcon className="h-4 w-4" />

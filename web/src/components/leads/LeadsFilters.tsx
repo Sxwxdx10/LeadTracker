@@ -5,6 +5,7 @@ import { MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useStages } from '@/hooks/useLeads';
 import { LeadQueryParams, LeadStatus } from '@/types/lead';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,7 @@ export default function LeadsFilters({
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || '');
   
-  const { data: stages } = useStages();
+  const { data: stages, isLoading: stagesLoading } = useStages();
 
   // Debounced search
   const handleSearchChange = useCallback((value: string) => {
@@ -164,13 +165,18 @@ export default function LeadsFilters({
           </div>
 
           {/* Filtres par étape */}
-          {stages && stages.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Étape du pipeline
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {stages.map((stage) => (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Étape du pipeline
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {stagesLoading ? (
+                // Skeleton loading pour les étapes
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-20 rounded-full" />
+                ))
+              ) : stages && stages.length > 0 ? (
+                stages.map((stage) => (
                   <button
                     key={stage.id}
                     onClick={() => handleStageFilter(stage.id)}
@@ -183,10 +189,12 @@ export default function LeadsFilters({
                   >
                     {stage.name}
                   </button>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Aucune étape disponible</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 

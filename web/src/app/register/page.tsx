@@ -254,10 +254,12 @@ export default function RegisterPage() {
             <div>
               <Button
                 type="submit"
+                loading={isSubmitting}
+                loadingText="Création du compte..."
                 disabled={isSubmitting}
                 className="w-full"
               >
-                {isSubmitting ? 'Création du compte...' : 'Créer le compte'}
+                Créer le compte
               </Button>
             </div>
 

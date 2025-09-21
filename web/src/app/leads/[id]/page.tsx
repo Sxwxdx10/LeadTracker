@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Skeleton, SkeletonCard, SkeletonProfile } from '@/components/ui/skeleton';
 import { useLead, useDeleteLead } from '@/hooks/useLeads';
 import { LeadStatus } from '@/types/lead';
 
@@ -118,10 +119,41 @@ export default function LeadDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
+        {/* Header Skeleton */}
+        <div className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-8 w-20" />
+                <div className="h-6 w-px bg-gray-300" />
+                <div>
+                  <Skeleton className="h-8 w-48 mb-1" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-28" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-            <span className="ml-2 text-gray-600">Chargement du lead...</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Sidebar Skeleton */}
+            <div className="lg:col-span-1">
+              <SkeletonCard />
+            </div>
+
+            {/* Main Content Skeleton */}
+            <div className="lg:col-span-2">
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <SkeletonCard />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -194,6 +226,8 @@ export default function LeadDetailPage() {
                 size="sm"
                 onClick={handleDelete}
                 className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                loading={deleteLeadMutation.isPending}
+                loadingText="Suppression..."
                 disabled={deleteLeadMutation.isPending}
               >
                 <TrashIcon className="h-4 w-4" />

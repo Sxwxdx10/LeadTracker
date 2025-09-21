@@ -159,10 +159,12 @@ export default function LoginPage() {
             <div>
               <Button
                 type="submit"
+                loading={isSubmitting}
+                loadingText="Connexion..."
                 disabled={isSubmitting}
                 className="w-full"
               >
-                {isSubmitting ? 'Connexion...' : 'Se connecter'}
+                Se connecter
               </Button>
             </div>
 
