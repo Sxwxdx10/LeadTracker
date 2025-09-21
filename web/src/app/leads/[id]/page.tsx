@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLead, useDeleteLead } from '@/hooks/useLeads';
 import { LeadStatus } from '@/types/lead';
+import { useToast } from '@/hooks/useToast';
 
 // Fonction utilitaire pour formater la devise
 const formatCurrency = (value?: number) => {
@@ -89,6 +90,7 @@ const translateStatus = (status: LeadStatus) => {
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const leadId = params?.id as string;
   
   const { data: lead, isLoading, error } = useLead(leadId);
@@ -104,9 +106,23 @@ export default function LeadDetailPage() {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le lead "${lead.title}" ?`)) {
       try {
         await deleteLeadMutation.mutateAsync(leadId);
+        toast.success(
+          'Lead supprimé',
+          `Le lead "${lead.title}" a été supprimé avec succès`
+        );
         router.push('/leads');
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
+        toast.error(
+          'Erreur de suppression',
+          'Impossible de supprimer le lead. Veuillez réessayer.',
+          {
+            action: {
+              label: 'Réessayer',
+              onClick: () => handleDelete()
+            }
+          }
+        );
       }
     }
   };

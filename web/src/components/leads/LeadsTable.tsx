@@ -30,6 +30,7 @@ import EmptyState from '@/components/ui/empty-state';
 import { useLeads, useDeleteLead } from '@/hooks/useLeads';
 import { Lead, LeadQueryParams, LeadStatus } from '@/types/lead';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/useToast';
 
 interface LeadsTableProps {
   searchParams?: LeadQueryParams;
@@ -90,6 +91,7 @@ const translateStatus = (status: LeadStatus) => {
 
 export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableProps) {
   const router = useRouter();
+  const toast = useToast();
   const [sortBy, setSortBy] = useState(searchParams?.sortBy || 'createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
     searchParams?.sortDirection || 'desc'
@@ -130,8 +132,22 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le lead "${lead.title}" ?`)) {
       try {
         await deleteLeadMutation.mutateAsync(lead.id);
+        toast.success(
+          'Lead supprimé',
+          `Le lead "${lead.title}" a été supprimé avec succès`
+        );
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
+        toast.error(
+          'Erreur de suppression',
+          'Impossible de supprimer le lead. Veuillez réessayer.',
+          {
+            action: {
+              label: 'Réessayer',
+              onClick: () => handleDelete(lead)
+            }
+          }
+        );
       }
     }
   };
