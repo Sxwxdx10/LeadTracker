@@ -76,6 +76,16 @@ export interface AuthState {
   error: string | null;
 }
 
+export interface VerifyEmailRequest {
+  email: string;
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+  organizationDomain: string;
+}
+
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
