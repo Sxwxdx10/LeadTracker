@@ -9,10 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Loading from '@/components/ui/loading';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ErrorBoundaryDemo from '@/components/ErrorBoundaryDemo';
+import { useErrorHandler } from '@/hooks/useErrorBoundary';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { handleError } = useErrorHandler();
   
   const [formData, setFormData] = useState<LoginRequest>({
     email: '',
@@ -118,7 +121,7 @@ export default function LoginPage() {
               
               <div>
                 <label htmlFor="organizationDomain" className="block text-sm font-medium text-gray-700">
-                  Domaine de l'organisation
+                  Identifiant de l'organisation
                 </label>
                 <Input
                   id="organizationDomain"
@@ -128,10 +131,10 @@ export default function LoginPage() {
                   value={formData.organizationDomain}
                   onChange={handleChange}
                   className="mt-1"
-                  placeholder="votre-entreprise.com"
+                  placeholder="demo-corp"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Le domaine de votre organisation (ex: monentreprise.com)
+                  L'identifiant de votre organisation (ex: demo-corp)
                 </p>
               </div>
               
@@ -166,17 +169,33 @@ export default function LoginPage() {
               </Button>
             </div>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <Link
                 href="/forgot-password"
                 className="text-sm text-brand-600 hover:text-brand-500"
               >
                 Mot de passe oublié ?
               </Link>
+              
+              {/* Bouton de test temporaire pour l'ErrorBoundary - DÉSACTIVÉ */}
+              {/* 
+              <div>
+                <button
+                  type="button"
+                  onClick={() => handleError('Test ErrorBoundary - Ceci est une erreur de démonstration', 'LoginPage test')}
+                  className="text-xs text-red-600 hover:text-red-800 underline"
+                >
+                  🧪 Tester l'ErrorBoundary
+                </button>
+              </div>
+              */}
             </div>
           </form>
         </div>
       </div>
+      
+      {/* Composant de test pour l'ErrorBoundary - uniquement en développement */}
+      <ErrorBoundaryDemo />
     </ProtectedRoute>
   );
 }
