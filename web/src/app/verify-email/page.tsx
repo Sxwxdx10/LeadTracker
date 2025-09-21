@@ -98,7 +98,7 @@ export default function VerifyEmailPage() {
   // Fonction pour renvoyer l'email de vérification
   const handleResendVerification = async () => {
     if (!email || !organizationDomain.trim()) {
-      toast.error('Veuillez saisir le domaine de votre organisation');
+      toast.error('Veuillez saisir l\'identifiant de votre organisation');
       return;
     }
 
@@ -266,7 +266,7 @@ export default function VerifyEmailPage() {
                   
                   <div>
                     <label htmlFor="organizationDomain" className="block text-sm font-medium text-gray-700">
-                      Domaine de l'organisation *
+                      Identifiant de l'organisation *
                     </label>
                     <Input
                       id="organizationDomain"
@@ -275,12 +275,12 @@ export default function VerifyEmailPage() {
                       value={organizationDomain}
                       onChange={(e) => setOrganizationDomain(e.target.value)}
                       className="mt-1"
-                      placeholder="votre-entreprise.com"
+                      placeholder="demo-corp"
                       disabled={isResending}
                       required
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                      Le domaine de votre organisation
+                      L'identifiant de votre organisation (ex: demo-corp)
                     </p>
                   </div>
                 </div>

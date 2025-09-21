@@ -38,9 +38,9 @@ export default function ForgotPasswordPage() {
     
     // Validation domaine organisation
     if (!formData.organizationDomain.trim()) {
-      errors.organizationDomain = 'Le domaine de l\'organisation est requis';
-    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/.test(formData.organizationDomain)) {
-      errors.organizationDomain = 'Veuillez saisir un domaine valide (ex: monentreprise.com)';
+      errors.organizationDomain = 'L\'identifiant de l\'organisation est requis';
+    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]$/.test(formData.organizationDomain)) {
+      errors.organizationDomain = 'Veuillez saisir un identifiant d\'organisation valide (ex: demo-corp)';
     }
     
     setFormErrors(errors);
@@ -172,7 +172,7 @@ export default function ForgotPasswordPage() {
               Mot de passe oublié
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              Saisissez votre adresse email et le domaine de votre organisation pour recevoir les instructions de réinitialisation.
+              Saisissez votre adresse email et l'identifiant de votre organisation pour recevoir les instructions de réinitialisation.
             </p>
           </div>
           
@@ -201,7 +201,7 @@ export default function ForgotPasswordPage() {
               
               <div>
                 <label htmlFor="organizationDomain" className="block text-sm font-medium text-gray-700">
-                  Domaine de l'organisation *
+                  Identifiant de l'organisation *
                 </label>
                 <Input
                   id="organizationDomain"
@@ -211,14 +211,14 @@ export default function ForgotPasswordPage() {
                   value={formData.organizationDomain}
                   onChange={handleChange}
                   className={`mt-1 ${formErrors.organizationDomain ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="votre-entreprise.com"
+                  placeholder="demo-corp"
                   disabled={isSubmitting}
                 />
                 {formErrors.organizationDomain && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.organizationDomain}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  Le domaine de votre organisation (ex: monentreprise.com)
+                  L'identifiant de votre organisation (ex: demo-corp)
                 </p>
               </div>
             </div>

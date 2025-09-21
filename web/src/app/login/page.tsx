@@ -121,7 +121,7 @@ export default function LoginPage() {
               
               <div>
                 <label htmlFor="organizationDomain" className="block text-sm font-medium text-gray-700">
-                  Domaine de l'organisation
+                  Identifiant de l'organisation
                 </label>
                 <Input
                   id="organizationDomain"
@@ -131,10 +131,10 @@ export default function LoginPage() {
                   value={formData.organizationDomain}
                   onChange={handleChange}
                   className="mt-1"
-                  placeholder="votre-entreprise.com"
+                  placeholder="demo-corp"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Le domaine de votre organisation (ex: monentreprise.com)
+                  L'identifiant de votre organisation (ex: demo-corp)
                 </p>
               </div>
               

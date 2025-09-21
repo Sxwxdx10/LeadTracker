@@ -212,7 +212,7 @@ export default function RegisterPage() {
                 
                 <div>
                   <label htmlFor="organizationDomain" className="block text-sm font-medium text-gray-700">
-                    Domaine de l'organisation
+                    Identifiant de l'organisation
                   </label>
                   <Input
                     id="organizationDomain"
@@ -221,10 +221,10 @@ export default function RegisterPage() {
                     value={formData.organizationDomain}
                     onChange={handleChange}
                     className="mt-1"
-                    placeholder="monentreprise.com"
+                    placeholder="demo-corp"
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Optionnel - Le domaine de votre organisation
+                    Optionnel - L'identifiant de votre organisation (ex: demo-corp)
                   </p>
                 </div>
                 
