@@ -32,16 +32,29 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
+  loadingText?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading = false, loadingText, children, disabled, ...props }, ref) => {
+    const isDisabled = disabled || loading;
+    
     return (
       <button
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          loading && 'cursor-not-allowed opacity-80'
+        )}
         ref={ref}
+        disabled={isDisabled}
         {...props}
-      />
+      >
+        {loading && (
+          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current" />
+        )}
+        {loading && loadingText ? loadingText : children}
+      </button>
     );
   }
 );
