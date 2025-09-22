@@ -10,7 +10,7 @@ import {
   UserInfo, 
   OrganizationInfo 
 } from '@/types/auth';
-import { toast } from 'react-hot-toast';
+// Import removed - will use direct toast calls
 
 // État initial
 const initialState: AuthState = {
@@ -203,11 +203,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
       });
 
-      toast.success('Connexion réussie !');
+      console.log('Connexion réussie !');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Erreur de connexion';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
-      toast.error(errorMessage);
+      console.error(errorMessage);
       throw error;
     }
   };
@@ -230,11 +230,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
       });
 
-      toast.success('Inscription réussie !');
+      console.log('Inscription réussie !');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Erreur d\'inscription';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
-      toast.error(errorMessage);
+      console.error(errorMessage);
       throw error;
     }
   };
@@ -251,7 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       tokenUtils.clearTokens();
       dispatch({ type: 'AUTH_LOGOUT' });
-      toast.success('Déconnexion réussie');
+      console.log('Déconnexion réussie');
     }
   };
 
