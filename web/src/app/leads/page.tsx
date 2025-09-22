@@ -9,6 +9,7 @@ import LeadsFilters from '@/components/leads/LeadsFilters';
 import Pagination from '@/components/ui/pagination';
 import Loading from '@/components/ui/loading';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { SkeletonStats } from '@/components/ui/skeleton';
 import UserMenu from '@/components/auth/UserMenu';
 import { useLeads, useLeadStats } from '@/hooks/useLeads';
 import { LeadQueryParams } from '@/types/lead';
@@ -24,7 +25,7 @@ export default function LeadsPage() {
   });
 
   const { data: leadsData, isLoading } = useLeads(queryParams);
-  const { data: stats } = useLeadStats();
+  const { data: stats, isLoading: statsLoading } = useLeadStats();
 
   const handleFiltersChange = useCallback((newFilters: LeadQueryParams) => {
     setQueryParams(newFilters);
@@ -83,7 +84,9 @@ export default function LeadsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistiques rapides */}
-        {stats && stats.totalLeads !== undefined && (
+        {statsLoading ? (
+          <SkeletonStats className="mb-8" />
+        ) : stats && stats.totalLeads !== undefined ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white overflow-hidden shadow-sm rounded-lg">
               <div className="p-6">
@@ -173,7 +176,7 @@ export default function LeadsPage() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Filtres */}
         <div className="mb-6">
@@ -202,10 +205,6 @@ export default function LeadsPage() {
           )}
         </div>
 
-        {/* État de chargement */}
-        {isLoading && (
-          <Loading size="md" text="Chargement des leads..." className="py-12" />
-        )}
       </div>
       </div>
     </ProtectedRoute>
