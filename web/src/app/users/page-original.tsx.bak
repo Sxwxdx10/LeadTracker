@@ -1,0 +1,418 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import { Plus, Search, Filter, Users, UserCheck, UserX, Clock } from 'lucide-react';
+import { AppHeader } from '@/components/layout/AppHeader';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { UsersTable } from '@/components/users/UsersTable';
+import { InviteUserModal } from '@/components/users/InviteUserModal';
+import { EditUserRolesModal } from '@/components/users/EditUserRolesModal';
+import { 
+  DeleteConfirmationModal, 
+  DeactivateUserModal, 
+  ActivateUserModal 
+} from '@/components/ui/confirmation-modal';
+import { useUsers } from '@/hooks/useUsers';
+import { User, InviteUserDto, UserQueryParams } from '@/types/user';
+
+export default function UsersPage() {
+  // Debug: Test simple pour identifier le problème
+  console.log('Page Users - début de rendu');
+
+  // Pour le moment, désactivons le hook complexe et testons avec des données statiques
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Données de test statiques
+  const users: User[] = [];
+  const stats = {
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    pendingInvitations: 0
+  };
+  const roles = [
+    { id: 'admin', name: 'admin', displayName: 'Administrateur', permissions: [] }
+  ];
+
+  console.log('Page Users - données initialisées');
+
+  // State pour les modales (simplifié)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // Fonctions simplifiées pour le test
+  const handleInviteUser = async (data: InviteUserDto) => {
+    console.log('Test - invitation utilisateur:', data);
+    alert('Test - Fonctionnalité d\'invitation');
+  };
+
+  const handleEditRoles = (user: User) => {
+    setSelectedUser(user);
+    setIsEditRolesModalOpen(true);
+  };
+
+  const handleUpdateRoles = async (userId: string, newRoles: string[]) => {
+    try {
+      await updateUserRoles(userId, newRoles);
+      console.log('Rôles mis à jour avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des rôles:', error);
+      throw error;
+    }
+  };
+
+  const handleToggleStatus = (user: User) => {
+    setSelectedUser(user);
+    setPendingStatusChange(!user.isActive);
+    setIsStatusModalOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!selectedUser || pendingStatusChange === null) return;
+
+    try {
+      await toggleUserStatus(selectedUser.id, pendingStatusChange);
+      console.log(`Utilisateur ${pendingStatusChange ? 'activé' : 'désactivé'} avec succès`);
+      setIsStatusModalOpen(false);
+      setSelectedUser(null);
+      setPendingStatusChange(null);
+    } catch (error) {
+      console.error('Erreur lors du changement de statut:', error);
+    }
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteUser(selectedUser.id);
+      console.log('Utilisateur supprimé avec succès');
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+    }
+  };
+
+  const handleResendInvitation = async (user: User) => {
+    try {
+      await resendInvitation(user.id);
+      console.log('Invitation renvoyée avec succès');
+    } catch (error) {
+      console.error('Erreur lors du renvoi de l\'invitation:', error);
+    }
+  };
+
+  const handlePageChange = async (page: number) => {
+    await fetchUsers({ page, pageSize: 10 });
+  };
+
+  // Options pour les filtres
+  const statusOptions = [
+    { value: '', label: 'Tous les statuts' },
+    { value: 'active', label: 'Actifs' },
+    { value: 'inactive', label: 'Inactifs' }
+  ];
+
+  const roleOptions = [
+    { value: '', label: 'Tous les rôles' },
+    ...roles.map(role => ({
+      value: role.name,
+      label: role.displayName || role.name
+    }))
+  ];
+
+  const headerActions = (
+    <Button
+      onClick={() => setIsInviteModalOpen(true)}
+      className="flex items-center space-x-2"
+    >
+      <Plus className="h-4 w-4" />
+      <span>Inviter un utilisateur</span>
+    </Button>
+  );
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <AppHeader
+          title="Gestion des utilisateurs"
+          description="Gérez les utilisateurs de votre organisation"
+          actions={headerActions}
+        />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      {/* Statistiques */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {stats.totalUsers}
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Actifs</p>
+                <p className="text-2xl font-semibold text-green-600">
+                  {stats.activeUsers}
+                </p>
+              </div>
+              <UserCheck className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Inactifs</p>
+                <p className="text-2xl font-semibold text-red-600">
+                  {stats.inactiveUsers}
+                </p>
+              </div>
+              <UserX className="h-8 w-8 text-red-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">En attente</p>
+                <p className="text-2xl font-semibold text-yellow-600">
+                  {stats.pendingInvitations}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filtres */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Rechercher par nom ou email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Select
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(value as string)}
+              options={statusOptions}
+              placeholder="Filtrer par statut"
+            />
+          </div>
+
+          <div>
+            <Select
+              value={roleFilter}
+              onChange={(value) => setRoleFilter(value as string)}
+              options={roleOptions}
+              placeholder="Filtrer par rôle"
+            />
+          </div>
+        </div>
+
+        {(searchTerm || statusFilter || roleFilter) && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-600">
+                Filtres actifs:
+              </span>
+              {searchTerm && (
+                <Badge variant="secondary">
+                  Recherche: {searchTerm}
+                </Badge>
+              )}
+              {statusFilter && (
+                <Badge variant="secondary">
+                  Statut: {statusOptions.find(o => o.value === statusFilter)?.label}
+                </Badge>
+              )}
+              {roleFilter && (
+                <Badge variant="secondary">
+                  Rôle: {roleOptions.find(o => o.value === roleFilter)?.label}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('');
+                setRoleFilter('');
+              }}
+            >
+              Réinitialiser
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Messages d'erreur */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Erreur
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Table des utilisateurs */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <UsersTable
+          users={users}
+          isLoading={isLoading || isFilterApplying}
+          onEdit={handleEditRoles}
+          onDelete={handleDeleteUser}
+          onToggleStatus={handleToggleStatus}
+          onEditRoles={handleEditRoles}
+          onResendInvitation={handleResendInvitation}
+        />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200">
+            <div className="flex items-center text-sm text-gray-500">
+              Affichage de {((currentPage - 1) * 10) + 1} à {Math.min(currentPage * 10, totalCount)} sur {totalCount} utilisateurs
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={!hasPreviousPage || isLoading}
+              >
+                Précédent
+              </Button>
+              <span className="text-sm text-gray-700">
+                Page {currentPage} sur {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!hasNextPage || isLoading}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modales */}
+      <InviteUserModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleInviteUser}
+        roles={roles}
+        isLoading={isLoading}
+      />
+
+      <EditUserRolesModal
+        isOpen={isEditRolesModalOpen}
+        onClose={() => {
+          setIsEditRolesModalOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
+        onUpdateRoles={handleUpdateRoles}
+        roles={roles}
+        isLoading={isLoading}
+      />
+
+      {/* Modal de confirmation de changement de statut */}
+      {selectedUser && pendingStatusChange !== null && (
+        pendingStatusChange ? (
+          <ActivateUserModal
+            isOpen={isStatusModalOpen}
+            onClose={() => {
+              setIsStatusModalOpen(false);
+              setSelectedUser(null);
+              setPendingStatusChange(null);
+            }}
+            onConfirm={handleConfirmStatusChange}
+            title="Activer l'utilisateur"
+            message={`Êtes-vous sûr de vouloir activer ${selectedUser.fullName} ? Il pourra à nouveau accéder à l'application.`}
+            confirmText="Activer"
+            isLoading={isLoading}
+          />
+        ) : (
+          <DeactivateUserModal
+            isOpen={isStatusModalOpen}
+            onClose={() => {
+              setIsStatusModalOpen(false);
+              setSelectedUser(null);
+              setPendingStatusChange(null);
+            }}
+            onConfirm={handleConfirmStatusChange}
+            title="Désactiver l'utilisateur"
+            message={`Êtes-vous sûr de vouloir désactiver ${selectedUser.fullName} ? Il ne pourra plus accéder à l'application.`}
+            confirmText="Désactiver"
+            isLoading={isLoading}
+          />
+        )
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {selectedUser && (
+        <DeleteConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setSelectedUser(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title="Supprimer l'utilisateur"
+          message={`Êtes-vous sûr de vouloir supprimer ${selectedUser.fullName} ? Cette action est irréversible.`}
+          confirmText="Supprimer"
+          isLoading={isLoading}
+        />
+      )}
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}
