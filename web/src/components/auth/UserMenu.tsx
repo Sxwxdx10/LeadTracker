@@ -82,12 +82,12 @@ export default function UserMenu() {
             <button
               onClick={() => {
                 setIsOpen(false);
-                router.push('/settings');
+                router.push('/settings/organization');
               }}
               className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
               <Cog6ToothIcon className="h-4 w-4 mr-3" />
-              Paramètres
+              Paramètres de l'organisation
             </button>
             
             <div className="border-t border-gray-100 my-1"></div>
