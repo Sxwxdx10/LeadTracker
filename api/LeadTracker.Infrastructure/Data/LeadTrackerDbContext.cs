@@ -34,6 +34,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Lead> Leads { get; set; }
     public DbSet<Stage> Stages { get; set; }
     public DbSet<Core.Entities.Task> Tasks { get; set; }
+    public DbSet<UserInvitation> UserInvitations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

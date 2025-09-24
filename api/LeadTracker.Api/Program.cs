@@ -269,6 +269,8 @@ try
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, LeadTracker.Infrastructure.Services.AuthService>();
     builder.Services.AddScoped<ILeadService, LeadService>();
+    builder.Services.AddScoped<IEmailService, LeadTracker.Infrastructure.Services.EmailService>();
+    builder.Services.AddScoped<IUserInvitationService, LeadTracker.Infrastructure.Services.UserInvitationService>();
     
     // Seed Command
     builder.Services.AddSeedCommand();
