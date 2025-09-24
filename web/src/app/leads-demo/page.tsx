@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
-export default function LeadsPage() {
+export default function LeadsDemoPage() {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -47,7 +47,7 @@ export default function LeadsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Leads - Démo</h1>
               <p className="text-sm text-gray-600">
                 Gérez vos prospects et opportunités commerciales
               </p>
