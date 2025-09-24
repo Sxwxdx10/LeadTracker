@@ -36,9 +36,8 @@ public class WorkingTenantIsolationTests : IClassFixture<TestWebApplicationFacto
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
         var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
 
-        // Ensure we have test data
-        var testDataSeeder = scope.ServiceProvider.GetRequiredService<ITestDataSeeder>();
-        await testDataSeeder.SeedDataAsync(context);
+        // Ensure database is created
+        await context.Database.EnsureCreatedAsync();
 
         // Get the first organization and user
         var organization = await context.Organizations.FirstAsync();
@@ -108,8 +107,8 @@ public class WorkingTenantIsolationTests : IClassFixture<TestWebApplicationFacto
         });
 
         Assert.NotNull(leadsResponse);
-        Assert.NotNull(leadsResponse.Leads);
-        Assert.NotEmpty(leadsResponse.Leads);
+        Assert.NotNull(leadsResponse.Data);
+        Assert.NotEmpty(leadsResponse.Data);
         // Note: OrganizationId is not exposed in the DTO for security reasons
         // Tenant isolation is verified by the database queries in the logs
     }
@@ -133,8 +132,8 @@ public class WorkingTenantIsolationTests : IClassFixture<TestWebApplicationFacto
         });
 
         Assert.NotNull(leadsResponse);
-        Assert.NotNull(leadsResponse.Leads);
-        Assert.Empty(leadsResponse.Leads);
+        Assert.NotNull(leadsResponse.Data);
+        Assert.Empty(leadsResponse.Data);
     }
 
     [Fact]

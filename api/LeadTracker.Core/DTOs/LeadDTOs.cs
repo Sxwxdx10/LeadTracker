@@ -142,9 +142,9 @@ public class LeadResponseDto
 /// </summary>
 public class LeadListResponseDto
 {
-    public List<LeadResponseDto> Leads { get; set; } = new();
+    public List<LeadResponseDto> Data { get; set; } = new();
     public int TotalCount { get; set; }
-    public int PageNumber { get; set; }
+    public int Page { get; set; }
     public int PageSize { get; set; }
     public int TotalPages { get; set; }
     public bool HasPreviousPage { get; set; }

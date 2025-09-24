@@ -25,6 +25,17 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Test endpoint for seeding
+    /// </summary>
+    /// <returns>Test message</returns>
+    [HttpGet("test-seeding")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult TestSeeding()
+    {
+        return Ok(new { message = "Seeding test endpoint is working from AuthController!" });
+    }
+
+    /// <summary>
     /// Register a new user and organization
     /// </summary>
     /// <param name="request">Registration request</param>

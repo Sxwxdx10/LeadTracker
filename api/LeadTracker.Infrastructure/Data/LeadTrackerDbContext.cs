@@ -35,6 +35,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Stage> Stages { get; set; }
     public DbSet<Core.Entities.Task> Tasks { get; set; }
     public DbSet<UserInvitation> UserInvitations { get; set; }
+    public DbSet<SavedSearchFilter> SavedSearchFilters { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -178,6 +179,19 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.Email);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.LastContactedAt);
+            
+            // Search performance indexes
+            entity.HasIndex(e => new { e.OrganizationId, e.Status });
+            entity.HasIndex(e => new { e.OrganizationId, e.Source });
+            entity.HasIndex(e => new { e.OrganizationId, e.IsActive });
+            entity.HasIndex(e => new { e.OrganizationId, e.CreatedAt, e.IsActive });
+            
+            // Full-text search indexes (for better search performance)
+            entity.HasIndex(e => e.FirstName).HasDatabaseName("IX_Leads_FirstName_Search");
+            entity.HasIndex(e => e.LastName).HasDatabaseName("IX_Leads_LastName_Search");
+            entity.HasIndex(e => e.Company).HasDatabaseName("IX_Leads_Company_Search");
+            entity.HasIndex(e => e.Email).HasDatabaseName("IX_Leads_Email_Search");
+            entity.HasIndex(e => e.Title).HasDatabaseName("IX_Leads_Title_Search");
         });
 
         // Configure Task
@@ -216,6 +230,35 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.DueDate);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Configure SavedSearchFilter
+        builder.Entity<SavedSearchFilter>(entity =>
+        {
+            entity.ToTable("SavedSearchFilters");
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.SearchCriteriaJson).IsRequired();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.LastUsedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.CreatedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.CreatedByUserId);
+            entity.HasIndex(e => e.LastUsedAt);
+            entity.HasIndex(e => new { e.OrganizationId, e.CreatedByUserId });
         });
 
         // Apply global query filters for multi-tenant entities

@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Infrastructure;
 using Microsoft.Extensions.Configuration;
-using LeadTracker.IntegrationTests.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -57,8 +56,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 options.EnableSensitiveDataLogging();
             });
 
-            // Add test data seeding
-            services.AddScoped<ITestDataSeeder, TestDataSeeder>();
             
             // Add FluentValidation (missing in test configuration)
             services.AddValidatorsFromAssembly(typeof(LeadTracker.Core.Models.RegisterRequest).Assembly);

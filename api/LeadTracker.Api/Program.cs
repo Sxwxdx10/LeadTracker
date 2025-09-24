@@ -4,9 +4,7 @@ using LeadTracker.Core.Services;
 using LeadTracker.Infrastructure.Middleware;
 using LeadTracker.Infrastructure.Services;
 using LeadTracker.Api.Filters;
-using LeadTracker.Infrastructure.Seed;
 using LeadTracker.Core.Entities;
-using LeadTracker.Api.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -179,7 +177,7 @@ try
         options.AddPolicy("DefaultPolicy", policy =>
         {
             var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
-                ?? new[] { "http://localhost:3000" };
+                ?? new[] { "http://localhost:3000", "https://localhost:3000" };
                 
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
@@ -271,9 +269,8 @@ try
     builder.Services.AddScoped<ILeadService, LeadService>();
     builder.Services.AddScoped<IEmailService, LeadTracker.Infrastructure.Services.EmailService>();
     builder.Services.AddScoped<IUserInvitationService, LeadTracker.Infrastructure.Services.UserInvitationService>();
+    builder.Services.AddScoped<ILeadSeederService, LeadTracker.Infrastructure.Services.LeadSeederService>();
     
-    // Seed Command
-    builder.Services.AddSeedCommand();
 
     var app = builder.Build();
 
@@ -322,9 +319,10 @@ try
     app.MapHealthChecks("/health/ready");
     app.MapHealthChecks("/health/live");
 
+
     app.MapControllers();
 
-    // Database Migration and Seeding
+    // Database Migration
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
@@ -340,16 +338,10 @@ try
                 // await context.Database.MigrateAsync();
             }
             
-            if (app.Environment.IsDevelopment())
-            {
-                logger.LogInformation("Seeding development data...");
-                await SeedData.SeedAsync(context, scope.ServiceProvider);
-                logger.LogInformation("Development data seeded successfully");
-            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while migrating or seeding the database");
+            logger.LogError(ex, "An error occurred while migrating the database");
             throw;
         }
     }

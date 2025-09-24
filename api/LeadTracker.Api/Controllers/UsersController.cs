@@ -43,6 +43,17 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Test endpoint for seeding
+    /// </summary>
+    /// <returns>Test message</returns>
+    [HttpGet("test-seeding")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult TestSeeding()
+    {
+        return Ok(new { message = "Seeding test endpoint is working from UsersController!" });
+    }
+
+    /// <summary>
     /// Get all business users for the current organization (Admin only)
     /// </summary>
     /// <returns>List of business users with management info</returns>

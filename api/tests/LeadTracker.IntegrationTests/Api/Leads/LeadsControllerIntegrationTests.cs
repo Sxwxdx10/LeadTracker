@@ -53,9 +53,9 @@ public class LeadsControllerIntegrationTests : AuthenticatedControllerTestBase
         var result = await DeserializeResponseAsync<LeadListResponseDto>(response);
 
         Assert.NotNull(result);
-        Assert.True(result.Leads.Count <= query.PageSize);
+        Assert.True(result.Data.Count <= query.PageSize);
         Assert.True(result.TotalCount >= 0);
-        Assert.Equal(query.PageNumber, result.PageNumber);
+        Assert.Equal(query.PageNumber, result.Page);
         Assert.Equal(query.PageSize, result.PageSize);
     }
 
@@ -80,7 +80,7 @@ public class LeadsControllerIntegrationTests : AuthenticatedControllerTestBase
 
         Assert.NotNull(result);
         // All returned leads should contain the search term in at least one field
-        Assert.All(result.Leads, lead =>
+        Assert.All(result.Data, lead =>
         {
             var containsSearchTerm = 
                 (lead.Title?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -114,12 +114,12 @@ public class LeadsControllerIntegrationTests : AuthenticatedControllerTestBase
         var result = await DeserializeResponseAsync<LeadListResponseDto>(response);
 
         Assert.NotNull(result);
-        if (result.Leads.Count > 1)
+        if (result.Data.Count > 1)
         {
-            for (int i = 0; i < result.Leads.Count - 1; i++)
+            for (int i = 0; i < result.Data.Count - 1; i++)
             {
-                Assert.True(string.Compare(result.Leads[i].Title, result.Leads[i + 1].Title, StringComparison.OrdinalIgnoreCase) <= 0,
-                    $"Leads should be sorted by title in ascending order. Found: '{result.Leads[i].Title}' after '{result.Leads[i + 1].Title}'");
+                Assert.True(string.Compare(result.Data[i].Title, result.Data[i + 1].Title, StringComparison.OrdinalIgnoreCase) <= 0,
+                    $"Leads should be sorted by title in ascending order. Found: '{result.Data[i].Title}' after '{result.Data[i + 1].Title}'");
             }
         }
     }
@@ -135,9 +135,9 @@ public class LeadsControllerIntegrationTests : AuthenticatedControllerTestBase
             PropertyNameCaseInsensitive = true
         });
 
-        if (leadsResult?.Leads.Count > 0)
+        if (leadsResult?.Data.Count > 0)
         {
-            var leadId = leadsResult.Leads[0].Id;
+            var leadId = leadsResult.Data[0].Id;
 
         // Act
         var response = await GetAsync($"/api/leads/{leadId}");

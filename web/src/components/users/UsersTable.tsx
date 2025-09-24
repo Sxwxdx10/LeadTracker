@@ -338,11 +338,11 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               <TableCell>
                 <ActionMenu
                   user={user}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onToggleStatus={onToggleStatus}
-                  onEditRoles={onEditRoles}
-                  onResendInvitation={onResendInvitation}
+                  {...(onEdit && { onEdit })}
+                  {...(onDelete && { onDelete })}
+                  {...(onToggleStatus && { onToggleStatus })}
+                  {...(onEditRoles && { onEditRoles })}
+                  {...(onResendInvitation && { onResendInvitation })}
                 />
               </TableCell>
             </TableRow>

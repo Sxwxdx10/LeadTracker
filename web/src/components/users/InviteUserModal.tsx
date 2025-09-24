@@ -100,7 +100,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
-        jobTitle: formData.jobTitle.trim() || undefined,
+        ...(formData.jobTitle.trim() && { jobTitle: formData.jobTitle.trim() }),
         roles: formData.roles
       };
 

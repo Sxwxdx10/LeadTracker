@@ -28,15 +28,10 @@ namespace LeadTracker.IntegrationTests.Controllers;
 
     public async System.Threading.Tasks.Task InitializeAsync()
     {
-        // Seed data using the same scope as the application
+        // Ensure database is created asynchronously
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
-        
-        // Ensure database is created asynchronously
         await context.Database.EnsureCreatedAsync();
-        
-        var seeder = scope.ServiceProvider.GetRequiredService<ITestDataSeeder>();
-        await seeder.SeedDataAsync(context);
     }
 
     public async System.Threading.Tasks.Task DisposeAsync()
