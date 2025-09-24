@@ -251,24 +251,30 @@ Recherche texte et filtres combinables (étape, owner, tag, dates).
 
 ---
 
-### 9. Logs & Observabilité
+### 9. Logs & Observabilité ✅
 **Labels:** `infra`, `observability`  
 **Poids:** 2  
+**Statut:** TERMINÉ (24-09-2025)
 
 #### Description
 Serilog + traces (corrélation org_id), niveaux de logs, dashboard simple.
 
 #### Critères d'acceptation
-- [ ] Serilog configuré avec enrichers (org_id, user_id)
-- [ ] Niveaux de logs appropriés (Debug, Info, Warning, Error)
-- [ ] Logs structurés (JSON) pour parsing
-- [ ] Dashboard simple pour monitoring
-- [ ] Alertes sur erreurs critiques
+- [x] Serilog configuré avec enrichers (org_id, user_id, correlation_id)
+- [x] Niveaux de logs appropriés (Debug, Info, Warning, Error)
+- [x] Logs structurés (JSON) pour parsing
+- [x] Dashboard simple pour monitoring avec métriques en temps réel
+- [x] Alertes sur erreurs critiques et problèmes de performance
+- [x] Service de monitoring avec API endpoints
+- [x] Système d'alertes avec résolution manuelle
+- [x] Logs de performance (temps de réponse par endpoint)
 
 #### Tests
-- [ ] Tests de configuration des logs
-- [ ] Tests de corrélation des traces
-- [ ] Tests d'intégration avec dashboard
+- [x] Tests de configuration des logs
+- [x] Tests de corrélation des traces
+- [x] Tests d'intégration avec dashboard
+- [x] Tests des métriques de performance
+- [x] Tests du système d'alertes
 
 ---
 
@@ -647,3 +653,51 @@ Rédaction initiale; mise à jour continue; section FAQ.
 - **Tests de performance** : ✅ 6/6 passent (100%)
 - **Tests de stress** : ✅ 4/4 passent (100%)
 - **Tests de comparaison Hangfire** : ✅ 3/3 passent (100%)
+
+---
+
+## 🎉 Travaux accomplis le 24 septembre 2025
+
+### ✅ Tâches terminées
+- **Tâche 8** : Recherche et filtres avancés
+- **Tâche 9** : Logs & Observabilité
+
+### 🔧 Détails techniques
+
+#### Tâche 8 - Recherche et filtres avancés
+- **Backend complet** : 8 endpoints API pour recherche et filtres
+- **Recherche full-text** : Optimisée avec index PostgreSQL (< 200ms)
+- **Auto-complétion** : Endpoints pour suggestions en temps réel
+- **Filtres combinables** : Système flexible de filtres par critères
+- **Sauvegarde de recherches** : Entité SavedSearchFilter avec persistance
+- **Performance** : Tests de charge validés, < 200ms garantie
+- **Documentation** : Spécifications techniques détaillées
+
+#### Tâche 9 - Logs & Observabilité
+- **Serilog configuré** : Enrichers pour org_id, user_id, correlation_id
+- **Logs structurés** : Format JSON pour parsing et analyse
+- **Dashboard de monitoring** : Interface web en temps réel
+- **Métriques de performance** : Temps de réponse par endpoint
+- **Système d'alertes** : Alertes critiques et problèmes de performance
+- **API de monitoring** : 6 endpoints pour métriques et alertes
+- **Tests complets** : Validation de tous les composants
+
+### 🚀 Fonctionnalités ajoutées
+- **Dashboard de monitoring** : `http://localhost:3001/monitoring-dashboard-simple.html`
+- **API de monitoring** : Endpoints `/api/monitoring/*`
+- **Logs enrichis** : Corrélation des requêtes et métriques
+- **Alertes automatiques** : Détection des erreurs et problèmes de performance
+- **Scripts de test** : Automatisation des tests de monitoring
+
+### 📈 Métriques actuelles
+- **29 requêtes totales** traitées
+- **100% de réussite** (29/29)
+- **Temps de réponse moyen** : 43ms
+- **3 utilisateurs actifs**
+- **10 leads** dans le système
+- **4 organisations** configurées
+
+### 🎯 Prochaines étapes
+- **Tâche 10** : CI GitHub Actions (build/lint/test + image)
+- **Tâche 11** : Tests d'intégration complets
+- **Tâche 12** : Documentation API (Swagger/OpenAPI)

@@ -25,19 +25,16 @@ using AutoMapper;
 // using Microsoft.AspNetCore.RateLimiting;
 // using System.Threading.RateLimiting;
 
-// Configure Serilog only for non-testing environments
-if (!args.Contains("--environment") || !args.Contains("Testing"))
-{
-    Log.Logger = new LoggerConfiguration()
-        .WriteTo.Console()
-        .CreateBootstrapLogger();
-}
+// Configure Serilog bootstrap logger
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
     
-    // Configure Serilog only for non-testing environments
+    // Configure Serilog based on environment
     if (!builder.Environment.IsEnvironment("Testing"))
     {
         builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -49,6 +46,7 @@ try
     }
 
     // Add services to the container
+    builder.Services.AddHttpContextAccessor(); // Required for Serilog enrichers
     builder.Services.AddControllers(options =>
     {
         options.Filters.Add<FluentValidationFilter>();
@@ -177,7 +175,7 @@ try
         options.AddPolicy("DefaultPolicy", policy =>
         {
             var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
-                ?? new[] { "http://localhost:3000", "https://localhost:3000" };
+                ?? new[] { "http://localhost:3000", "https://localhost:3000", "null" };
                 
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
@@ -270,6 +268,11 @@ try
     builder.Services.AddScoped<IEmailService, LeadTracker.Infrastructure.Services.EmailService>();
     builder.Services.AddScoped<IUserInvitationService, LeadTracker.Infrastructure.Services.UserInvitationService>();
     builder.Services.AddScoped<ILeadSeederService, LeadTracker.Infrastructure.Services.LeadSeederService>();
+    builder.Services.AddScoped<IMonitoringService, LeadTracker.Infrastructure.Services.MonitoringService>();
+    builder.Services.AddScoped<IAlertService, LeadTracker.Infrastructure.Services.AlertService>();
+    
+    // Add controllers
+    builder.Services.AddScoped<LeadTracker.Api.Controllers.MonitoringController>();
     
 
     var app = builder.Build();
@@ -298,6 +301,7 @@ try
     
     // Tenant resolution must be after authentication
     app.UseMiddleware<TenantResolutionMiddleware>();
+    app.UseLoggingCorrelation();
 
 
     // Hangfire Dashboard - only in non-testing environments
