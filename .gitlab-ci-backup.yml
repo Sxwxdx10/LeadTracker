@@ -1,0 +1,312 @@
+# GitLab CI/CD Pipeline pour LeadTracker - Version Docker Hub
+# Configuration simplifiée pour projet pédagogique
+
+stages:
+  - test
+  - security
+  - build
+  - deploy
+  - notify
+
+variables:
+  DOTNET_VERSION: "8.0.x"
+  NODE_VERSION: "18.x"
+  # Docker Hub au lieu d'Azure Container Registry
+  REGISTRY: "docker.io"
+  API_IMAGE_NAME: "franckmbd/leadtracker-api"
+  WEB_IMAGE_NAME: "franckmbd/leadtracker-web"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Cache pour les dépendances
+.dotnet_cache: &dotnet_cache
+  key:
+    files:
+      - api/**/packages.lock.json
+  paths:
+    - .nuget/packages
+  policy: pull-push
+
+.node_cache: &node_cache
+  key:
+    files:
+      - web/package-lock.json
+  paths:
+    - web/node_modules
+  policy: pull-push
+
+# Services pour les tests
+services:
+  - name: postgres:15
+    alias: postgres
+    variables:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: leadtracker_test
+  - name: redis:7-alpine
+    alias: redis
+
+# Tests API
+test-api:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: leadtracker_test
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    ConnectionStrings__DefaultConnection: "Host=postgres;Database=leadtracker_test;Username=postgres;Password=postgres"
+    Redis__ConnectionString: "redis:6379"
+  cache: *dotnet_cache
+  before_script:
+    - dotnet restore api/LeadTracker.sln
+  script:
+    - dotnet build api/LeadTracker.sln --no-restore --configuration Release
+    - dotnet test api/tests/LeadTracker.UnitTests/LeadTracker.UnitTests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+    - dotnet test api/tests/LeadTracker.IntegrationTests/LeadTracker.IntegrationTests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+  artifacts:
+    when: always
+    reports:
+      junit: api/TestResults/**/TestResults.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: api/TestResults/**/coverage.cobertura.xml
+    paths:
+      - api/TestResults/
+    expire_in: 1 week
+  coverage: '/Total\s*\|\s*(\d+(?:\.\d+)?%)/'
+
+# Tests Web
+test-web:
+  stage: test
+  image: node:18-alpine
+  cache: *node_cache
+  before_script:
+    - cd web
+    - npm ci
+  script:
+    - npm run build
+    - npm run test:ci
+  artifacts:
+    when: always
+    reports:
+      junit: web/test-results.xml
+    paths:
+      - web/coverage/
+    expire_in: 1 week
+
+# Tests E2E
+e2e-tests:
+  stage: test
+  image: cypress/included:latest
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: leadtracker_test
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    CYPRESS_baseUrl: "http://web:3000"
+    CYPRESS_apiUrl: "http://api:8080"
+  script:
+    - cd web
+    - npm ci
+    - npm run build
+    - npm run test:e2e:ci
+  artifacts:
+    when: always
+    paths:
+      - web/cypress/screenshots/
+      - web/cypress/videos/
+    expire_in: 1 week
+  allow_failure: true
+
+# Scan de sécurité
+security-scan:
+  stage: security
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet tool install --global security-scan
+    - dotnet security-scan api/LeadTracker.sln --severity high
+  allow_failure: true
+  artifacts:
+    when: always
+    reports:
+      junit: security-scan-results.xml
+    paths:
+      - security-scan-results.xml
+    expire_in: 1 week
+
+# Build des images Docker (Docker Hub)
+build-images:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+  script:
+    # Build API image
+    - |
+      docker build \
+        --build-arg BUILDPLATFORM=linux/amd64 \
+        --build-arg TARGETPLATFORM=linux/amd64 \
+        -t $API_IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        -t $API_IMAGE_NAME:$CI_COMMIT_SHA \
+        -t $API_IMAGE_NAME:latest \
+        -f api/Dockerfile \
+        api/
+    - docker push $API_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker push $API_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $API_IMAGE_NAME:latest
+    
+    # Build Web image
+    - |
+      docker build \
+        --build-arg BUILDPLATFORM=linux/amd64 \
+        --build-arg TARGETPLATFORM=linux/amd64 \
+        -t $WEB_IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        -t $WEB_IMAGE_NAME:$CI_COMMIT_SHA \
+        -t $WEB_IMAGE_NAME:latest \
+        -f web/Dockerfile \
+        web/
+    - docker push $WEB_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker push $WEB_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $WEB_IMAGE_NAME:latest
+  only:
+    - main
+    - develop
+  needs:
+    - test-api
+    - test-web
+    - security-scan
+
+# Déploiement local avec Docker Compose (pour test)
+deploy-local:
+  stage: deploy
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+  script:
+    # Pull des images
+    - docker pull $API_IMAGE_NAME:latest
+    - docker pull $WEB_IMAGE_NAME:latest
+    
+    # Créer un docker-compose pour test
+    - |
+      cat > docker-compose.test.yml << EOF
+      version: '3.8'
+      services:
+        api:
+          image: $API_IMAGE_NAME:latest
+          ports:
+            - "8080:8080"
+          environment:
+            - ASPNETCORE_ENVIRONMENT=Testing
+            - ConnectionStrings__DefaultConnection=Host=postgres;Database=leadtracker_test;Username=postgres;Password=postgres
+            - Redis__ConnectionString=redis:6379
+          depends_on:
+            - postgres
+            - redis
+        
+        web:
+          image: $WEB_IMAGE_NAME:latest
+          ports:
+            - "3000:3000"
+          environment:
+            - NODE_ENV=production
+            - NEXT_PUBLIC_API_URL=http://api:8080
+          depends_on:
+            - api
+        
+        postgres:
+          image: postgres:15
+          environment:
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=leadtracker_test
+          ports:
+            - "5432:5432"
+        
+        redis:
+          image: redis:7-alpine
+          ports:
+            - "6379:6379"
+      EOF
+    
+    # Test du déploiement
+    - docker-compose -f docker-compose.test.yml up -d
+    - sleep 30
+    
+    # Health check
+    - |
+      for i in {1..10}; do
+        if curl -f http://localhost:8080/health; then
+          echo "✅ API is healthy"
+          break
+        fi
+        echo "⏳ Waiting for API... ($i/10)"
+        sleep 10
+      done
+    
+    - |
+      for i in {1..10}; do
+        if curl -f http://localhost:3000; then
+          echo "✅ Web is healthy"
+          break
+        fi
+        echo "⏳ Waiting for Web... ($i/10)"
+        sleep 10
+      done
+    
+    # Cleanup
+    - docker-compose -f docker-compose.test.yml down
+  only:
+    - main
+    - develop
+  needs:
+    - build-images
+
+# Notifications
+notify-success:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "push" ]; then
+        echo "✅ CI Pipeline completed successfully for $CI_COMMIT_REF_NAME"
+        echo "🐳 Images pushed to Docker Hub:"
+        echo "   - $API_IMAGE_NAME:latest"
+        echo "   - $WEB_IMAGE_NAME:latest"
+        # Add Slack/Teams notification here if needed
+      fi
+  only:
+    - main
+    - develop
+  needs:
+    - build-images
+  when: on_success
+
+notify-failure:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      echo "❌ CI Pipeline failed for $CI_COMMIT_REF_NAME"
+      # Add Slack/Teams notification here if needed
+  only:
+    - main
+    - develop
+  needs:
+    - build-images
+  when: on_failure
