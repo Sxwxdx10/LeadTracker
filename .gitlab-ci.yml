@@ -1,0 +1,360 @@
+# GitLab CI/CD Pipeline pour LeadTracker
+# Équivalent de la configuration GitHub Actions existante
+
+stages:
+  - test
+  - security
+  - build
+  - deploy
+  - notify
+
+variables:
+  DOTNET_VERSION: "8.0.x"
+  NODE_VERSION: "18.x"
+  REGISTRY: "leadtracker.azurecr.io"
+  API_IMAGE_NAME: "leadtracker-api"
+  WEB_IMAGE_NAME: "leadtracker-web"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Cache pour les dépendances
+.dotnet_cache: &dotnet_cache
+  key:
+    files:
+      - api/**/packages.lock.json
+  paths:
+    - .nuget/packages
+  policy: pull-push
+
+.node_cache: &node_cache
+  key:
+    files:
+      - web/package-lock.json
+  paths:
+    - web/node_modules
+  policy: pull-push
+
+# Services pour les tests
+services:
+  - name: postgres:15
+    alias: postgres
+    variables:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: leadtracker_test
+  - name: redis:7-alpine
+    alias: redis
+
+# Tests API
+test-api:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: leadtracker_test
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    ConnectionStrings__DefaultConnection: "Host=postgres;Database=leadtracker_test;Username=postgres;Password=postgres"
+    Redis__ConnectionString: "redis:6379"
+  cache: *dotnet_cache
+  before_script:
+    - dotnet restore api/LeadTracker.sln
+  script:
+    - dotnet build api/LeadTracker.sln --no-restore --configuration Release
+    - dotnet test api/tests/LeadTracker.UnitTests/LeadTracker.UnitTests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+    - dotnet test api/tests/LeadTracker.IntegrationTests/LeadTracker.IntegrationTests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+  artifacts:
+    when: always
+    reports:
+      junit: api/TestResults/**/TestResults.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: api/TestResults/**/coverage.cobertura.xml
+    paths:
+      - api/TestResults/
+    expire_in: 1 week
+  coverage: '/Total\s*\|\s*(\d+(?:\.\d+)?%)/'
+
+# Tests Web
+test-web:
+  stage: test
+  image: node:18-alpine
+  cache: *node_cache
+  before_script:
+    - cd web
+    - npm ci
+  script:
+    - npm run build
+    - npm run test:ci
+  artifacts:
+    when: always
+    reports:
+      junit: web/test-results.xml
+    paths:
+      - web/coverage/
+    expire_in: 1 week
+
+# Tests E2E
+e2e-tests:
+  stage: test
+  image: cypress/included:latest
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: leadtracker_test
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    CYPRESS_baseUrl: "http://web:3000"
+    CYPRESS_apiUrl: "http://api:8080"
+  script:
+    - cd web
+    - npm ci
+    - npm run build
+    - npm run test:e2e:ci
+  artifacts:
+    when: always
+    paths:
+      - web/cypress/screenshots/
+      - web/cypress/videos/
+    expire_in: 1 week
+  allow_failure: true
+
+# Scan de sécurité
+security-scan:
+  stage: security
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet tool install --global security-scan
+    - dotnet security-scan api/LeadTracker.sln --severity high
+  allow_failure: true
+  artifacts:
+    when: always
+    reports:
+      junit: security-scan-results.xml
+    paths:
+      - security-scan-results.xml
+    expire_in: 1 week
+
+# Build des images Docker
+build-images:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $ACR_USERNAME -p $ACR_PASSWORD $REGISTRY
+  script:
+    # Build API image
+    - |
+      docker build \
+        --build-arg BUILDPLATFORM=linux/amd64 \
+        --build-arg TARGETPLATFORM=linux/amd64 \
+        -t $REGISTRY/$API_IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        -t $REGISTRY/$API_IMAGE_NAME:$CI_COMMIT_SHA \
+        -t $REGISTRY/$API_IMAGE_NAME:latest \
+        -f api/Dockerfile \
+        api/
+    - docker push $REGISTRY/$API_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker push $REGISTRY/$API_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $REGISTRY/$API_IMAGE_NAME:latest
+    
+    # Build Web image
+    - |
+      docker build \
+        --build-arg BUILDPLATFORM=linux/amd64 \
+        --build-arg TARGETPLATFORM=linux/amd64 \
+        -t $REGISTRY/$WEB_IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        -t $REGISTRY/$WEB_IMAGE_NAME:$CI_COMMIT_SHA \
+        -t $REGISTRY/$WEB_IMAGE_NAME:latest \
+        -f web/Dockerfile \
+        web/
+    - docker push $REGISTRY/$WEB_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker push $REGISTRY/$WEB_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $REGISTRY/$WEB_IMAGE_NAME:latest
+  only:
+    - main
+    - develop
+  needs:
+    - test-api
+    - test-web
+    - security-scan
+
+# Déploiement Staging
+deploy-staging:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  environment:
+    name: staging
+    url: https://leadtracker-staging.azurewebsites.net
+  variables:
+    AZURE_RESOURCE_GROUP: "leadtracker-staging-rg"
+  before_script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+  script:
+    # Deploy API
+    - |
+      az container create \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --name leadtracker-api-staging \
+        --image $REGISTRY/$API_IMAGE_NAME:$CI_COMMIT_SHA \
+        --registry-login-server $REGISTRY \
+        --registry-username $ACR_USERNAME \
+        --registry-password $ACR_PASSWORD \
+        --dns-name-label leadtracker-api-staging \
+        --ports 8080 \
+        --environment-variables \
+          ASPNETCORE_ENVIRONMENT=Staging \
+          ConnectionStrings__DefaultConnection="$STAGING_CONNECTION_STRING" \
+          Redis__ConnectionString="$STAGING_REDIS_CONNECTION_STRING" \
+          JWT__SecretKey="$STAGING_JWT_SECRET" \
+          ApplicationInsights__InstrumentationKey="$STAGING_APPINSIGHTS_KEY" \
+        --restart-policy Always \
+        --location westeurope
+    
+    # Deploy Web
+    - |
+      az container create \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --name leadtracker-web-staging \
+        --image $REGISTRY/$WEB_IMAGE_NAME:$CI_COMMIT_SHA \
+        --registry-login-server $REGISTRY \
+        --registry-username $ACR_USERNAME \
+        --registry-password $ACR_PASSWORD \
+        --dns-name-label leadtracker-web-staging \
+        --ports 3000 \
+        --environment-variables \
+          NODE_ENV=staging \
+          NEXT_PUBLIC_API_URL=https://leadtracker-api-staging.westeurope.azurecontainer.io:8080 \
+          NEXTAUTH_URL=https://leadtracker-web-staging.westeurope.azurecontainer.io \
+          NEXTAUTH_SECRET="$STAGING_NEXTAUTH_SECRET" \
+        --restart-policy Always \
+        --location westeurope
+    
+    # Wait for services
+    - |
+      echo "Waiting for API to be ready..."
+      for i in {1..30}; do
+        if curl -f https://leadtracker-api-staging.westeurope.azurecontainer.io:8080/health; then
+          echo "API is ready"
+          break
+        fi
+        echo "API not ready, waiting 10 seconds..."
+        sleep 10
+      done
+      
+      echo "Waiting for Web to be ready..."
+      for i in {1..30}; do
+        if curl -f https://leadtracker-web-staging.westeurope.azurecontainer.io; then
+          echo "Web is ready"
+          break
+        fi
+        echo "Web not ready, waiting 10 seconds..."
+        sleep 10
+      done
+    
+    # Run database migrations
+    - |
+      az container exec \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --name leadtracker-api-staging \
+        --exec-command "dotnet ef database update"
+  only:
+    - develop
+  needs:
+    - build-images
+
+# Déploiement Production
+deploy-production:
+  stage: deploy
+  image: mcr.microsoft.com/azure-cli:latest
+  environment:
+    name: production
+    url: https://leadtracker.azurewebsites.net
+  variables:
+    AZURE_RESOURCE_GROUP: "leadtracker-production-rg"
+  before_script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+  script:
+    # Blue-Green deployment
+    - |
+      # Deploy to staging slot first
+      az webapp config container set \
+        --name leadtracker-production \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --slot staging \
+        --docker-custom-image-name $REGISTRY/$API_IMAGE_NAME:latest \
+        --docker-registry-server-url https://$REGISTRY \
+        --docker-registry-server-user $ACR_USERNAME \
+        --docker-registry-server-password $ACR_PASSWORD
+      
+      # Wait for staging slot to be ready
+      echo "Waiting for staging slot to be ready..."
+      for i in {1..60}; do
+        if curl -f https://leadtracker-production-staging.azurewebsites.net/health; then
+          echo "Staging slot is healthy"
+          break
+        fi
+        sleep 10
+      done
+    
+    # Run production database migrations
+    - |
+      az webapp config appsettings set \
+        --name leadtracker-production \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --slot staging \
+        --settings MIGRATE_ON_STARTUP=true
+      
+      sleep 30
+    
+    # Perform blue-green swap
+    - |
+      az webapp deployment slot swap \
+        --name leadtracker-production \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --slot staging \
+        --target-slot production
+  only:
+    - main
+  when: manual
+  needs:
+    - build-images
+
+# Notifications
+notify-success:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "push" ]; then
+        echo "✅ CI Pipeline completed successfully for $CI_COMMIT_REF_NAME"
+        # Add Slack/Teams notification here if needed
+      fi
+  only:
+    - main
+    - develop
+  needs:
+    - build-images
+  when: on_success
+
+notify-failure:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      echo "❌ CI Pipeline failed for $CI_COMMIT_REF_NAME"
+      # Add Slack/Teams notification here if needed
+  only:
+    - main
+    - develop
+  needs:
+    - build-images
+  when: on_failure
