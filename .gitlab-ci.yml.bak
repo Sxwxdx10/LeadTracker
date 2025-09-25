@@ -13,8 +13,8 @@ variables:
   NODE_VERSION: "18.x"
   # Docker Hub au lieu d'Azure Container Registry
   REGISTRY: "docker.io"
-  API_IMAGE_NAME: "franckmbd/leadtracker-api"
-  WEB_IMAGE_NAME: "franckmbd/leadtracker-web"
+  API_IMAGE_NAME: "votre-username/leadtracker-api"
+  WEB_IMAGE_NAME: "votre-username/leadtracker-web"
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
 
