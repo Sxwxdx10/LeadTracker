@@ -25,10 +25,9 @@ build-images:
     # Build Web image  
     - docker build -t $WEB_IMAGE_NAME:latest -f web/Dockerfile web/
     - docker push $WEB_IMAGE_NAME:latest
-    
-    echo "✅ Images buildées et poussées vers Docker Hub"
-    echo "🐳 $API_IMAGE_NAME:latest"
-    echo "🐳 $WEB_IMAGE_NAME:latest"
+    - echo "✅ Images buildées et poussées vers Docker Hub"
+    - echo "🐳 $API_IMAGE_NAME:latest"
+    - echo "🐳 $WEB_IMAGE_NAME:latest"
   only:
     - main
     - develop
