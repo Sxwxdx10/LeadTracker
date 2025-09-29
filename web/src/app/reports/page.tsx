@@ -306,8 +306,7 @@ export default function ReportsPage() {
             </TabsList>
             
             {/* Contenu des rapports */}
-            <div className="space-y-8">
-              <TabsContent value="overview">
+            <TabsContent value="overview">
             <div className="space-y-8">
               {/* Graphique de tendance des leads */}
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -585,7 +584,6 @@ export default function ReportsPage() {
               </div>
             </div>
           </TabsContent>
-            </div>
           </Tabs>
         </div>
 
