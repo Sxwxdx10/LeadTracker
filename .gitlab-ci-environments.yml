@@ -1,0 +1,47 @@
+# Configuration des environnements GitLab CI/CD
+# Ce fichier peut être utilisé pour configurer les environnements dans GitLab
+
+# Environnement Staging
+staging:
+  name: "staging"
+  url: "https://leadtracker-staging.azurewebsites.net"
+  deployment_tier: "staging"
+  auto_stop_in: "1 week"
+  environment_type: "staging"
+  variables:
+    - key: "ENVIRONMENT"
+      value: "staging"
+    - key: "LOG_LEVEL"
+      value: "Information"
+    - key: "ASPNETCORE_ENVIRONMENT"
+      value: "Staging"
+
+# Environnement Production
+production:
+  name: "production"
+  url: "https://leadtracker.azurewebsites.net"
+  deployment_tier: "production"
+  auto_stop_in: "never"
+  environment_type: "production"
+  variables:
+    - key: "ENVIRONMENT"
+      value: "production"
+    - key: "LOG_LEVEL"
+      value: "Warning"
+    - key: "ASPNETCORE_ENVIRONMENT"
+      value: "Production"
+
+# Environnement de développement
+development:
+  name: "development"
+  url: "https://leadtracker-dev.azurewebsites.net"
+  deployment_tier: "development"
+  auto_stop_in: "1 day"
+  environment_type: "development"
+  variables:
+    - key: "ENVIRONMENT"
+      value: "development"
+    - key: "LOG_LEVEL"
+      value: "Debug"
+    - key: "ASPNETCORE_ENVIRONMENT"
+      value: "Development"

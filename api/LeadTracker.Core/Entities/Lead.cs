@@ -51,6 +51,8 @@ public class Lead : TenantEntity
     [MaxLength(20)]
     public string Status { get; set; } = "Open"; // Open, Won, Lost
     
+    public bool IsActive { get; set; } = true;
+    
     public DateTime? LastContactedAt { get; set; }
     
     // Foreign Keys

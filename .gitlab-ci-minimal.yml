@@ -1,0 +1,50 @@
+# Configuration GitLab CI/CD minimale - Fonctionne sans runners spéciaux
+# Optimisée pour les instances GitLab auto-hébergées
+
+stages:
+  - build
+  - notify
+
+variables:
+  API_IMAGE_NAME: "franckmbd/leadtracker-api"
+  WEB_IMAGE_NAME: "franckmbd/leadtracker-web"
+
+# Build simple sans tests complexes
+build-images:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+  script:
+    # Build API image
+    - docker build -t $API_IMAGE_NAME:latest -f api/Dockerfile api/
+    - docker push $API_IMAGE_NAME:latest
+    
+    # Build Web image  
+    - docker build -t $WEB_IMAGE_NAME:latest -f web/Dockerfile web/
+    - docker push $WEB_IMAGE_NAME:latest
+    
+    echo "✅ Images buildées et poussées vers Docker Hub"
+    echo "🐳 $API_IMAGE_NAME:latest"
+    echo "🐳 $WEB_IMAGE_NAME:latest"
+  only:
+    - main
+    - develop
+    - test-gitlab-ci
+  when: manual
+
+# Notification simple
+notify:
+  stage: notify
+  script:
+    - echo "🎉 Pipeline terminé avec succès !"
+    - echo "📦 Images disponibles sur Docker Hub"
+  only:
+    - main
+    - develop
+    - test-gitlab-ci
+  needs:
+    - build-images
+  when: on_success

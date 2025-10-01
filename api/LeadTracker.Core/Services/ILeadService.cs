@@ -37,6 +37,41 @@ public interface ILeadService
     /// Get lead statistics for the current organization
     /// </summary>
     Task<LeadStatsDto> GetLeadStatsAsync();
+
+    /// <summary>
+    /// Search leads with advanced filtering and full-text search
+    /// </summary>
+    Task<LeadSearchResponse> SearchLeadsAsync(LeadSearchRequest request);
+
+    /// <summary>
+    /// Get autocomplete suggestions for search
+    /// </summary>
+    Task<AutocompleteResponse> GetAutocompleteSuggestionsAsync(AutocompleteRequest request);
+
+    /// <summary>
+    /// Get available filter options for search
+    /// </summary>
+    Task<SearchFilterOptions> GetFilterOptionsAsync(LeadSearchRequest? baseRequest = null);
+
+    /// <summary>
+    /// Save a search filter for future use
+    /// </summary>
+    Task<LeadTracker.Core.DTOs.SavedSearchFilter> SaveSearchFilterAsync(SaveSearchFilterRequest request);
+
+    /// <summary>
+    /// Get saved search filters for the current user
+    /// </summary>
+    Task<List<LeadTracker.Core.DTOs.SavedSearchFilter>> GetSavedSearchFiltersAsync();
+
+    /// <summary>
+    /// Update usage count for a saved filter
+    /// </summary>
+    System.Threading.Tasks.Task UpdateFilterUsageAsync(Guid filterId);
+
+    /// <summary>
+    /// Delete a saved search filter
+    /// </summary>
+    Task<bool> DeleteSavedSearchFilterAsync(Guid filterId);
 }
 
 /// <summary>

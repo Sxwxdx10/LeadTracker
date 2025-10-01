@@ -40,7 +40,6 @@
     <Folder Include="Services\" />
     <Folder Include="Configuration\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Seed\" />
     <Folder Include="Jobs\" />
     <Folder Include="External\" />
   </ItemGroup>

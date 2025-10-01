@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Tracker - Dashboard de Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .status-healthy {
+            color: #28a745;
+        }
+
+        .status-warning {
+            color: #ffc107;
+        }
+
+        .status-error {
+            color: #dc3545;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: #28a745;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .timestamp {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 15px;
+        }
+
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Lead Tracker Monitoring</h1>
+            <p>Dashboard de surveillance en temps réel</p>
+        </div>
+
+        <button class="refresh-btn" onclick="refreshData()">🔄 Actualiser les données</button>
+
+        <div class="dashboard">
+            <!-- Santé de l'application -->
+            <div class="card">
+                <h3>💚 Santé de l'Application</h3>
+                <div id="health-content" class="loading">Chargement...</div>
+            </div>
+
+            <!-- Métriques générales -->
+            <div class="card">
+                <h3>📈 Métriques Générales</h3>
+                <div id="metrics-content" class="loading">Chargement...</div>
+            </div>
+
+            <!-- Debug Info -->
+            <div class="card">
+                <h3>🔧 Informations de Debug</h3>
+                <div id="debug-content" class="loading">Chargement...</div>
+            </div>
+        </div>
+
+        <div class="timestamp" id="last-update">
+            Dernière mise à jour: --
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        const ORG_ID = '7b0150ff-3856-4d8c-aa6e-b15575ce8a6c';
+        let authToken = null;
+
+        // Configuration
+        const config = {
+            baseUrl: API_BASE,
+            orgId: ORG_ID,
+            refreshInterval: 30000 // 30 secondes
+        };
+
+        function updateDebugInfo(message, data = null) {
+            const container = document.getElementById('debug-content');
+            const timestamp = new Date().toLocaleTimeString();
+            const debugMessage = `[${timestamp}] ${message}`;
+            
+            if (data) {
+                console.log(debugMessage, data);
+            } else {
+                console.log(debugMessage);
+            }
+            
+            container.innerHTML = `
+                <div class="debug-info">
+                    <strong>Dernière action:</strong> ${debugMessage}<br>
+                    <strong>Token:</strong> ${authToken ? 'Présent' : 'Absent'}<br>
+                    <strong>API Base:</strong> ${config.baseUrl}<br>
+                    <strong>Org ID:</strong> ${config.orgId}
+                </div>
+            `;
+        }
+
+        async function login() {
+            updateDebugInfo('Tentative de connexion...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Org-Id': config.orgId
+                    },
+                    body: JSON.stringify({
+                        email: 'franackmbiele@gmail.com',
+                        password: 'Test123!',
+                        organizationDomain: 'fosso-org',
+                        rememberMe: false
+                    })
+                });
+
+                updateDebugInfo(`Réponse login: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    updateDebugInfo(`Erreur de connexion: ${response.status} - ${errorText}`);
+                    throw new Error(`Erreur de connexion: ${response.status}`);
+                }
+
+                const data = await response.json();
+                authToken = data.accessToken;
+                updateDebugInfo('Authentification réussie', { tokenLength: authToken.length });
+                return true;
+            } catch (error) {
+                updateDebugInfo(`Erreur d'authentification: ${error.message}`);
+                console.error('Erreur d\'authentification:', error);
+                return false;
+            }
+        }
+
+        async function fetchHealth() {
+            updateDebugInfo('Récupération de la santé...');
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/monitoring/health`);
+                updateDebugInfo(`Réponse santé: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                updateDebugInfo('Santé récupérée avec succès', data);
+                return data;
+            } catch (error) {
+                updateDebugInfo(`Erreur santé: ${error.message}`);
+                console.error('Erreur lors de la récupération de la santé:', error);
+                return null;
+            }
+        }
+
+        async function fetchData(endpoint) {
+            updateDebugInfo(`Récupération de ${endpoint}...`);
+            
+            if (!authToken) {
+                updateDebugInfo('Token manquant, tentative de connexion...');
+                const loggedIn = await login();
+                if (!loggedIn) return null;
+            }
+
+            try {
+                const response = await fetch(`${config.baseUrl}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Org-Id': config.orgId,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                updateDebugInfo(`Réponse ${endpoint}: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        updateDebugInfo('Token expiré, reconnexion...');
+                        authToken = null;
+                        return await fetchData(endpoint);
+                    }
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                updateDebugInfo(`${endpoint} récupéré avec succès`, data);
+                return data;
+            } catch (error) {
+                updateDebugInfo(`Erreur ${endpoint}: ${error.message}`);
+                console.error(`Erreur lors de la récupération de ${endpoint}:`, error);
+                return null;
+            }
+        }
+
+        function updateHealth(data) {
+            const container = document.getElementById('health-content');
+            if (!data) {
+                container.innerHTML = '<div class="error">Erreur lors du chargement de la santé</div>';
+                return;
+            }
+
+            const statusClass = data.status === 'healthy' ? 'status-healthy' : 'status-error';
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Statut</span>
+                    <span class="metric-value ${statusClass}">${data.status.toUpperCase()}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Version</span>
+                    <span class="metric-value">${data.version}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Timestamp</span>
+                    <span class="metric-value">${new Date(data.timestamp).toLocaleString()}</span>
+                </div>
+            `;
+        }
+
+        function updateMetrics(data) {
+            const container = document.getElementById('metrics-content');
+            if (!data) {
+                container.innerHTML = '<div class="error">Erreur lors du chargement des métriques</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Total des requêtes</span>
+                    <span class="metric-value">${data.totalRequests}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Requêtes réussies</span>
+                    <span class="metric-value status-healthy">${data.successfulRequests}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Requêtes échouées</span>
+                    <span class="metric-value status-error">${data.failedRequests}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Temps de réponse moyen</span>
+                    <span class="metric-value">${data.averageResponseTime}ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Utilisateurs actifs</span>
+                    <span class="metric-value">${data.activeUsers}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total des leads</span>
+                    <span class="metric-value">${data.totalLeads}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total des utilisateurs</span>
+                    <span class="metric-value">${data.totalUsers}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Organisations</span>
+                    <span class="metric-value">${data.totalOrganizations}</span>
+                </div>
+            `;
+        }
+
+        async function refreshData() {
+            updateDebugInfo('Actualisation des données...');
+            
+            // Charger toutes les données en parallèle
+            const [health, metrics] = await Promise.all([
+                fetchHealth(),
+                fetchData('/monitoring/metrics')
+            ]);
+
+            updateHealth(health);
+            updateMetrics(metrics);
+
+            document.getElementById('last-update').textContent = 
+                `Dernière mise à jour: ${new Date().toLocaleString()}`;
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDebugInfo('Initialisation du dashboard...');
+            refreshData();
+            
+            // Actualisation automatique
+            setInterval(refreshData, config.refreshInterval);
+        });
+    </script>
+</body>
+</html>

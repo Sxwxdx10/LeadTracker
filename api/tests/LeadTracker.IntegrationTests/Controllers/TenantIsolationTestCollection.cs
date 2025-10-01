@@ -153,11 +153,7 @@ public class TenantIsolationTestFixture : IDisposable
         // Ensure database is created
         context.Database.EnsureCreated();
 
-        Console.WriteLine($"Seeding data for test using DbContext: InMemory Database");
-        
-        // Clear any existing data to avoid conflicts
-        context.Database.EnsureDeleted();
-        context.Database.EnsureCreated();
+        Console.WriteLine($"Setting up test data using DbContext: InMemory Database");
 
         // Create test organizations with unique names to avoid conflicts
         var timestamp = DateTime.UtcNow.Ticks;
@@ -298,11 +294,7 @@ public class TenantIsolationTestFixture : IDisposable
         // Ensure database is created
         await context.Database.EnsureCreatedAsync();
 
-        Console.WriteLine($"Seeding data for test using DbContext: InMemory Database");
-        
-        // Clear any existing data to avoid conflicts
-        await context.Database.EnsureDeletedAsync();
-        await context.Database.EnsureCreatedAsync();
+        Console.WriteLine($"Setting up test data using DbContext: InMemory Database");
 
         // Create test organizations with unique names to avoid conflicts
         var timestamp = DateTime.UtcNow.Ticks;

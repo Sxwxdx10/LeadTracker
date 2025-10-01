@@ -23,37 +23,21 @@ import { Skeleton, SkeletonCard, SkeletonProfile } from '@/components/ui/skeleto
 import { useLead, useDeleteLead } from '@/hooks/useLeads';
 import { LeadStatus } from '@/types/lead';
 import { useToast } from '@/hooks/useToast';
+import { 
+  useTasksByLead, 
+  useActivities, 
+  useComments, 
+  useAttachments,
+  useCreateTask,
+  useCreateComment,
+  useUploadAttachment
+} from '@/hooks/useTasks';
+import { ActivityTimeline } from '@/components/lead/ActivityTimeline';
+import { TaskList } from '@/components/lead/TaskList';
+import { CommentSection } from '@/components/lead/CommentSection';
+import { AttachmentSection } from '@/components/lead/AttachmentSection';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 
-// Fonction utilitaire pour formater la devise
-const formatCurrency = (value?: number) => {
-  if (!value) return '-';
-  return new Intl.NumberFormat('fr-CA', {
-    style: 'currency',
-    currency: 'CAD',
-  }).format(value);
-};
-
-// Fonction utilitaire pour formater la date
-const formatDate = (dateString?: string) => {
-  if (!dateString) return '-';
-  return new Intl.DateTimeFormat('fr-CA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(dateString));
-};
-
-// Fonction utilitaire pour formater la date et l'heure
-const formatDateTime = (dateString?: string) => {
-  if (!dateString) return '-';
-  return new Intl.DateTimeFormat('fr-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateString));
-};
 
 // Fonction utilitaire pour obtenir la variante du badge selon le statut
 const getStatusBadgeVariant = (status: LeadStatus) => {
@@ -96,6 +80,16 @@ export default function LeadDetailPage() {
   
   const { data: lead, isLoading, error } = useLead(leadId);
   const deleteLeadMutation = useDeleteLead();
+  
+  // Hooks for new functionality
+  const { data: tasks, isLoading: tasksLoading } = useTasksByLead(leadId);
+  const { data: activities, isLoading: activitiesLoading } = useActivities(leadId);
+  const { data: comments, isLoading: commentsLoading } = useComments(leadId);
+  const { data: attachments, isLoading: attachmentsLoading } = useAttachments(leadId);
+  
+  const createTaskMutation = useCreateTask();
+  const createCommentMutation = useCreateComment();
+  const uploadAttachmentMutation = useUploadAttachment();
 
   const handleEdit = () => {
     router.push(`/leads/${leadId}/edit`);
@@ -130,6 +124,37 @@ export default function LeadDetailPage() {
 
   const handleBack = () => {
     router.back();
+  };
+
+  // Handlers for new functionality
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      await createTaskMutation.mutateAsync(taskData);
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
+  };
+
+  const handleCreateComment = async (content: string) => {
+    try {
+      await createCommentMutation.mutateAsync({
+        content,
+        leadId
+      });
+    } catch (error) {
+      console.error('Error creating comment:', error);
+    }
+  };
+
+  const handleUploadAttachment = async (file: File) => {
+    try {
+      await uploadAttachmentMutation.mutateAsync({
+        file,
+        leadId
+      });
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+    }
   };
 
   if (isLoading) {
@@ -383,10 +408,12 @@ export default function LeadDetailPage() {
           {/* Contenu principal */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="details">Détails</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="activities">Activités</TabsTrigger>
                 <TabsTrigger value="tasks">Tâches</TabsTrigger>
+                <TabsTrigger value="comments">Commentaires</TabsTrigger>
+                <TabsTrigger value="attachments">Pièces jointes</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-6">
@@ -411,39 +438,45 @@ export default function LeadDetailPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="notes" className="space-y-6">
+              <TabsContent value="activities" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Notes et commentaires
-                  </h3>
-                  
-                  <div className="text-center py-8">
-                    <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-semibold text-gray-900">
-                      Fonctionnalité en développement
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      La gestion des notes sera disponible prochainement.
-                    </p>
-                  </div>
+                  <ActivityTimeline 
+                    activities={activities?.activities || []} 
+                    isLoading={activitiesLoading} 
+                  />
                 </div>
               </TabsContent>
 
               <TabsContent value="tasks" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Tâches associées
-                  </h3>
-                  
-                  <div className="text-center py-8">
-                    <CheckCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-semibold text-gray-900">
-                      Fonctionnalité en développement
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      La gestion des tâches sera disponible prochainement.
-                    </p>
-                  </div>
+                  <TaskList 
+                    tasks={tasks || []} 
+                    leadId={leadId}
+                    isLoading={tasksLoading}
+                    onCreateTask={handleCreateTask}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="comments" className="space-y-6">
+                <div className="bg-white shadow-sm rounded-lg p-6">
+                  <CommentSection 
+                    comments={comments || []} 
+                    leadId={leadId}
+                    isLoading={commentsLoading}
+                    onCreateComment={handleCreateComment}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="attachments" className="space-y-6">
+                <div className="bg-white shadow-sm rounded-lg p-6">
+                  <AttachmentSection 
+                    attachments={attachments || []} 
+                    leadId={leadId}
+                    isLoading={attachmentsLoading}
+                    onUploadAttachment={handleUploadAttachment}
+                  />
                 </div>
               </TabsContent>
             </Tabs>

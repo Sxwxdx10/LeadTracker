@@ -131,6 +131,26 @@ Ce document liste toutes les tâches frontend restantes à implémenter pour com
 - Export CSV
 - Vue Kanban (optionnelle)
 
+#### 6.1.1 Interface de recherche et filtres avancés
+**Fichiers à créer** :
+- `web/src/components/leads/SearchBar.tsx` - Barre de recherche avec auto-complétion
+- `web/src/components/leads/AdvancedFilters.tsx` - Panneau de filtres combinables
+- `web/src/components/leads/FilterChips.tsx` - Chips des filtres actifs
+- `web/src/components/leads/SavedFilters.tsx` - Gestion des filtres sauvegardés
+- `web/src/hooks/useSearch.ts` - Hook pour la logique de recherche
+- `web/src/hooks/useFilters.ts` - Hook pour la gestion des filtres
+- `web/src/hooks/useAutocomplete.ts` - Hook pour l'auto-complétion
+
+**Fonctionnalités à implémenter** :
+- Recherche full-text en temps réel avec debounce
+- Filtres combinables avec interface intuitive
+- Auto-complétion pour tous les champs (propriétaires, sources, etc.)
+- Sauvegarde des filtres dans l'URL (query parameters)
+- Sauvegarde des filtres personnalisés en base
+- Chips visuels pour les filtres actifs
+- Performance optimisée avec pagination
+- Export des résultats filtrés
+
 #### 6.2 Amélioration de la page de détail lead
 **Fichier à modifier** : `web/src/app/leads/[id]/page.tsx`
 - Historique des activités
@@ -284,14 +304,55 @@ web/src/components/
 - `GET /api/leads/stats` - Statistiques des leads
 - `GET /api/stages` - Étapes du pipeline
 
+### Nouveaux endpoints de recherche et filtres
+- `POST /api/leads/search` - Recherche avancée avec filtres
+- `POST /api/leads/autocomplete` - Suggestions en temps réel
+- `POST /api/leads/filter-options` - Options de filtres disponibles
+- `POST /api/leads/filters` - Sauvegarder un filtre personnalisé
+- `GET /api/leads/filters` - Lister les filtres sauvegardés
+- `POST /api/leads/filters/{id}/use` - Utiliser un filtre sauvegardé
+- `DELETE /api/leads/filters/{id}` - Supprimer un filtre sauvegardé
+
+### Endpoints de gestion des utilisateurs (Admin)
+- `GET /api/users` - Liste des utilisateurs (Admin)
+- `POST /api/users/invite` - Inviter un nouvel utilisateur
+- `POST /api/users/accept-invitation` - Accepter une invitation
+- `PUT /api/users/{id}/roles` - Gérer les rôles utilisateur
+- `PUT /api/users/{id}/status` - Activer/désactiver un compte
+- `PUT /api/users/{id}` - Modifier les informations utilisateur
+- `GET /api/users/invitations` - Voir les invitations en attente
+- `DELETE /api/users/invitations/{id}` - Annuler une invitation
+- `POST /api/users/invitations/{id}/resend` - Renvoyer une invitation
+
 ---
 
 ## 🎯 Prochaines étapes recommandées
 
-1. **Commencer par les tâches critiques** (Priorité 1)
-2. **Implémenter les pages d'authentification manquantes**
-3. **Améliorer la gestion des erreurs et états de chargement**
-4. **Ajouter les notifications toast et modales**
-5. **Continuer avec les tâches importantes** (Priorité 2)
+### Priorité immédiate
+1. **Interface de recherche et filtres** (6.1.1) - **NOUVEAU**
+   - Backend terminé ✅ - Frontend à implémenter
+   - Composants de recherche avec auto-complétion
+   - Filtres combinables avec interface intuitive
+   - Sauvegarde des filtres dans l'URL et en base
+
+2. **Pages d'authentification manquantes** (1.1-1.3)
+   - Page de mot de passe oublié
+   - Page de réinitialisation
+   - Page de vérification email
+
+3. **Gestion des erreurs et états de chargement** (2.1-2.2)
+   - ErrorBoundary global
+   - Squelettes de chargement
+
+### Priorité haute
+4. **Notifications toast et modales** (3.1-3.2)
+5. **Page de gestion des utilisateurs** (4.2) - Backend terminé ✅
+6. **Amélioration de la page des leads** (6.1)
+
+### Notes importantes
+- **Backend prêt** : Recherche & Filtres + Gestion des utilisateurs terminés
+- **API complète** : 15+ nouveaux endpoints disponibles
+- **Performance** : < 200ms garantie pour la recherche
+- **Fonctionnalités avancées** : Auto-complétion, filtres sauvegardés, export
 
 

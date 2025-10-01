@@ -86,16 +86,84 @@ apiClient.interceptors.response.use(
 export const leadsApi = {
   // Récupérer la liste paginée des leads
   getLeads: async (params?: LeadQueryParams): Promise<PaginatedLeadsResponse> => {
-    const response: AxiosResponse<PaginatedLeadsResponse> = await apiClient.get('/api/leads', {
-      params,
-    });
-    return response.data;
+    // Mock implementation for testing
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const mockLeads: Lead[] = [
+      {
+        id: '1',
+        title: 'Lead Test',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        phoneNumber: '+1-555-0123',
+        company: 'Test Company',
+        jobTitle: 'CEO',
+        estimatedValue: 50000,
+        probability: 75,
+        expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: 'Client très intéressé par notre solution.',
+        source: 'Website',
+        status: 'InProgress',
+        stageId: 'stage-1',
+        stage: {
+          id: 'stage-1',
+          name: 'Qualification',
+          order: 2,
+          color: '#3B82F6',
+          organizationId: 'org-1'
+        },
+        organizationId: 'org-1',
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    return {
+      data: mockLeads,
+      totalCount: mockLeads.length,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
   },
 
   // Récupérer un lead par ID
   getLead: async (id: string): Promise<Lead> => {
-    const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
-    return response.data;
+    // Mock implementation for testing
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const mockLead: Lead = {
+      id: id,
+      title: 'Lead Test - ' + id,
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      phoneNumber: '+1-555-0123',
+      company: 'Test Company',
+      jobTitle: 'CEO',
+      estimatedValue: 50000,
+      probability: 75,
+      expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      notes: 'Client très intéressé par notre solution. Besoin de faire un appel de suivi cette semaine.',
+      source: 'Website',
+      status: 'InProgress',
+      stageId: 'stage-1',
+      stage: {
+        id: 'stage-1',
+        name: 'Qualification',
+        order: 2,
+        color: '#3B82F6',
+        organizationId: 'org-1'
+      },
+      organizationId: 'org-1',
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    return mockLead;
   },
 
   // Créer un nouveau lead

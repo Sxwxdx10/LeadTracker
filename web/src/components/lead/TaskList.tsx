@@ -1,0 +1,339 @@
+'use client';
+
+import React, { useState } from 'react';
+import { 
+  PlusIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  CalendarIcon,
+  UserIcon,
+  PencilIcon,
+  TrashIcon
+} from '@heroicons/react/24/outline';
+import { Task, TaskType, TaskStatus, TaskPriority } from '@/types/task';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatDateTime, formatDate } from '@/lib/utils';
+
+interface TaskListProps {
+  tasks: Task[];
+  leadId: string;
+  isLoading?: boolean;
+  onCreateTask?: (task: Partial<Task>) => void;
+  onUpdateTask?: (id: string, updates: Partial<Task>) => void;
+  onDeleteTask?: (id: string) => void;
+}
+
+// Function to get status badge variant
+const getStatusBadgeVariant = (status: TaskStatus) => {
+  switch (status) {
+    case 'Completed':
+      return 'success';
+    case 'Pending':
+      return 'warning';
+    case 'Cancelled':
+      return 'destructive';
+    default:
+      return 'default';
+  }
+};
+
+// Function to get priority badge variant
+const getPriorityBadgeVariant = (priority: TaskPriority) => {
+  switch (priority) {
+    case 'Low':
+      return 'secondary';
+    case 'Medium':
+      return 'default';
+    case 'High':
+      return 'warning';
+    case 'Urgent':
+      return 'destructive';
+    default:
+      return 'default';
+  }
+};
+
+// Function to get type icon
+const getTypeIcon = (type: TaskType) => {
+  switch (type) {
+    case 'Call':
+      return '📞';
+    case 'Email':
+      return '📧';
+    case 'Meeting':
+      return '🤝';
+    case 'Follow-up':
+      return '🔄';
+    case 'Note':
+      return '📝';
+    case 'Document':
+      return '📄';
+    default:
+      return '📋';
+  }
+};
+
+// Function to translate status
+const translateStatus = (status: TaskStatus) => {
+  const translations = {
+    'Pending': 'En attente',
+    'Completed': 'Terminé',
+    'Cancelled': 'Annulé'
+  };
+  return translations[status] || status;
+};
+
+// Function to translate priority
+const translatePriority = (priority: TaskPriority) => {
+  const translations = {
+    'Low': 'Faible',
+    'Medium': 'Moyenne',
+    'High': 'Élevée',
+    'Urgent': 'Urgente'
+  };
+  return translations[priority] || priority;
+};
+
+// Function to translate type
+const translateType = (type: TaskType) => {
+  const translations = {
+    'Call': 'Appel',
+    'Email': 'Email',
+    'Meeting': 'Réunion',
+    'Follow-up': 'Suivi',
+    'Note': 'Note',
+    'Document': 'Document'
+  };
+  return translations[type] || type;
+};
+
+export function TaskList({ 
+  tasks, 
+  leadId, 
+  isLoading, 
+  onCreateTask, 
+  onUpdateTask, 
+  onDeleteTask 
+}: TaskListProps) {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="border border-gray-200 rounded-lg p-4 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-6 bg-gray-200 rounded w-16"></div>
+            </div>
+            <div className="mt-2 h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="mt-3 flex space-x-2">
+              <div className="h-6 bg-gray-200 rounded w-20"></div>
+              <div className="h-6 bg-gray-200 rounded w-16"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const handleTaskComplete = (task: Task) => {
+    if (onUpdateTask) {
+      const updates: Partial<Task> = {
+        status: task.status === 'Completed' ? 'Pending' : 'Completed'
+      };
+      
+      if (task.status === 'Completed') {
+        updates.completedAt = undefined;
+      } else {
+        updates.completedAt = new Date().toISOString();
+      }
+      
+      onUpdateTask(task.id, updates);
+    }
+  };
+
+  const handleTaskDelete = (task: Task) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la tâche "${task.title}" ?`)) {
+      if (onDeleteTask) {
+        onDeleteTask(task.id);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900">
+          Tâches associées ({tasks.length})
+        </h3>
+        <Button
+          size="sm"
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Nouvelle tâche
+        </Button>
+      </div>
+
+      {/* Create Task Form */}
+      {showCreateForm && (
+        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="text-sm text-gray-600 mb-2">
+            Formulaire de création de tâche - À implémenter
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowCreateForm(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                // Mock task creation
+                const mockTask: Partial<Task> = {
+                  title: 'Nouvelle tâche',
+                  type: 'Call',
+                  priority: 'Medium',
+                  dueDate: new Date(Date.now() + 86400000).toISOString(),
+                  leadId: leadId
+                };
+                if (onCreateTask) {
+                  onCreateTask(mockTask);
+                }
+                setShowCreateForm(false);
+              }}
+            >
+              Créer
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Task List */}
+      {tasks.length === 0 ? (
+        <div className="text-center py-8">
+          <CheckCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">
+            Aucune tâche
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Créez votre première tâche pour commencer à suivre les activités.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              className={`border rounded-lg p-4 transition-all ${
+                task.isOverdue && task.status !== 'Completed'
+                  ? 'border-red-200 bg-red-50'
+                  : task.status === 'Completed'
+                  ? 'border-green-200 bg-green-50'
+                  : 'border-gray-200 bg-white'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{getTypeIcon(task.type)}</span>
+                    <h4 className={`font-medium ${
+                      task.status === 'Completed' ? 'line-through text-gray-500' : 'text-gray-900'
+                    }`}>
+                      {task.title}
+                    </h4>
+                  </div>
+                  
+                  {task.description && (
+                    <p className="mt-1 text-sm text-gray-600">
+                      {task.description}
+                    </p>
+                  )}
+                  
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge variant={getStatusBadgeVariant(task.status)}>
+                      {translateStatus(task.status)}
+                    </Badge>
+                    <Badge variant={getPriorityBadgeVariant(task.priority)}>
+                      {translatePriority(task.priority)}
+                    </Badge>
+                    <span className="text-xs text-gray-500">
+                      {translateType(task.type)}
+                    </span>
+                  </div>
+                  
+                  <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                    <div className="flex items-center">
+                      <CalendarIcon className="h-3 w-3 mr-1" />
+                      Échéance: {formatDate(task.dueDate)}
+                    </div>
+                    
+                    {task.assignedUser && (
+                      <div className="flex items-center">
+                        <UserIcon className="h-3 w-3 mr-1" />
+                        {task.assignedUser.fullName}
+                      </div>
+                    )}
+                    
+                    {task.completedAt && (
+                      <div className="flex items-center text-green-600">
+                        <CheckCircleIcon className="h-3 w-3 mr-1" />
+                        Terminé le {formatDateTime(task.completedAt)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {task.isOverdue && task.status !== 'Completed' && (
+                    <div className="mt-2 flex items-center text-red-600 text-xs">
+                      <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                      En retard
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-2 ml-4">
+                  {task.status !== 'Completed' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleTaskComplete(task)}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      <CheckCircleIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                  
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {/* Edit functionality */}}
+                    className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleTaskDelete(task)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
