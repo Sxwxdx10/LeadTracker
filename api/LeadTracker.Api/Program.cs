@@ -270,10 +270,15 @@ try
     builder.Services.AddScoped<ILeadSeederService, LeadTracker.Infrastructure.Services.LeadSeederService>();
     builder.Services.AddScoped<IMonitoringService, LeadTracker.Infrastructure.Services.MonitoringService>();
     builder.Services.AddScoped<IAlertService, LeadTracker.Infrastructure.Services.AlertService>();
+    // Kanban services
+    builder.Services.AddScoped<IKanbanService, LeadTracker.Infrastructure.Services.KanbanService>();
+    builder.Services.AddScoped<IKanbanNotificationService, LeadTracker.Api.Services.KanbanNotificationService>();
     
     // Add controllers
     builder.Services.AddScoped<LeadTracker.Api.Controllers.MonitoringController>();
     
+    // SignalR
+    builder.Services.AddSignalR();
 
     var app = builder.Build();
 
@@ -325,6 +330,9 @@ try
 
 
     app.MapControllers();
+    
+    // SignalR hubs
+    app.MapHub<LeadTracker.Api.Hubs.KanbanHub>("/kanbanhub");
 
     // Database Migration
     using (var scope = app.Services.CreateScope())

@@ -226,6 +226,7 @@ const tasksApi = {
       id: Date.now().toString(),
       ...data,
       status: 'Pending',
+      priority: data.priority || 'Medium',
       organizationId: 'org-1',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

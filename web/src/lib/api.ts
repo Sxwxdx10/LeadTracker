@@ -10,7 +10,7 @@ import {
 } from '@/types/lead';
 
 // Configuration de l'API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = 'http://localhost:8080';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -86,84 +86,27 @@ apiClient.interceptors.response.use(
 export const leadsApi = {
   // Récupérer la liste paginée des leads
   getLeads: async (params?: LeadQueryParams): Promise<PaginatedLeadsResponse> => {
-    // Mock implementation for testing
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const queryParams = new URLSearchParams();
     
-    const mockLeads: Lead[] = [
-      {
-        id: '1',
-        title: 'Lead Test',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phoneNumber: '+1-555-0123',
-        company: 'Test Company',
-        jobTitle: 'CEO',
-        estimatedValue: 50000,
-        probability: 75,
-        expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: 'Client très intéressé par notre solution.',
-        source: 'Website',
-        status: 'InProgress',
-        stageId: 'stage-1',
-        stage: {
-          id: 'stage-1',
-          name: 'Qualification',
-          order: 2,
-          color: '#3B82F6',
-          organizationId: 'org-1'
-        },
-        organizationId: 'org-1',
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
+    if (params?.page) queryParams.append('pageNumber', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    if (params?.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+    if (params?.stageId) queryParams.append('stageId', params.stageId);
+    if (params?.ownerId) queryParams.append('assignedUserId', params.ownerId);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+    if (params?.status) queryParams.append('status', params.status);
     
-    return {
-      data: mockLeads,
-      totalCount: mockLeads.length,
-      page: 1,
-      pageSize: 10,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
+    const response: AxiosResponse<PaginatedLeadsResponse> = await apiClient.get(
+      `/api/leads?${queryParams.toString()}`
+    );
+    return response.data;
   },
 
   // Récupérer un lead par ID
   getLead: async (id: string): Promise<Lead> => {
-    // Mock implementation for testing
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const mockLead: Lead = {
-      id: id,
-      title: 'Lead Test - ' + id,
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      phoneNumber: '+1-555-0123',
-      company: 'Test Company',
-      jobTitle: 'CEO',
-      estimatedValue: 50000,
-      probability: 75,
-      expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: 'Client très intéressé par notre solution. Besoin de faire un appel de suivi cette semaine.',
-      source: 'Website',
-      status: 'InProgress',
-      stageId: 'stage-1',
-      stage: {
-        id: 'stage-1',
-        name: 'Qualification',
-        order: 2,
-        color: '#3B82F6',
-        organizationId: 'org-1'
-      },
-      organizationId: 'org-1',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    return mockLead;
+    const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
+    return response.data;
   },
 
   // Créer un nouveau lead
