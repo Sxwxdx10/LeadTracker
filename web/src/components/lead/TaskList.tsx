@@ -146,7 +146,7 @@ export function TaskList({
       };
       
       if (task.status === 'Completed') {
-        updates.completedAt = undefined;
+        delete updates.completedAt;
       } else {
         updates.completedAt = new Date().toISOString();
       }

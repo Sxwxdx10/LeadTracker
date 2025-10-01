@@ -16,6 +16,7 @@ export interface Lead {
   source?: string;
   status: LeadStatus;
   stageId: string;
+  stageName?: string;
   stage?: Stage;
   organizationId: string;
   createdAt: string;
