@@ -190,6 +190,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       dispatch({ type: 'AUTH_START' });
       
+      // Mode démonstration - simulation de la connexion
+      const isDemoMode = process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL;
+      
+      if (isDemoMode) {
+        // Simulation d'une connexion réussie
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simuler le délai réseau
+        
+        const mockResponse = {
+          accessToken: 'demo-access-token-' + Date.now(),
+          refreshToken: 'demo-refresh-token-' + Date.now(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          user: {
+            id: 'demo-user-' + Date.now(),
+            firstName: 'Utilisateur',
+            lastName: 'Démo',
+            email: credentials.email,
+            fullName: 'Utilisateur Démo',
+            jobTitle: 'Utilisateur démo',
+            roles: ['admin']
+          },
+          organization: {
+            id: 'demo-org-' + Date.now(),
+            name: 'Organisation Démo',
+            domain: 'demo-org',
+            description: 'Organisation de démonstration'
+          }
+        };
+        
+        tokenUtils.saveTokens(mockResponse);
+        
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: {
+            user: mockResponse.user,
+            organization: mockResponse.organization,
+            accessToken: mockResponse.accessToken,
+            refreshToken: mockResponse.refreshToken,
+          },
+        });
+
+        console.log('Connexion en mode démo réussie !');
+        return;
+      }
+      
+      // Mode normal - appel API réel
       const response = await authApi.login(credentials);
       tokenUtils.saveTokens(response);
       
@@ -217,6 +262,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       dispatch({ type: 'AUTH_START' });
       
+      // Mode démonstration - simulation de l'inscription
+      const isDemoMode = process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL;
+      
+      if (isDemoMode) {
+        // Simulation d'une inscription réussie
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simuler le délai réseau
+        
+        const mockResponse = {
+          accessToken: 'demo-access-token-' + Date.now(),
+          refreshToken: 'demo-refresh-token-' + Date.now(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          user: {
+            id: 'demo-user-' + Date.now(),
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            fullName: `${data.firstName} ${data.lastName}`,
+            jobTitle: 'Utilisateur démo',
+            roles: ['admin']
+          },
+          organization: {
+            id: 'demo-org-' + Date.now(),
+            name: data.organizationName,
+            domain: data.organizationDomain || 'demo-org',
+            description: data.organizationDescription || 'Organisation de démonstration'
+          }
+        };
+        
+        tokenUtils.saveTokens(mockResponse);
+        
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: {
+            user: mockResponse.user,
+            organization: mockResponse.organization,
+            accessToken: mockResponse.accessToken,
+            refreshToken: mockResponse.refreshToken,
+          },
+        });
+
+        console.log('Inscription en mode démo réussie !');
+        return;
+      }
+      
+      // Mode normal - appel API réel
       const response = await authApi.register(data);
       tokenUtils.saveTokens(response);
       

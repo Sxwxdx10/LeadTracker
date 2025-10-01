@@ -102,6 +102,21 @@ export default function RegisterPage() {
                 connectez-vous à votre compte existant
               </Link>
             </p>
+            
+            {/* Message de mode démo */}
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="text-blue-400">ℹ️</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Mode démonstration activé</strong> - L'inscription est simulée pour la démonstration. 
+                    Aucune donnée n'est envoyée au serveur.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
