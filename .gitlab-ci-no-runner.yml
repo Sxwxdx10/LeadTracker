@@ -1,0 +1,48 @@
+# Configuration GitLab CI/CD sans runners spéciaux
+# Utilise les runners GitLab par défaut
+
+stages:
+  - build
+  - notify
+
+variables:
+  API_IMAGE_NAME: "franckmbd/leadtracker-api"
+  WEB_IMAGE_NAME: "franckmbd/leadtracker-web"
+
+# Build simple sans Docker-in-Docker
+build-images:
+  stage: build
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "🚀 Début du build des images Docker"
+    - echo "📦 API Image: $API_IMAGE_NAME:latest"
+    - echo "📦 Web Image: $WEB_IMAGE_NAME:latest"
+    - echo "✅ Configuration prête pour le build"
+    - echo "🐳 Pour construire les images, utilisez:"
+    - echo "   docker build -t $API_IMAGE_NAME:latest -f api/Dockerfile api/"
+    - echo "   docker build -t $WEB_IMAGE_NAME:latest -f web/Dockerfile web/"
+    - echo "   docker push $API_IMAGE_NAME:latest"
+    - echo "   docker push $WEB_IMAGE_NAME:latest"
+  only:
+    - main
+    - develop
+    - test-gitlab-ci
+  when: manual
+
+# Notification
+notify:
+  stage: notify
+  image: alpine:latest
+  script:
+    - echo "🎉 Pipeline terminé avec succès !"
+    - echo "📦 Instructions de build disponibles"
+    - echo "🔧 Configurez un runner pour automatiser le build Docker"
+  only:
+    - main
+    - develop
+    - test-gitlab-ci
+  needs:
+    - build-images
+  when: on_success
