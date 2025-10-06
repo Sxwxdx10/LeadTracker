@@ -342,6 +342,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       tokenUtils.clearTokens();
       dispatch({ type: 'AUTH_LOGOUT' });
       console.log('Déconnexion réussie');
+      // Rediriger vers la page de connexion
+      window.location.href = '/login';
     }
   };
 

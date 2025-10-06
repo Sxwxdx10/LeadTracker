@@ -12,6 +12,7 @@ import {
   CreateStageRequest,
   UpdateStageRequest
 } from '@/types/kanban';
+import { toast } from 'react-hot-toast';
 
 // Query Keys
 export const kanbanKeys = {
@@ -62,34 +63,22 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   // Create columns for each stage, but filter leads based on status
   const columns: KanbanColumn[] = [];
   
-  // Add detailed open stages (Nouveau, Qualifié, Proposition, Négociation)
+  // Add detailed open stages (all stages except Won/Lost)
   const openStages = stages.filter(stage => 
-    stage.name === 'Nouveau' || 
-    stage.name === 'Qualifié' || 
-    stage.name === 'Proposition' || 
-    stage.name === 'Négociation'
+    !stage.isWonStage && !stage.isLostStage
   ).sort((a, b) => a.order - b.order);
 
+  // Get all valid stage IDs
+  const validStageIds = new Set(stages.map(s => s.id));
+
   openStages.forEach((stage, index) => {
-    let stageLeads;
+    // For ALL stages (including "Nouveau"), show leads that are in this specific stage AND have Open status
+    const stageLeads = leads.filter(lead => {
+      const isInThisStage = lead.stageId === stage.id;
+      const hasOpenStatus = lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified';
+      return isInThisStage && hasOpenStatus;
+    });
     
-    if (stage.name === 'Nouveau') {
-      // For Nouveau stage, show ALL leads with Open status regardless of their actual stage
-      stageLeads = leads.filter(lead => 
-        (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified')
-      );
-      
-      // Debug logging for Nouveau stage
-      console.log('=== DEBUG NOUVEAU STAGE ===');
-      console.log('All leads:', leads.map(l => ({ title: l.title, status: l.status, stageName: l.stage?.name })));
-      console.log('Open leads for Nouveau:', stageLeads.map(l => ({ title: l.title, status: l.status, stageName: l.stage?.name })));
-    } else {
-      // For other stages, show leads that are in this stage AND have Open status
-      stageLeads = leads.filter(lead => 
-        lead.stageId === stage.id && 
-        (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified')
-      );
-    }
     
     const metrics = calculateColumnMetrics(stageLeads);
     
@@ -109,71 +98,57 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
     });
   });
 
-  // Add any leads with Open status that are in "Fermé" stages to the appropriate open stage
-  const openLeadsInClosedStages = leads.filter(lead => 
-    (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified') &&
-    (lead.stage?.name === 'Fermé - Gagné' || lead.stage?.name === 'Fermé - Perdu')
-  );
 
-  // Distribute these leads to the first available open stage (Nouveau)
-  if (openLeadsInClosedStages.length > 0 && openStages.length > 0) {
-    const nouveauStage = openStages[0]; // Nouveau stage
-    const nouveauIndex = columns.findIndex(col => col.id === nouveauStage.id);
-    
-    if (nouveauIndex !== -1) {
-      // Add these leads to the Nouveau stage
-      const allNouveauLeads = [...leads.filter(lead => 
-        lead.stageId === nouveauStage.id && 
-        (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified')
-      ), ...openLeadsInClosedStages];
-      
-      const metrics = calculateColumnMetrics(allNouveauLeads);
-      columns[nouveauIndex] = {
-        ...columns[nouveauIndex],
-        leadCount: allNouveauLeads.length,
-        totalValue: metrics.totalValue,
-        potentialValue: metrics.potentialValue,
-      } as KanbanColumn;
-    }
-  }
-
-  // Add Won and Lost columns
-  const wonLeads = leads.filter(lead => lead.status === 'Won');
-  const lostLeads = leads.filter(lead => lead.status === 'Lost');
+  // Add Won and Lost stages from the database
+  const wonStages = stages.filter(stage => stage.isWonStage);
+  const lostStages = stages.filter(stage => stage.isLostStage);
   
-  const wonMetrics = calculateColumnMetrics(wonLeads);
-  const lostMetrics = calculateColumnMetrics(lostLeads);
-
-  columns.push({
-    id: 'won-group',
-    name: 'Fermé - Gagné',
-    description: 'Leads gagnés',
-    color: '#10B981',
-    order: openStages.length + 1,
-    isActive: true,
-    isWonStage: true,
-    isLostStage: false,
-    leadCount: wonLeads.length,
-    totalValue: wonMetrics.totalValue,
-    potentialValue: wonMetrics.potentialValue,
-    averageTimeInStageDays: 0,
+  // Add Won stages
+  wonStages.forEach((stage, index) => {
+    // For Won stages, show ALL leads with Won status regardless of their stageId
+    const stageLeads = leads.filter(lead => lead.status === 'Won');
+    const metrics = calculateColumnMetrics(stageLeads);
+    
+    columns.push({
+      id: stage.id,
+      name: stage.name,
+      description: stage.description || 'Leads gagnés',
+      color: stage.color || '#10B981',
+      order: openStages.length + index + 1,
+      isActive: true,
+      isWonStage: true,
+      isLostStage: false,
+      leadCount: stageLeads.length,
+      totalValue: metrics.totalValue,
+      potentialValue: metrics.potentialValue,
+      averageTimeInStageDays: 0,
+    });
+  });
+  
+  // Add Lost stages
+  lostStages.forEach((stage, index) => {
+    // For Lost stages, show ALL leads with Lost status regardless of their stageId
+    const stageLeads = leads.filter(lead => lead.status === 'Lost');
+    const metrics = calculateColumnMetrics(stageLeads);
+    
+    columns.push({
+      id: stage.id,
+      name: stage.name,
+      description: stage.description || 'Leads perdus',
+      color: stage.color || '#EF4444',
+      order: openStages.length + wonStages.length + index + 1,
+      isActive: true,
+      isWonStage: false,
+      isLostStage: true,
+      leadCount: stageLeads.length,
+      totalValue: metrics.totalValue,
+      potentialValue: metrics.potentialValue,
+      averageTimeInStageDays: 0,
+    });
   });
 
-  columns.push({
-    id: 'lost-group',
-    name: 'Fermé - Perdu',
-    description: 'Leads perdus',
-    color: '#EF4444',
-    order: openStages.length + 2,
-    isActive: true,
-    isWonStage: false,
-    isLostStage: true,
-    leadCount: lostLeads.length,
-    totalValue: lostMetrics.totalValue,
-    potentialValue: lostMetrics.potentialValue,
-    averageTimeInStageDays: 0,
-  });
-
+  // Final columns created
+  
   return columns;
 };
 
@@ -200,10 +175,16 @@ const kanbanApi = {
   getBoard: async (): Promise<KanbanBoard> => {
     // Use the same data source as the table view - bypass Kanban API
     const [leadsResponse, stagesResponse, statsResponse] = await Promise.all([
-      leadsApi.getLeads(),
+      leadsApi.getLeads({ pageSize: 1000 }), // Fetch all leads for Kanban view
       stagesApi.getStages(),
       leadsApi.getLeadStats()
     ]);
+    
+    console.log('=== KANBAN API RESPONSE ===');
+    console.log('Total leads from API:', leadsResponse.totalCount);
+    console.log('Leads received:', leadsResponse.data?.length);
+    console.log('PageSize requested: 1000');
+    console.log('Full response:', leadsResponse);
     
     const leads = leadsResponse.data;
     const stages = stagesResponse;
@@ -227,7 +208,7 @@ const kanbanApi = {
 
   getStages: async (): Promise<KanbanColumn[]> => {
     const [leadsResponse, stagesResponse] = await Promise.all([
-      leadsApi.getLeads(),
+      leadsApi.getLeads({ pageSize: 1000 }),
       stagesApi.getStages()
     ]);
     
@@ -243,34 +224,67 @@ const kanbanApi = {
   },
 
   moveLead: async (request: MoveLeadRequest): Promise<KanbanLead> => {
+    // First, get the current lead to preserve all required fields
+    const currentLead = await leadsApi.getLead(request.leadId);
+    
+    // Get available stages to validate the target
+    const stages = await stagesApi.getStages();
+    const validStageIds = new Set(stages.map(s => s.id));
+    
     // Determine the new status and stage based on the target column
     let newStatus: string;
     let newStageId: string = request.toStageId;
     
-    if (request.toStageId === 'won-group') {
+    // Find the target stage to determine its type
+    const targetStage = stages.find(s => s.id === request.toStageId);
+    
+    if (targetStage?.isWonStage) {
       newStatus = 'Won';
-      // Keep the current stageId for Won leads
-      const currentLead = await leadsApi.getLead(request.leadId);
-      newStageId = currentLead.stageId;
-    } else if (request.toStageId === 'lost-group') {
+      // Set stageId to the Won stage ID so the lead appears in the Won column
+      newStageId = request.toStageId;
+    } else if (targetStage?.isLostStage) {
       newStatus = 'Lost';
-      // Keep the current stageId for Lost leads
-      const currentLead = await leadsApi.getLead(request.leadId);
-      newStageId = currentLead.stageId;
+      // Set stageId to the Lost stage ID so the lead appears in the Lost column
+      newStageId = request.toStageId;
     } else {
       // For detailed stages (Nouveau, Qualifié, Proposition, Négociation)
-      // Set status to Open and update the stageId
+      // Validate that the target stage exists
+      if (!validStageIds.has(request.toStageId)) {
+        console.error('❌ [MOVE LEAD] Invalid stageId provided:', request.toStageId);
+        throw new Error(`Invalid stage ID: ${request.toStageId}`);
+      }
+      
       newStatus = 'Open';
     }
     
-    // Update the lead's status and stage
+    // Update the lead's status and stage, including all required fields
     const updateData: any = {
+      title: currentLead.title, // Required field
+      firstName: currentLead.firstName,
+      lastName: currentLead.lastName,
+      email: currentLead.email,
+      // Only include phoneNumber if it's valid or null/empty
+      phoneNumber: currentLead.phoneNumber && currentLead.phoneNumber.match(/^\+?1\d{10}$/) 
+        ? currentLead.phoneNumber 
+        : null,
+      company: currentLead.company,
+      jobTitle: currentLead.jobTitle,
+      estimatedValue: currentLead.estimatedValue,
+      probability: currentLead.probability,
+      expectedCloseDate: currentLead.expectedCloseDate,
+      notes: currentLead.notes,
+      source: currentLead.source,
       status: newStatus,
       stageId: newStageId
     };
     
-    const updatedLead = await leadsApi.updateLead(request.leadId, updateData);
-    return transformLeadToKanbanLead(updatedLead);
+    try {
+      const updatedLead = await leadsApi.updateLead(request.leadId, updateData);
+      return transformLeadToKanbanLead(updatedLead);
+    } catch (error) {
+      console.error('❌ [MOVE LEAD] Update failed:', error);
+      throw error;
+    }
   },
 
   updateLead: async (request: UpdateKanbanLeadRequest): Promise<KanbanLead> => {
@@ -338,13 +352,14 @@ export const useMoveLead = () => {
   return useMutation({
     mutationFn: kanbanApi.moveLead,
     onSuccess: () => {
-      // Invalidate both Kanban and Leads data since they now use the same source
+      // Simple invalidation - no optimistic update to avoid duplication
       queryClient.invalidateQueries({ queryKey: kanbanKeys.board() });
       queryClient.invalidateQueries({ queryKey: kanbanKeys.metrics() });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
     onError: (error) => {
       console.error('Error moving lead:', error);
+      toast.error('Erreur lors du déplacement du lead');
     },
   });
 };

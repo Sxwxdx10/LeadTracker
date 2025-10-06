@@ -6,9 +6,11 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  DragOverEvent,
   PointerSensor,
   useSensor,
   useSensors,
+  closestCenter,
   closestCorners,
 } from '@dnd-kit/core';
 import {
@@ -37,8 +39,10 @@ interface KanbanBoardProps {
   className?: string;
 }
 
+
 export function KanbanBoard({ className = '' }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -50,13 +54,19 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 10,
       },
     })
   );
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    const newOverId = over?.id as string | null;
+    setOverId(newOverId);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -71,6 +81,13 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
     const draggedLead = board.leads.find(lead => lead.id === activeId);
     if (!draggedLead) return;
 
+    // Check if we're dropping on the same lead (no-op)
+    if (activeId === overId) {
+      setActiveId(null);
+      setOverId(null);
+      return;
+    }
+
     // Determine if we're dropping on a column or another lead
     const isOverColumn = board.columns.some(col => col.id === overId);
     const isOverLead = board.leads.some(lead => lead.id === overId);
@@ -80,9 +97,21 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
     if (isOverColumn) {
       targetStageId = overId;
     } else if (isOverLead) {
+      // When dropping on a lead, always move to the same stage as that lead
       const targetLead = board.leads.find(lead => lead.id === overId);
       if (targetLead) {
         targetStageId = targetLead.stageId;
+      }
+    } else {
+      // Enhanced fallback: try to find the closest column based on position
+      const targetColumn = board.columns.find(col => {
+        // Check if overId is a child of this column or contains column ID
+        return overId.includes(col.id) || col.id.includes(overId) || 
+               over.data.current?.column?.id === col.id;
+      });
+      
+      if (targetColumn) {
+        targetStageId = targetColumn.id;
       }
     }
 
@@ -101,10 +130,12 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
     }
 
     setActiveId(null);
+    setOverId(null);
   };
 
   const handleDragCancel = () => {
     setActiveId(null);
+    setOverId(null);
   };
 
   if (isLoading) {
@@ -246,39 +277,34 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <div className="flex space-x-6 h-full overflow-x-auto pb-4">
+          <div className="flex space-x-6 h-full overflow-x-auto pb-4 items-stretch">
             {board.columns
               .sort((a, b) => a.order - b.order)
               .map((column) => {
-                // Filter leads based on column type
+                // Filter leads for this column
                 const columnLeads = board.leads.filter(lead => {
-                  if (column.id === 'won-group') {
+                  if (column.isWonStage) {
                     return lead.status === 'Won';
-                  } else if (column.id === 'lost-group') {
+                  } else if (column.isLostStage) {
                     return lead.status === 'Lost';
                   } else {
-                    // For detailed stages (Nouveau, Qualifié, Proposition, Négociation)
-                    // Show leads that are in this stage AND have Open status
-                    const isInStage = lead.stageId === column.id && 
-                           (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified');
-                    
-                    // Also include Open leads that are in "Fermé" stages in the Nouveau column
-                    const isOpenInClosedStage = column.name === 'Nouveau' && 
-                           (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified') &&
-                           (lead.stageName === 'Fermé - Gagné' || lead.stageName === 'Fermé - Perdu');
-                    
-                    return isInStage || isOpenInClosedStage;
+                    // For detailed stages, show leads that are in this specific stage AND have Open status
+                    const isInThisStage = lead.stageId === column.id;
+                    const hasOpenStatus = lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified';
+                    return isInThisStage && hasOpenStatus;
                   }
                 });
-                
+              
                 return (
                   <KanbanColumnComponent
                     key={column.id}
                     column={column}
                     leads={columnLeads}
+                    isOver={overId === column.id}
                   />
                 );
               })}

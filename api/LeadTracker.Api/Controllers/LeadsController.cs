@@ -43,7 +43,7 @@ public class LeadsController : ControllerBase
         {
             // Validate pagination parameters
             if (query.PageNumber < 1) query.PageNumber = 1;
-            if (query.PageSize < 1 || query.PageSize > 100) query.PageSize = 10;
+            if (query.PageSize < 1 || query.PageSize > 1000) query.PageSize = 10;
 
             var result = await _leadService.GetLeadsAsync(query);
             return Ok(result);

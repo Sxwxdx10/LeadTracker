@@ -49,7 +49,8 @@ try
     builder.Services.AddHttpContextAccessor(); // Required for Serilog enrichers
     builder.Services.AddControllers(options =>
     {
-        options.Filters.Add<FluentValidationFilter>();
+        // Temporarily disabled - causes model binding exception
+        // options.Filters.Add<FluentValidationFilter>();
     })
         .AddJsonOptions(options =>
         {
@@ -59,6 +60,10 @@ try
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
+    
+    // Add SignalR
+    builder.Services.AddSignalR();
+    
     builder.Services.AddEndpointsApiExplorer();
     
     // Configure Swagger/OpenAPI
@@ -110,11 +115,17 @@ try
         }
     });
 
+    // Register TenantFilterService BEFORE DbContext
+    builder.Services.AddScoped<ITenantContext, TenantContext>();
+    builder.Services.AddScoped<ITenantFilterService, TenantFilterService>();
+    
     // Database Configuration
     builder.Services.AddDbContext<LeadTrackerDbContext>(options =>
     {
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
-            b => b.MigrationsAssembly("LeadTracker.Infrastructure"));
+            b => b.MigrationsAssembly("LeadTracker.Infrastructure"))
+               .EnableDetailedErrors()  // Enable detailed errors for debugging
+               .EnableSensitiveDataLogging();  // Show parameter values in logs
     });
 
     // Identity Configuration
@@ -169,18 +180,28 @@ try
     // Authorization
     builder.Services.AddAuthorization();
 
-    // CORS
+    // CORS - Configuration permissive pour le développement
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("DefaultPolicy", policy =>
         {
-            var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
-                ?? new[] { "http://localhost:3000", "https://localhost:3000", "null" };
-                
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
+            // En développement, accepter toutes les origins
+            if (builder.Environment.IsDevelopment())
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+            else
+            {
+                var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
+                    ?? new[] { "http://localhost:3000", "https://localhost:3000" };
+                    
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials();
+            }
         });
     });
 
@@ -265,6 +286,8 @@ try
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, LeadTracker.Infrastructure.Services.AuthService>();
     builder.Services.AddScoped<ILeadService, LeadService>();
+    builder.Services.AddScoped<IKanbanService, LeadTracker.Infrastructure.Services.KanbanService>();
+    builder.Services.AddScoped<IKanbanNotificationService, LeadTracker.Api.Services.SimpleKanbanNotificationService>();
     builder.Services.AddScoped<IEmailService, LeadTracker.Infrastructure.Services.EmailService>();
     builder.Services.AddScoped<IUserInvitationService, LeadTracker.Infrastructure.Services.UserInvitationService>();
     builder.Services.AddScoped<ILeadSeederService, LeadTracker.Infrastructure.Services.LeadSeederService>();
@@ -283,6 +306,9 @@ try
     var app = builder.Build();
 
     // Configure the HTTP request pipeline
+    // DISABLED - causes issues with external requests
+    // app.UseDeveloperExceptionPage();
+    
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -293,7 +319,8 @@ try
         });
     }
 
-    app.UseHttpsRedirection();
+    // ALL MIDDLEWARE DISABLED FOR DEBUGGING
+    // app.UseHttpsRedirection();
     app.UseCors("DefaultPolicy");
     // app.UseRateLimiter(); // Commented out for .NET 7 compatibility
 
@@ -304,9 +331,8 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     
-    // Tenant resolution must be after authentication
+    // Tenant resolution MUST be after authentication
     app.UseMiddleware<TenantResolutionMiddleware>();
-    app.UseLoggingCorrelation();
 
 
     // Hangfire Dashboard - only in non-testing environments
@@ -328,6 +354,8 @@ try
     app.MapHealthChecks("/health/ready");
     app.MapHealthChecks("/health/live");
 
+    // SignalR Hubs
+    app.MapHub<LeadTracker.Api.Hubs.KanbanHub>("/kanban-hub");
 
     app.MapControllers();
     

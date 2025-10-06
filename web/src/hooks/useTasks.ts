@@ -224,7 +224,14 @@ const tasksApi = {
     // Mock implementation
     const newTask: Task = {
       id: Date.now().toString(),
-      ...data,
+      title: data.title,
+      ...(data.description && { description: data.description }),
+      type: data.type,
+      dueDate: data.dueDate,
+      priority: data.priority || 'Medium',
+      ...(data.notes && { notes: data.notes }),
+      ...(data.leadId && { leadId: data.leadId }),
+      ...(data.assignedUserId && { assignedUserId: data.assignedUserId }),
       status: 'Pending',
       priority: data.priority || 'Medium',
       organizationId: 'org-1',

@@ -32,7 +32,10 @@ export function KanbanCard({ lead, isDragging = false }: KanbanCardProps) {
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: lead.id });
+  } = useSortable({ 
+    id: lead.id,
+    disabled: false
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

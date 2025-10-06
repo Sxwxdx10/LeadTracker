@@ -23,7 +23,10 @@ public class TenantResolutionMiddleware
         {
             // Skip tenant resolution for certain endpoints that don't need it
             var path = context.Request.Path.Value?.ToLowerInvariant();
-            if (path != null && (path.StartsWith("/health") || path.StartsWith("/swagger") || path.StartsWith("/api/health")))
+            if (path != null && (path.StartsWith("/health") || 
+                                path.StartsWith("/swagger") || 
+                                path.StartsWith("/api/health") ||
+                                path.StartsWith("/api/auth")))  // Skip auth endpoints
             {
                 await _next(context);
                 return;

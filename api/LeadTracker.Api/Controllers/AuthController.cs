@@ -36,6 +36,32 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Test POST endpoint without validation
+    /// </summary>
+    [HttpPost("test-post")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult TestPost([FromBody] object data)
+    {
+        _logger.LogInformation("TestPost endpoint reached with data: {Data}", data?.ToString() ?? "null");
+        return Ok(new { message = "POST test successful", receivedData = data });
+    }
+
+    /// <summary>
+    /// Test POST with RegisterRequest but no auth service call
+    /// </summary>
+    [HttpPost("test-register-model")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult TestRegisterModel([FromBody] RegisterRequest request)
+    {
+        _logger.LogInformation("TestRegisterModel endpoint reached for email: {Email}", request?.Email ?? "null");
+        return Ok(new { 
+            message = "Model binding successful", 
+            firstName = request?.FirstName,
+            email = request?.Email 
+        });
+    }
+
+    /// <summary>
     /// Register a new user and organization
     /// </summary>
     /// <param name="request">Registration request</param>
@@ -46,38 +72,44 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        // LOG EVERYTHING for debugging
+        _logger.LogInformation("===== Register endpoint REACHED =====");
+        _logger.LogInformation("Request object is null: {IsNull}", request == null);
+        
+        if (request != null)
+        {
+            _logger.LogInformation("Email: {Email}", request.Email);
+            _logger.LogInformation("FirstName: {FirstName}", request.FirstName);
+            _logger.LogInformation("OrganizationDomain: {Domain}", request.OrganizationDomain);
+        }
+        
+        _logger.LogInformation("ModelState.IsValid: {IsValid}", ModelState.IsValid);
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("ModelState errors: {Errors}", 
+                string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+            return BadRequest(ModelState);
+        }
+        
         try
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            _logger.LogInformation("===== Register endpoint called for email {Email} =====", request?.Email ?? "null");
 
-            // Manual FluentValidation
-            var validator = HttpContext.RequestServices.GetRequiredService<IValidator<RegisterRequest>>();
-            var validationResult = await validator.ValidateAsync(request);
-            
-            if (!validationResult.IsValid)
-            {
-                foreach (var error in validationResult.Errors)
-                {
-                    ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-                }
-                return BadRequest(ModelState);
-            }
-
-            var response = await _authService.RegisterAsync(request);
+            _logger.LogInformation("Calling AuthService.RegisterAsync for {Email}", request?.Email);
+            var response = await _authService.RegisterAsync(request!);
+            _logger.LogInformation("Registration successful for {Email}", request?.Email);
             return Ok(response);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Registration failed for email {Email}", request.Email);
+            _logger.LogWarning(ex, "Registration failed for email {Email}: {Message}", request?.Email, ex.Message);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during registration for email {Email}", request.Email);
-            return StatusCode(500, new { message = "An unexpected error occurred during registration" });
+            _logger.LogError(ex, "Unexpected error during registration for email {Email}: {Message}. StackTrace: {StackTrace}", 
+                request?.Email, ex.Message, ex.StackTrace);
+            return StatusCode(500, new { message = "An unexpected error occurred during registration", details = ex.Message });
         }
     }
 

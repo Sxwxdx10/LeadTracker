@@ -280,8 +280,8 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             return;
         }
         
-        // Apply tenant filtering using a lambda that will be evaluated at query time
-        // This ensures the tenant context is available when the query is executed
+        // Apply tenant filtering - queries will only return data for current organization
+        // NOTE: Auth operations (register/login) must use .IgnoreQueryFilters() to bypass these
         builder.Entity<Lead>().HasQueryFilter(e => 
             _tenantFilterService != null && 
             _tenantFilterService.GetCurrentOrganizationId() != null && 

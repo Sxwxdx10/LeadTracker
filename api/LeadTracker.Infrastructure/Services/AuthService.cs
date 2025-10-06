@@ -43,7 +43,9 @@ public class AuthService : IAuthService
         try
         {
             // Check if organization domain already exists
+            // Use IgnoreQueryFilters() to bypass tenant filtering during registration
             var existingOrg = await _context.Organizations
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain);
             
             Organization organization;
@@ -87,6 +89,7 @@ public class AuthService : IAuthService
                     {
                         _logger.LogWarning("Organization domain {Domain} was created by another process, fetching existing organization", request.OrganizationDomain);
                         organization = await _context.Organizations
+                            .IgnoreQueryFilters()
                             .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain);
                         
                         if (organization == null)
@@ -201,7 +204,9 @@ public class AuthService : IAuthService
             else
             {
                 // Fallback to synchronous query for unit tests
+                // Use IgnoreQueryFilters() to bypass tenant filtering during login
                 organization = await _context.Organizations
+                    .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain && o.IsActive);
             }
             

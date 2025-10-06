@@ -27,7 +27,26 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred");
+            // Log the full exception with all details
+            _logger.LogError(ex, "UNHANDLED EXCEPTION in {Path}: {ExceptionType} - {Message}\nStackTrace:\n{StackTrace}\nInnerException: {InnerException}", 
+                context.Request.Path,
+                ex.GetType().FullName,
+                ex.Message,
+                ex.StackTrace,
+                ex.InnerException?.ToString() ?? "None");
+            
+            // Also log to console for immediate visibility
+            Console.WriteLine($"=== EXCEPTION OCCURRED ===");
+            Console.WriteLine($"Path: {context.Request.Path}");
+            Console.WriteLine($"Type: {ex.GetType().FullName}");
+            Console.WriteLine($"Message: {ex.Message}");
+            Console.WriteLine($"StackTrace:\n{ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"InnerException: {ex.InnerException}");
+            }
+            Console.WriteLine($"=========================");
+            
             await HandleExceptionAsync(context, ex);
         }
     }

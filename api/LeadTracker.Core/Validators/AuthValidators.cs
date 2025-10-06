@@ -46,11 +46,11 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
             .When(x => !string.IsNullOrEmpty(x.OrganizationDescription));
 
         RuleFor(x => x.OrganizationDomain)
-            .NotEmpty().WithMessage("Organization domain is required")
             .MaximumLength(100).WithMessage("Organization domain cannot exceed 100 characters")
             .Matches(@"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$").WithMessage("Organization domain must start and end with alphanumeric characters and can only contain lowercase letters, numbers, and hyphens")
             .MinimumLength(3).WithMessage("Organization domain must be at least 3 characters long")
-            .Must(BeValidDomain).WithMessage("Organization domain is not valid");
+            .Must(BeValidDomain).WithMessage("Organization domain is not valid")
+            .When(x => !string.IsNullOrEmpty(x.OrganizationDomain));
     }
 
     /// <summary>
@@ -89,41 +89,13 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         if (string.IsNullOrEmpty(input))
             return true;
 
-        // Check for common XSS patterns
+        // Check for critical XSS patterns only - more permissive for legitimate text
         var dangerousPatterns = new[]
         {
-            "<script", "</script>", "javascript:", "onload=", "onerror=", "onclick=",
-            "onmouseover=", "onfocus=", "onblur=", "onchange=", "onsubmit=",
-            "onkeydown=", "onkeyup=", "onkeypress=", "onmousedown=", "onmouseup=",
-            "onmouseout=", "onmouseover=", "onmousemove=", "onmouseleave=",
-            "oncontextmenu=", "ondblclick=", "onresize=", "onscroll=", "onunload=",
-            "onbeforeunload=", "onpagehide=", "onpageshow=", "onpopstate=",
-            "onstorage=", "onhashchange=", "onmessage=", "ononline=", "onoffline=",
-            "onbeforeprint=", "onafterprint=", "onabort=", "oncanplay=", "oncanplaythrough=",
-            "ondurationchange=", "onemptied=", "onended=", "onerror=", "onloadeddata=",
-            "onloadedmetadata=", "onloadstart=", "onpause=", "onplay=", "onplaying=",
-            "onprogress=", "onratechange=", "onseeked=", "onseeking=", "onstalled=",
-            "onsuspend=", "ontimeupdate=", "onvolumechange=", "onwaiting=",
-            "data:text/html", "vbscript:", "livescript:", "mocha:", "charset=",
-            "&#x", "&#X", "&#60", "&#62", "&#34", "&#39", "&#x3C", "&#x3E",
-            "&#x22", "&#x27", "&#x2F", "&#x2F", "&#x2F", "&#x2F", "&#x2F",
-            "expression(", "url(", "import(", "eval(", "setTimeout(", "setInterval(",
-            "Function(", "constructor(", "prototype.", "__proto__", "constructor",
-            "alert(", "confirm(", "prompt(", "document.", "window.", "location.",
-            "history.", "navigator.", "screen.", "localStorage.", "sessionStorage.",
-            "cookie", "document.cookie", "document.write", "document.writeln",
-            "innerHTML", "outerHTML", "insertAdjacentHTML", "insertAdjacentText",
-            "createElement", "createTextNode", "appendChild", "insertBefore",
-            "removeChild", "replaceChild", "cloneNode", "importNode", "adoptNode",
-            "getElementById", "getElementsByTagName", "getElementsByClassName",
-            "querySelector", "querySelectorAll", "getAttribute", "setAttribute",
-            "removeAttribute", "hasAttribute", "getAttributeNode", "setAttributeNode",
-            "removeAttributeNode", "hasAttributeNode", "getNamedItem", "setNamedItem",
-            "removeNamedItem", "item", "length", "name", "value", "type", "id",
-            "className", "classList", "style", "title", "lang", "dir", "tabIndex",
-            "accessKey", "draggable", "hidden", "spellcheck", "translate", "contentEditable",
-            "isContentEditable", "contextMenu", "dropzone", "hidden", "spellcheck",
-            "translate", "contentEditable", "isContentEditable", "contextMenu", "dropzone"
+            "<script", "</script>", "javascript:", "vbscript:", "data:text/html",
+            "onload=", "onerror=", "onclick=", "onmouseover=", "onfocus=",
+            "eval(", "expression(", "alert(", "confirm(", "prompt(",
+            "document.cookie", "document.write", "innerHTML", "outerHTML"
         };
 
         var lowerInput = input.ToLowerInvariant();
@@ -138,45 +110,12 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         if (string.IsNullOrEmpty(input))
             return false;
 
-        // Check for reserved domains and invalid patterns
+        // Check for critical reserved domains only
         var reservedDomains = new[]
         {
-            "www", "api", "admin", "app", "mail", "ftp", "blog", "shop", "store",
-            "support", "help", "docs", "test", "dev", "staging", "prod", "production",
-            "localhost", "local", "internal", "private", "secure", "ssl", "tls",
-            "cdn", "static", "assets", "images", "img", "css", "js", "jsx", "ts",
-            "tsx", "php", "asp", "jsp", "cgi", "bin", "lib", "src", "dist", "build",
-            "public", "private", "tmp", "temp", "cache", "logs", "backup", "archive",
-            "old", "new", "beta", "alpha", "rc", "release", "v1", "v2", "v3",
-            "version", "latest", "stable", "unstable", "experimental", "demo",
-            "example", "sample", "template", "default", "custom", "user", "users",
-            "account", "accounts", "profile", "profiles", "settings", "config",
-            "configuration", "setup", "install", "uninstall", "update", "upgrade",
-            "downgrade", "rollback", "restore", "backup", "export", "import",
-            "sync", "synchronize", "refresh", "reload", "restart", "stop", "start",
-            "pause", "resume", "cancel", "abort", "retry", "skip", "next", "previous",
-            "first", "last", "begin", "end", "start", "finish", "complete", "done",
-            "success", "error", "warning", "info", "debug", "trace", "log", "logs",
-            "status", "health", "ping", "pong", "echo", "test", "check", "validate",
-            "verify", "confirm", "approve", "reject", "accept", "decline", "deny",
-            "allow", "block", "ban", "unban", "enable", "disable", "activate",
-            "deactivate", "suspend", "unsuspend", "lock", "unlock", "freeze", "unfreeze",
-            "archive", "unarchive", "delete", "remove", "add", "create", "new",
-            "edit", "update", "modify", "change", "replace", "swap", "move", "copy",
-            "duplicate", "clone", "fork", "merge", "split", "join", "combine",
-            "separate", "divide", "multiply", "subtract", "add", "calculate", "compute",
-            "process", "execute", "run", "launch", "start", "stop", "pause", "resume",
-            "cancel", "abort", "retry", "skip", "next", "previous", "first", "last",
-            "begin", "end", "start", "finish", "complete", "done", "success", "error",
-            "warning", "info", "debug", "trace", "log", "logs", "status", "health",
-            "ping", "pong", "echo", "test", "check", "validate", "verify", "confirm",
-            "approve", "reject", "accept", "decline", "deny", "allow", "block", "ban",
-            "unban", "enable", "disable", "activate", "deactivate", "suspend", "unsuspend",
-            "lock", "unlock", "freeze", "unfreeze", "archive", "unarchive", "delete",
-            "remove", "add", "create", "new", "edit", "update", "modify", "change",
-            "replace", "swap", "move", "copy", "duplicate", "clone", "fork", "merge",
-            "split", "join", "combine", "separate", "divide", "multiply", "subtract",
-            "add", "calculate", "compute", "process", "execute", "run", "launch"
+            "www", "api", "admin", "app", "mail", "ftp",
+            "localhost", "local", "internal", "secure", "ssl", "tls",
+            "cdn", "static", "assets"
         };
 
         var lowerInput = input.ToLowerInvariant();

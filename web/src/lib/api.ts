@@ -107,6 +107,8 @@ export const leadsApi = {
   getLead: async (id: string): Promise<Lead> => {
     const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
     return response.data;
+    const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
+    return response.data;
   },
 
   // Créer un nouveau lead

@@ -29,6 +29,10 @@ export interface Stage {
   order: number;
   color?: string;
   organizationId: string;
+  isWonStage?: boolean;
+  isLostStage?: boolean;
+  description?: string;
+  isActive?: boolean;
 }
 
 export interface CreateLeadDto {

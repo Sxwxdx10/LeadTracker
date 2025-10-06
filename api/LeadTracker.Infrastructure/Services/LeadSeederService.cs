@@ -68,6 +68,7 @@ public class LeadSeederService : ILeadSeederService
                 Description = "Lead nouvellement créé",
                 Color = "#3B82F6",
                 Order = 1,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
@@ -79,6 +80,7 @@ public class LeadSeederService : ILeadSeederService
                 Description = "Lead qualifié et intéressé",
                 Color = "#10B981",
                 Order = 2,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
@@ -90,6 +92,7 @@ public class LeadSeederService : ILeadSeederService
                 Description = "Proposition envoyée",
                 Color = "#F59E0B",
                 Order = 3,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
@@ -101,6 +104,7 @@ public class LeadSeederService : ILeadSeederService
                 Description = "En cours de négociation",
                 Color = "#8B5CF6",
                 Order = 4,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
@@ -112,6 +116,8 @@ public class LeadSeederService : ILeadSeederService
                 Description = "Deal conclu avec succès",
                 Color = "#059669",
                 Order = 5,
+                IsActive = true,
+                IsWonStage = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
@@ -123,6 +129,8 @@ public class LeadSeederService : ILeadSeederService
                 Description = "Deal perdu",
                 Color = "#DC2626",
                 Order = 6,
+                IsActive = true,
+                IsLostStage = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             }
@@ -197,8 +205,6 @@ public class LeadSeederService : ILeadSeederService
         var companies = new[] { "TechCorp", "InnovateLab", "Digital Solutions", "Future Systems", "Smart Technologies", "NextGen Corp", "Alpha Industries", "Beta Solutions", "Gamma Tech", "Delta Enterprises", "Epsilon Group", "Zeta Systems", "Theta Corp", "Lambda Labs", "Sigma Industries" };
         var jobTitles = new[] { "CEO", "CTO", "Directeur Marketing", "Responsable IT", "Chef de Projet", "Directeur Commercial", "Responsable Achats", "Directeur Général", "Responsable RH", "Directeur Financier" };
         var sources = new[] { "Site Web", "Réseaux Sociaux", "Recommandation", "Salon", "Email Marketing", "Téléphone", "LinkedIn", "Google Ads", "Partenaire", "Événement" };
-        var statuses = new[] { "Open", "Won", "Lost" };
-
         for (int i = 0; i < count; i++)
         {
             var firstName = firstNames[random.Next(firstNames.Length)];
@@ -206,8 +212,62 @@ public class LeadSeederService : ILeadSeederService
             var company = companies[random.Next(companies.Length)];
             var jobTitle = jobTitles[random.Next(jobTitles.Length)];
             var source = sources[random.Next(sources.Length)];
-            var status = statuses[random.Next(statuses.Length)];
-            var stage = stages[random.Next(stages.Count)];
+            
+            // Determine stage and status with guaranteed consistency
+            var stageStatusChoice = random.Next(100);
+            Stage selectedStage;
+            string selectedStatus;
+            
+            if (stageStatusChoice < 60) // 60% chance for active leads (Open status)
+            {
+                // Select from active stages only (exclude Won/Lost stages)
+                var activeStages = stages.Where(s => s.Name != "Won" && s.Name != "Lost" && 
+                                                      s.Name != "Fermé - Gagné" && s.Name != "Fermé - Perdu").ToList();
+                selectedStage = activeStages[random.Next(activeStages.Count)];
+                selectedStatus = "Open";
+                
+                // Ensure the selected stage is indeed an active stage
+                if (selectedStage.Name == "Won" || selectedStage.Name == "Lost" || 
+                    selectedStage.Name == "Fermé - Gagné" || selectedStage.Name == "Fermé - Perdu")
+                {
+                    // Fallback to first active stage if somehow we got a closed stage
+                    selectedStage = activeStages.FirstOrDefault() ?? stages.First(s => 
+                        s.Name != "Won" && s.Name != "Lost" && 
+                        s.Name != "Fermé - Gagné" && s.Name != "Fermé - Perdu");
+                }
+            }
+            else if (stageStatusChoice < 80) // 20% chance for Won leads
+            {
+                // Force status to "Won" and assign to Won stage (check both English and French names)
+                selectedStage = stages.FirstOrDefault(s => s.Name == "Won" || s.Name == "Fermé - Gagné");
+                selectedStatus = "Won";
+                
+                // If no Won stage exists, create a fallback logic
+                if (selectedStage == null)
+                {
+                    selectedStage = stages.FirstOrDefault(s => s.Name == "Lost" || s.Name == "Fermé - Perdu") ?? stages.OrderByDescending(s => s.Order).First();
+                    if (selectedStage != null)
+                    {
+                        selectedStatus = "Open"; // Fallback to Open if no Won stage
+                    }
+                }
+            }
+            else // 20% chance for Lost leads
+            {
+                // Force status to "Lost" and assign to Lost stage (check both English and French names)
+                selectedStage = stages.FirstOrDefault(s => s.Name == "Lost" || s.Name == "Fermé - Perdu");
+                selectedStatus = "Lost";
+                
+                // If no Lost stage exists, create a fallback logic
+                if (selectedStage == null)
+                {
+                    selectedStage = stages.FirstOrDefault(s => s.Name == "Won" || s.Name == "Fermé - Gagné") ?? stages.OrderByDescending(s => s.Order).First();
+                    if (selectedStage != null)
+                    {
+                        selectedStatus = "Open"; // Fallback to Open if no Lost stage
+                    }
+                }
+            }
             var assignedUser = users.Any() ? users[random.Next(users.Count)] : null;
 
             var lead = new Lead
@@ -226,10 +286,10 @@ public class LeadSeederService : ILeadSeederService
                 ExpectedCloseDate = DateTime.UtcNow.AddDays(random.Next(30, 180)),
                 Notes = GenerateRandomNotes(random),
                 Source = source,
-                Status = status,
+                Status = selectedStatus,
                 IsActive = true,
                 LastContactedAt = DateTime.UtcNow.AddDays(-random.Next(0, 30)),
-                StageId = stage.Id,
+                StageId = selectedStage.Id,
                 AssignedUserId = assignedUser?.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-random.Next(0, 90)),
                 UpdatedAt = DateTime.UtcNow.AddDays(-random.Next(0, 7))

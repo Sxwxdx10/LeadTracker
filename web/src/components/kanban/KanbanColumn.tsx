@@ -11,27 +11,24 @@ import { cn } from '@/lib/utils';
 interface KanbanColumnProps {
   column: KanbanColumnType;
   leads: KanbanLead[];
+  isOver?: boolean;
 }
 
-export function KanbanColumnComponent({ column, leads }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
+export function KanbanColumnComponent({ column, leads, isOver = false }: KanbanColumnProps) {
+  const { setNodeRef } = useDroppable({
     id: column.id,
+    data: {
+      type: 'column',
+      column: column
+    }
   });
 
   const leadIds = leads.map(lead => lead.id);
 
   return (
-    <div className="flex flex-col w-80 flex-shrink-0">
+    <div className="flex flex-col w-80 flex-shrink-0 h-full">
       {/* Column Header */}
-      <div 
-        className={cn(
-          "rounded-lg p-4 mb-4 border-2 border-dashed transition-colors",
-          isOver 
-            ? "border-blue-400 bg-blue-50" 
-            : "border-gray-200 bg-gray-50"
-        )}
-        style={{ borderColor: isOver ? column.color : undefined }}
-      >
+      <div className="rounded-lg p-4 mb-4 border-2 border-gray-200 bg-gray-50 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <div 
@@ -70,21 +67,25 @@ export function KanbanColumnComponent({ column, leads }: KanbanColumnProps) {
         </div>
       </div>
 
-      {/* Column Content */}
+      {/* Column Content - Full Height Drop Zone */}
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 rounded-lg border-2 border-dashed transition-colors min-h-96",
+          "flex-1 rounded-lg border-2 border-dashed transition-all duration-200 h-full",
           isOver 
-            ? "border-blue-400 bg-blue-50" 
+            ? "border-blue-500 bg-blue-100 shadow-lg scale-[1.02]" 
             : "border-gray-200 bg-gray-50"
         )}
-        style={{ borderColor: isOver ? column.color : undefined }}
+        style={{ 
+          borderColor: isOver ? column.color : undefined,
+          backgroundColor: isOver ? `${column.color}20` : undefined,
+          minHeight: '400px' // Ensure minimum height for empty columns
+        }}
       >
         <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3 h-full">
             {leads.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 h-full flex flex-col justify-center">
                 <div className="text-4xl mb-2">📋</div>
                 <p className="text-sm">Aucun lead</p>
                 <p className="text-xs text-gray-400">
@@ -92,9 +93,11 @@ export function KanbanColumnComponent({ column, leads }: KanbanColumnProps) {
                 </p>
               </div>
             ) : (
-              leads.map((lead) => (
-                <KanbanCard key={lead.id} lead={lead} />
-              ))
+              <div className="space-y-3">
+                {leads.map((lead) => (
+                  <KanbanCard key={lead.id} lead={lead} />
+                ))}
+              </div>
             )}
           </div>
         </SortableContext>
