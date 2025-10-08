@@ -1,147 +1,156 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { LeadStatus } from '@/types/lead';
+import React from 'react';
+
+export interface FilterValues {
+  status?: string;
+  source?: string;
+  assignedTo?: string;
+  minValue?: number;
+  maxValue?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
 
 interface LeadFiltersProps {
   onFilterChange: (filters: FilterValues) => void;
+  filters: FilterValues;
 }
 
-export interface FilterValues {
-  searchTerm?: string;
-  status?: LeadStatus | '';
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-}
-
-export function LeadFilters({ onFilterChange }: LeadFiltersProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [status, setStatus] = useState<LeadStatus | ''>('');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    const filters: FilterValues = {
-      searchTerm: value,
-      sortBy,
-      sortDirection,
-    };
-    if (status) filters.status = status;
-    onFilterChange(filters);
-  };
-
-  const handleStatusChange = (value: string | string[]) => {
-    const statusValue = (Array.isArray(value) ? value[0] : value) as LeadStatus | '';
-    setStatus(statusValue);
-    const filters: FilterValues = {
-      searchTerm,
-      sortBy,
-      sortDirection,
-    };
-    if (statusValue) filters.status = statusValue;
-    onFilterChange(filters);
-  };
-
-  const handleSortChange = (value: string | string[]) => {
-    const sortValue = (Array.isArray(value) ? value[0] : value) || 'createdAt';
-    setSortBy(sortValue);
-    const filters: FilterValues = {
-      searchTerm,
-      sortBy: sortValue,
-      sortDirection,
-    };
-    if (status) filters.status = status;
-    onFilterChange(filters);
-  };
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setStatus('');
-    setSortBy('createdAt');
-    setSortDirection('desc');
+export const LeadFilters: React.FC<LeadFiltersProps> = ({ onFilterChange, filters }) => {
+  const handleChange = (key: keyof FilterValues, value: any) => {
     onFilterChange({
-      sortBy: 'createdAt',
-      sortDirection: 'desc',
+      ...filters,
+      [key]: value,
     });
   };
 
-  const hasActiveFilters = searchTerm || status;
-
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <div className="flex items-center gap-4 flex-wrap">
-        {/* Search */}
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <Input
-              type="text"
-              placeholder="Rechercher des leads..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Status Filter */}
-        <div className="w-48">
-          <Select
-            value={status}
-            onChange={handleStatusChange}
-            placeholder="Tous les statuts"
-            options={[
-              { value: '', label: 'Tous les statuts' },
-              { value: 'Open', label: 'Ouvert' },
-              { value: 'InProgress', label: 'En cours' },
-              { value: 'Qualified', label: 'Qualifié' },
-              { value: 'Unqualified', label: 'Non qualifié' },
-              { value: 'Won', label: 'Gagné' },
-              { value: 'Lost', label: 'Perdu' },
-            ]}
-          />
-        </div>
-
-        {/* Sort */}
-        <div className="w-48">
-          <Select
-            value={sortBy}
-            onChange={handleSortChange}
-            options={[
-              { value: 'createdAt', label: 'Date de création' },
-              { value: 'title', label: 'Titre' },
-              { value: 'company', label: 'Entreprise' },
-              { value: 'estimatedValue', label: 'Valeur' },
-              { value: 'probability', label: 'Probabilité' },
-            ]}
-          />
-        </div>
-
-        {/* Clear Filters */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearFilters}
-            className="flex items-center gap-2"
+    <div className="bg-white p-4 rounded-lg shadow space-y-4">
+      <h3 className="text-lg font-semibold text-gray-900">Filtres</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Statut */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Statut
+          </label>
+          <select
+            value={filters.status || ''}
+            onChange={(e) => handleChange('status', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <XMarkIcon className="h-4 w-4" />
-            Réinitialiser
-          </Button>
-        )}
+            <option value="">Tous</option>
+            <option value="new">Nouveau</option>
+            <option value="contacted">Contacté</option>
+            <option value="qualified">Qualifié</option>
+            <option value="proposal">Proposition</option>
+            <option value="negotiation">Négociation</option>
+            <option value="won">Gagné</option>
+            <option value="lost">Perdu</option>
+          </select>
+        </div>
+
+        {/* Source */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Source
+          </label>
+          <select
+            value={filters.source || ''}
+            onChange={(e) => handleChange('source', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Toutes</option>
+            <option value="website">Site web</option>
+            <option value="referral">Référence</option>
+            <option value="social">Réseaux sociaux</option>
+            <option value="email">Email</option>
+            <option value="phone">Téléphone</option>
+            <option value="other">Autre</option>
+          </select>
+        </div>
+
+        {/* Assigné à */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Assigné à
+          </label>
+          <input
+            type="text"
+            value={filters.assignedTo || ''}
+            onChange={(e) => handleChange('assignedTo', e.target.value)}
+            placeholder="Nom de l'utilisateur"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Valeur minimale */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Valeur min (€)
+          </label>
+          <input
+            type="number"
+            value={filters.minValue || ''}
+            onChange={(e) => handleChange('minValue', e.target.value ? Number(e.target.value) : undefined)}
+            placeholder="0"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Valeur maximale */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Valeur max (€)
+          </label>
+          <input
+            type="number"
+            value={filters.maxValue || ''}
+            onChange={(e) => handleChange('maxValue', e.target.value ? Number(e.target.value) : undefined)}
+            placeholder="10000"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Date de début */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date de début
+          </label>
+          <input
+            type="date"
+            value={filters.dateFrom || ''}
+            onChange={(e) => handleChange('dateFrom', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Date de fin */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date de fin
+          </label>
+          <input
+            type="date"
+            value={filters.dateTo || ''}
+            onChange={(e) => handleChange('dateTo', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Bouton de réinitialisation */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => onFilterChange({})}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+        >
+          Réinitialiser les filtres
+        </button>
       </div>
     </div>
   );
-}
+};
 
+export default LeadFilters;

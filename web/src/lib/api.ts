@@ -10,7 +10,7 @@ import {
 } from '@/types/lead';
 
 // Configuration de l'API
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -105,8 +105,6 @@ export const leadsApi = {
 
   // Récupérer un lead par ID
   getLead: async (id: string): Promise<Lead> => {
-    const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
-    return response.data;
     const response: AxiosResponse<Lead> = await apiClient.get(`/api/leads/${id}`);
     return response.data;
   },

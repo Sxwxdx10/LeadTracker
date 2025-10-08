@@ -134,7 +134,7 @@ export default function ReportsCharts() {
       </div>
 
       {/* Graphiques */}
-      <Tabs value={selectedView} onValueChange={setSelectedView}>
+      <Tabs value={selectedView} onValueChange={setSelectedView} defaultValue="overview">
         <TabsList className="grid w-full grid-cols-4">
           {viewOptions.map((option) => (
             <TabsTrigger key={option.value} value={option.value}>

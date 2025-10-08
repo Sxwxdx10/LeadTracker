@@ -167,7 +167,7 @@ export default function TasksList() {
       </div>
 
       {/* Onglets */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="today">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="today" className="flex items-center gap-2">
             <CalendarDaysIcon className="h-4 w-4" />

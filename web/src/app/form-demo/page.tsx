@@ -51,7 +51,7 @@ export default function FormComponentsDemo() {
                 options={selectOptions}
                 placeholder="Choisissez une option"
                 value={formData.selectValue}
-                onChange={(value) => setFormData(prev => ({ ...prev, selectValue: value }))}
+                onChange={(value) => setFormData(prev => ({ ...prev, selectValue: value as string }))}
               />
             </div>
 

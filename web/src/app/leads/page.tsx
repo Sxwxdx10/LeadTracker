@@ -23,6 +23,7 @@ export default function LeadsPage() {
     page: 1,
     pageSize: 50,
   });
+  const [filters, setFilters] = useState<FilterValues>({});
 
   // Initialize SignalR connection for real-time updates
   useSignalR();
@@ -32,7 +33,6 @@ export default function LeadsPage() {
   };
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
     setQueryParams(prev => ({
       ...prev,
       searchTerm: value,
@@ -47,22 +47,17 @@ export default function LeadsPage() {
     }));
   };
 
-  const stats = statsData || {
+  const stats = {
     totalLeads: 0,
     qualifiedLeads: 0,
     totalValue: 0,
     conversionRate: 0
-  const handleParamsChange = (newParams: any) => {
-    setQueryParams(prev => ({
-      ...prev,
-      ...newParams,
-    }));
   };
 
-  const handleFilterChange = (filters: FilterValues) => {
+  const handleFilterChange = (newFilters: FilterValues) => {
+    setFilters(newFilters);
     setQueryParams(prev => ({
       ...prev,
-      ...filters,
       page: 1, // Reset to page 1 when filters change
     }));
   };
@@ -141,7 +136,7 @@ export default function LeadsPage() {
         {/* Filtres */}
         {viewMode === 'table' && (
           <div className="mb-6">
-            <LeadFilters onFilterChange={handleFilterChange} />
+            <LeadFilters onFilterChange={handleFilterChange} filters={filters} />
           </div>
         )}
 

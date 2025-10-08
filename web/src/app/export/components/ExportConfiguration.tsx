@@ -121,7 +121,7 @@ export default function ExportConfiguration() {
       </div>
 
       {/* Onglets de configuration */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="fields">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="fields">Champs</TabsTrigger>
           <TabsTrigger value="filters">Filtres</TabsTrigger>
@@ -136,7 +136,7 @@ export default function ExportConfiguration() {
                   <div className="flex items-center">
                     <Checkbox
                       checked={field.selected}
-                      onCheckedChange={() => handleFieldToggle(field.id)}
+                      onChange={() => handleFieldToggle(field.id)}
                     />
                     <span className="ml-3 text-sm font-medium text-gray-900">{field.name}</span>
                   </div>

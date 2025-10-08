@@ -390,6 +390,12 @@ try
     {
         Log.Information("Starting Lead Tracker API");
     }
+    
+    // Force listening on all interfaces
+    var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:8080";
+    app.Urls.Add(urls);
+    Log.Information($"API will listen on: {urls}");
+    
     await app.RunAsync();
 }
 catch (Exception ex)

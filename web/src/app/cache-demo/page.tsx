@@ -239,7 +239,7 @@ export default function CacheDemoPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {leadsData?.map((lead: any) => (
+                  {Array.isArray(leadsData) && leadsData.map((lead: any) => (
                     <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <span className="font-medium text-gray-900">{lead.name}</span>
@@ -274,19 +274,19 @@ export default function CacheDemoPage() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{analyticsData?.totalLeads}</p>
+                    <p className="text-2xl font-bold text-gray-900">{(analyticsData as any)?.totalLeads || 0}</p>
                     <p className="text-sm text-gray-500">Total Leads</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{analyticsData?.conversionRate}%</p>
+                    <p className="text-2xl font-bold text-gray-900">{(analyticsData as any)?.conversionRate || 0}%</p>
                     <p className="text-sm text-gray-500">Taux Conversion</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{analyticsData?.revenue}€</p>
+                    <p className="text-2xl font-bold text-gray-900">{(analyticsData as any)?.revenue || 0}€</p>
                     <p className="text-sm text-gray-500">Revenus</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{analyticsData?.growth}%</p>
+                    <p className="text-2xl font-bold text-gray-900">{(analyticsData as any)?.growth || 0}%</p>
                     <p className="text-sm text-gray-500">Croissance</p>
                   </div>
                 </div>
@@ -323,7 +323,7 @@ export default function CacheDemoPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tasksData?.map((task: any) => (
+                  {Array.isArray(tasksData) && tasksData.map((task: any) => (
                     <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <span className="font-medium text-gray-900">{task.title}</span>

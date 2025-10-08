@@ -96,10 +96,10 @@ export default function ImportPage() {
       const rows = lines.map(line => line.split(',').map(cell => cell.trim().replace(/"/g, '')));
       
       if (rows.length > 0) {
-        setCsvHeaders(rows[0]);
+        setCsvHeaders(rows[0] || []);
         setCsvData(rows.slice(1));
         setCurrentStep('mapping');
-        initializeMappings(rows[0]);
+        initializeMappings(rows[0] || []);
       }
     };
     reader.readAsText(file);
@@ -162,7 +162,7 @@ export default function ImportPage() {
       totalRows,
       successRows,
       errorRows,
-      errors
+      errors: errors.filter(error => error.column && error.message) as { row: number; column: string; message: string; }[]
     });
 
     setCurrentStep('result');
