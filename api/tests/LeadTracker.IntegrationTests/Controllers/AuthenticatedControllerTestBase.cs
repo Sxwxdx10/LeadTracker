@@ -7,7 +7,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LeadTracker.Core.Models;
-using LeadTracker.IntegrationTests.Services;
 using System.Net.Http.Json;
 
 namespace LeadTracker.IntegrationTests.Controllers;

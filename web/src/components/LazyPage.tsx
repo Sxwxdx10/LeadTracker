@@ -27,11 +27,11 @@ class ErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('LazyPage Error:', error, errorInfo);
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -64,17 +64,23 @@ export const withLazyLoading = <P extends object>(
   fallback?: React.ComponentType
 ) => {
   const LazyComponent = dynamic(() => Promise.resolve(Component), {
-    loading: fallback || LoadingSpinner,
+    loading: () => {
+      const FallbackComponent = fallback || LoadingSpinner;
+      return <FallbackComponent />;
+    },
     ssr: false, // Désactiver le SSR pour les composants lourds
   });
 
-  return (props: P) => (
-    <ErrorBoundary>
-      <Suspense fallback={fallback || <LoadingSpinner />}>
-        <LazyComponent {...props} />
-      </Suspense>
-    </ErrorBoundary>
-  );
+  return (props: P) => {
+    const FallbackComponent = fallback || LoadingSpinner;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<FallbackComponent />}>
+          <LazyComponent {...props} />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  };
 };
 
 // Composant de chargement personnalisé pour les pages

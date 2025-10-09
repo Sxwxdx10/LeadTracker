@@ -122,7 +122,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50',
             variant === 'dark' && 'text-gray-300 hover:text-white hover:bg-gray-800'
           )}
-          onClick={item.onClick}
+          {...(item.onClick && { onClick: item.onClick })}
         >
           {item.icon && <span className="w-4 h-4">{item.icon}</span>}
           <span>{item.label}</span>

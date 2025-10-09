@@ -233,7 +233,6 @@ const tasksApi = {
       ...(data.leadId && { leadId: data.leadId }),
       ...(data.assignedUserId && { assignedUserId: data.assignedUserId }),
       status: 'Pending',
-      priority: data.priority || 'Medium',
       organizationId: 'org-1',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

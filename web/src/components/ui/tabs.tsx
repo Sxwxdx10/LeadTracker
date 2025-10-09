@@ -236,9 +236,9 @@ const DynamicTabs = React.forwardRef<HTMLDivElement, DynamicTabsProps>(
               key={item.value}
               value={item.value}
               icon={item.icon}
-              badge={item.badge}
-              closable={item.closable}
-              disabled={item.disabled}
+              {...(item.badge !== undefined && { badge: item.badge })}
+              {...(item.closable !== undefined && { closable: item.closable })}
+              {...(item.disabled !== undefined && { disabled: item.disabled })}
               onClose={() => onTabClose?.(item.value)}
             >
               {item.label}

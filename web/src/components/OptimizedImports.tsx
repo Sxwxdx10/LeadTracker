@@ -4,22 +4,23 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 
 // Optimisation des imports de Recharts - chargement dynamique
-export const LazyRecharts = {
-  LineChart: dynamic(() => import('recharts').then(mod => ({ default: mod.LineChart })), { ssr: false }),
-  Line: dynamic(() => import('recharts').then(mod => ({ default: mod.Line })), { ssr: false }),
-  AreaChart: dynamic(() => import('recharts').then(mod => ({ default: mod.AreaChart })), { ssr: false }),
-  Area: dynamic(() => import('recharts').then(mod => ({ default: mod.Area })), { ssr: false }),
-  BarChart: dynamic(() => import('recharts').then(mod => ({ default: mod.BarChart })), { ssr: false }),
-  Bar: dynamic(() => import('recharts').then(mod => ({ default: mod.Bar })), { ssr: false }),
-  PieChart: dynamic(() => import('recharts').then(mod => ({ default: mod.PieChart })), { ssr: false }),
-  Pie: dynamic(() => import('recharts').then(mod => ({ default: mod.Pie })), { ssr: false }),
-  Cell: dynamic(() => import('recharts').then(mod => ({ default: mod.Cell })), { ssr: false }),
-  XAxis: dynamic(() => import('recharts').then(mod => ({ default: mod.XAxis })), { ssr: false }),
-  YAxis: dynamic(() => import('recharts').then(mod => ({ default: mod.YAxis })), { ssr: false }),
-  CartesianGrid: dynamic(() => import('recharts').then(mod => ({ default: mod.CartesianGrid })), { ssr: false }),
-  Tooltip: dynamic(() => import('recharts').then(mod => ({ default: mod.Tooltip })), { ssr: false }),
-  Legend: dynamic(() => import('recharts').then(mod => ({ default: mod.Legend })), { ssr: false }),
-  ResponsiveContainer: dynamic(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })), { ssr: false }),
+// Note: Using type assertion due to Recharts dynamic import type incompatibility with Next.js
+export const LazyRecharts: any = {
+  LineChart: dynamic(() => import('recharts').then(mod => ({ default: mod.LineChart })) as any, { ssr: false }),
+  Line: dynamic(() => import('recharts').then(mod => ({ default: mod.Line })) as any, { ssr: false }),
+  AreaChart: dynamic(() => import('recharts').then(mod => ({ default: mod.AreaChart })) as any, { ssr: false }),
+  Area: dynamic(() => import('recharts').then(mod => ({ default: mod.Area })) as any, { ssr: false }),
+  BarChart: dynamic(() => import('recharts').then(mod => ({ default: mod.BarChart })) as any, { ssr: false }),
+  Bar: dynamic(() => import('recharts').then(mod => ({ default: mod.Bar })) as any, { ssr: false }),
+  PieChart: dynamic(() => import('recharts').then(mod => ({ default: mod.PieChart })) as any, { ssr: false }),
+  Pie: dynamic(() => import('recharts').then(mod => ({ default: mod.Pie })) as any, { ssr: false }),
+  Cell: dynamic(() => import('recharts').then(mod => ({ default: mod.Cell })) as any, { ssr: false }),
+  XAxis: dynamic(() => import('recharts').then(mod => ({ default: mod.XAxis })) as any, { ssr: false }),
+  YAxis: dynamic(() => import('recharts').then(mod => ({ default: mod.YAxis })) as any, { ssr: false }),
+  CartesianGrid: dynamic(() => import('recharts').then(mod => ({ default: mod.CartesianGrid })) as any, { ssr: false }),
+  Tooltip: dynamic(() => import('recharts').then(mod => ({ default: mod.Tooltip })) as any, { ssr: false }),
+  Legend: dynamic(() => import('recharts').then(mod => ({ default: mod.Legend })) as any, { ssr: false }),
+  ResponsiveContainer: dynamic(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })) as any, { ssr: false }),
 };
 
 // Optimisation des imports d'icônes - chargement dynamique
@@ -86,7 +87,7 @@ export const useLazyLoad = (threshold = 0.1) => {
   React.useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry && entry.isIntersecting) {
           setIsVisible(true);
           observer.disconnect();
         }

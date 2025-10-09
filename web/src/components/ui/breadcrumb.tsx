@@ -38,7 +38,7 @@ const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
       
       return [
         firstItem,
-        { label: '...', href: undefined },
+        { label: '...' },
         ...lastItems
       ];
     }, [items, maxItems]);
@@ -92,6 +92,7 @@ const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
         )}
         
         {displayItems.map((item, index) => {
+          if (!item) return null;
           const isLast = index === displayItems.length - 1;
           
           return (

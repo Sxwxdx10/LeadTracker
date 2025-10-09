@@ -6,7 +6,6 @@ using System.Text.Json;
 using LeadTracker.Core.Entities;
 using LeadTracker.Core.DTOs;
 using LeadTracker.Infrastructure;
-using LeadTracker.IntegrationTests.Services;
 using LeadTracker.Core.Services;
 using Xunit;
 

@@ -7,7 +7,6 @@ using FluentAssertions;
 using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using LeadTracker.IntegrationTests.Services;
 
 namespace LeadTracker.IntegrationTests.Controllers;
 

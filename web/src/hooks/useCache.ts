@@ -164,8 +164,8 @@ class CacheManager {
       data,
       timestamp: now,
       ttl: options.ttl || this.config.ttl,
-      tags: options.tags,
-      dependencies: options.dependencies,
+      ...(options.tags && { tags: options.tags }),
+      ...(options.dependencies && { dependencies: options.dependencies }),
       version: 1,
     };
 

@@ -70,7 +70,7 @@ export default function TasksPage() {
       description: 'Suivre sur la proposition commerciale envoyée la semaine dernière',
       priority: 'high',
       status: 'todo',
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: new Date().toISOString().split('T')[0] || '',
       assignedTo: 'Marie Dubois',
       category: 'Commercial',
       estimatedDuration: 30,
@@ -85,7 +85,7 @@ export default function TasksPage() {
       description: 'Créer les slides pour la réunion de fin de trimestre',
       priority: 'medium',
       status: 'in_progress',
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
       assignedTo: 'Jean Martin',
       category: 'Marketing',
       estimatedDuration: 120,
@@ -100,7 +100,7 @@ export default function TasksPage() {
       description: 'Analyser les performances et préparer le rapport',
       priority: 'low',
       status: 'completed',
-      dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
       assignedTo: 'Sophie Leroy',
       category: 'Reporting',
       estimatedDuration: 90,
@@ -115,7 +115,7 @@ export default function TasksPage() {
       description: 'Organiser une session de formation de 2h',
       priority: 'medium',
       status: 'todo',
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
       assignedTo: 'Pierre Durand',
       category: 'Formation',
       estimatedDuration: 120,
@@ -130,7 +130,7 @@ export default function TasksPage() {
       description: 'Vérifier la conformité RGPD et sécurité des données clients',
       priority: 'urgent',
       status: 'todo',
-      dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
       assignedTo: 'Alexandre Moreau',
       category: 'Sécurité',
       estimatedDuration: 240,
@@ -170,7 +170,7 @@ export default function TasksPage() {
     }
 
     // Filtre par onglet
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0] || '';
     switch (currentTab) {
       case 'today':
         filtered = filtered.filter(task => task.dueDate === today);
@@ -190,12 +190,13 @@ export default function TasksPage() {
   }, [tasks, searchTerm, filterStatus, filterPriority, currentTab]);
 
   // Calcul des statistiques
+  const todayDate = new Date().toISOString().split('T')[0] || '';
   const stats: TaskStats = {
     total: tasks.length,
     completed: tasks.filter(t => t.status === 'completed').length,
     inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    overdue: tasks.filter(t => t.dueDate < new Date().toISOString().split('T')[0] && t.status !== 'completed').length,
-    today: tasks.filter(t => t.dueDate === new Date().toISOString().split('T')[0]).length
+    overdue: tasks.filter(t => t.dueDate < todayDate && t.status !== 'completed').length,
+    today: tasks.filter(t => t.dueDate === todayDate).length
   };
 
   // Gestion des tâches
@@ -407,7 +408,7 @@ export default function TasksPage() {
           </div>
 
           <div className="p-6">
-            <Tabs value={currentTab} onValueChange={setCurrentTab}>
+            <Tabs defaultValue="today" value={currentTab} onValueChange={setCurrentTab}>
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="today">Aujourd'hui</TabsTrigger>
                 <TabsTrigger value="overdue">En retard</TabsTrigger>

@@ -30,7 +30,7 @@ const DEFAULT_CACHE_OPTIONS: CacheOptions = {
 // Interface pour les options de requête avec cache
 export interface CachedRequestOptions extends AxiosRequestConfig {
   cache?: {
-    key: string;
+    key?: string;
     ttl?: number;
     tags?: string[];
     dependencies?: string[];
@@ -57,10 +57,11 @@ class CachedApiClient {
   ): Promise<T> {
     const cacheKey = options.cache?.key || `GET:${url}`;
     const cacheOptions: CacheOptions = {
-      ttl: options.cache?.ttl || DEFAULT_CACHE_OPTIONS.ttl,
-      tags: options.cache?.tags || [],
-      dependencies: options.cache?.dependencies || [],
-      forceRefresh: options.cache?.forceRefresh || false,
+      ...(options.cache?.ttl !== undefined && { ttl: options.cache.ttl }),
+      ...((!options.cache?.ttl && DEFAULT_CACHE_OPTIONS.ttl !== undefined) && { ttl: DEFAULT_CACHE_OPTIONS.ttl }),
+      ...(options.cache?.tags && options.cache.tags.length > 0 && { tags: options.cache.tags }),
+      ...(options.cache?.dependencies && options.cache.dependencies.length > 0 && { dependencies: options.cache.dependencies }),
+      ...(options.cache?.forceRefresh && { forceRefresh: options.cache.forceRefresh }),
     };
 
     // Vérifier le cache si pas de force refresh

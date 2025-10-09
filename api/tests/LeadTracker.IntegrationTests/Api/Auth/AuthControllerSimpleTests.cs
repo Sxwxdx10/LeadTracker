@@ -8,7 +8,6 @@ using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using System.Net;
 using System.Text.Json;
-using LeadTracker.IntegrationTests.Services;
 
 namespace LeadTracker.IntegrationTests.Controllers;
 
