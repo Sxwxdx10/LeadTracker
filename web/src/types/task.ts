@@ -15,13 +15,7 @@ export interface Task {
   durationMinutes?: number;
   leadId?: string;
   assignedUserId?: string;
-  assignedUser?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    fullName: string;
-  };
+  assignedUserName?: string; // String instead of user object
   organizationId: string;
   createdAt: string;
   updatedAt: string;
@@ -89,13 +83,7 @@ export interface Activity {
   description?: string;
   timestamp: string;
   userId?: string;
-  user?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    fullName: string;
-  };
+  userName?: string; // String instead of user object
   metadata?: {
     [key: string]: any;
   };
@@ -112,13 +100,7 @@ export interface Comment {
   content: string;
   leadId: string;
   userId: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    fullName: string;
-  };
+  userName: string; // String instead of user object
   createdAt: string;
   updatedAt: string;
 }
@@ -142,13 +124,7 @@ export interface Attachment {
   filePath: string;
   leadId: string;
   uploadedBy: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    fullName: string;
-  };
+  uploadedByUserName: string; // String instead of user object
   createdAt: string;
 }
 

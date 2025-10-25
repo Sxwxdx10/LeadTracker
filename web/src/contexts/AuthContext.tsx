@@ -191,7 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'AUTH_START' });
       
       // Mode démonstration - simulation de la connexion
-      const isDemoMode = process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL;
+      const isDemoMode = false; // Mode démo désactivé - utilise l'API réelle
       
       if (isDemoMode) {
         // Simulation d'une connexion réussie
@@ -250,9 +250,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('Connexion réussie !');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Erreur de connexion';
+      const errorMessage = error.response?.data?.message || error.message || 'Erreur de connexion';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
-      console.error(errorMessage);
+      console.error('Login error:', errorMessage, error);
       throw error;
     }
   };
@@ -263,7 +263,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'AUTH_START' });
       
       // Mode démonstration - simulation de l'inscription
-      const isDemoMode = process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL;
+      const isDemoMode = false; // Mode démo désactivé - utilise l'API réelle
       
       if (isDemoMode) {
         // Simulation d'une inscription réussie

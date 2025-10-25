@@ -29,6 +29,8 @@ import {
   useComments, 
   useAttachments,
   useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
   useCreateComment,
   useUploadAttachment
 } from '@/hooks/useTasks';
@@ -88,6 +90,8 @@ export default function LeadDetailPage() {
   const { data: attachments, isLoading: attachmentsLoading } = useAttachments(leadId);
   
   const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
   const createCommentMutation = useCreateComment();
   const uploadAttachmentMutation = useUploadAttachment();
 
@@ -132,6 +136,22 @@ export default function LeadDetailPage() {
       await createTaskMutation.mutateAsync(taskData);
     } catch (error) {
       console.error('Error creating task:', error);
+    }
+  };
+
+  const handleUpdateTask = async (id: string, updates: any) => {
+    try {
+      await updateTaskMutation.mutateAsync({ id, data: updates });
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await deleteTaskMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -441,7 +461,7 @@ export default function LeadDetailPage() {
               <TabsContent value="activities" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <ActivityTimeline 
-                    activities={activities?.activities || []} 
+                    activities={Array.isArray(activities?.activities) ? activities.activities : []} 
                     isLoading={activitiesLoading} 
                   />
                 </div>
@@ -450,10 +470,12 @@ export default function LeadDetailPage() {
               <TabsContent value="tasks" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <TaskList 
-                    tasks={tasks || []} 
+                    tasks={Array.isArray(tasks) ? tasks : []} 
                     leadId={leadId}
                     isLoading={tasksLoading}
                     onCreateTask={handleCreateTask}
+                    onUpdateTask={handleUpdateTask}
+                    onDeleteTask={handleDeleteTask}
                   />
                 </div>
               </TabsContent>
@@ -461,7 +483,7 @@ export default function LeadDetailPage() {
               <TabsContent value="comments" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <CommentSection 
-                    comments={comments || []} 
+                    comments={Array.isArray(comments) ? comments : []} 
                     leadId={leadId}
                     isLoading={commentsLoading}
                     onCreateComment={handleCreateComment}
@@ -472,7 +494,7 @@ export default function LeadDetailPage() {
               <TabsContent value="attachments" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <AttachmentSection 
-                    attachments={attachments || []} 
+                    attachments={Array.isArray(attachments) ? attachments : []} 
                     leadId={leadId}
                     isLoading={attachmentsLoading}
                     onUploadAttachment={handleUploadAttachment}

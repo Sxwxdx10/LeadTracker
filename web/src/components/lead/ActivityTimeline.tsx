@@ -83,6 +83,9 @@ const translateActivityType = (type: Activity['type']) => {
 };
 
 export function ActivityTimeline({ activities, isLoading }: ActivityTimelineProps) {
+  // Ensure activities is always an array
+  const safeActivities = Array.isArray(activities) ? activities : [];
+  
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -101,7 +104,7 @@ export function ActivityTimeline({ activities, isLoading }: ActivityTimelineProp
     );
   }
 
-  if (activities.length === 0) {
+  if (safeActivities.length === 0) {
     return (
       <div className="text-center py-8">
         <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
@@ -118,10 +121,10 @@ export function ActivityTimeline({ activities, isLoading }: ActivityTimelineProp
   return (
     <div className="flow-root">
       <ul className="-mb-8">
-        {activities.map((activity, activityIdx) => (
+        {safeActivities.map((activity, activityIdx) => (
           <li key={activity.id}>
             <div className="relative pb-8">
-              {activityIdx !== activities.length - 1 ? (
+              {activityIdx !== safeActivities.length - 1 ? (
                 <span
                   className="absolute left-5 top-5 -ml-px h-full w-0.5 bg-gray-200"
                   aria-hidden="true"
@@ -152,10 +155,10 @@ export function ActivityTimeline({ activities, isLoading }: ActivityTimelineProp
                     </div>
                   )}
                   
-                  {activity.user && (
+                  {activity.userName && (
                     <div className="mt-1 flex items-center text-xs text-gray-500">
                       <UserIcon className="h-3 w-3 mr-1" />
-                      {activity.user.fullName}
+                      {activity.userName}
                     </div>
                   )}
                   

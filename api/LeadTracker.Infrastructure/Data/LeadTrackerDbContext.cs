@@ -36,6 +36,9 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Core.Entities.Task> Tasks { get; set; }
     public DbSet<UserInvitation> UserInvitations { get; set; }
     public DbSet<SavedSearchFilter> SavedSearchFilters { get; set; }
+    public DbSet<Activity> Activities { get; set; }
+    public DbSet<Comment> Comments { get; set; }
+    public DbSet<Attachment> Attachments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -261,6 +264,149 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => new { e.OrganizationId, e.CreatedByUserId });
         });
 
+        // Configure Activity
+        builder.Entity<Activity>(entity =>
+        {
+            entity.ToTable("Activities");
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Type).HasMaxLength(50).HasDefaultValue("Note");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Planned");
+            entity.Property(e => e.Location).HasMaxLength(500);
+            entity.Property(e => e.Outcome).HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.Lead)
+                  .WithMany()
+                  .HasForeignKey(e => e.LeadId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.LeadId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ScheduledAt);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Configure Comment
+        builder.Entity<Comment>(entity =>
+        {
+            entity.ToTable("Comments");
+            entity.Property(e => e.Content).HasMaxLength(5000).IsRequired();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.Lead)
+                  .WithMany()
+                  .HasForeignKey(e => e.LeadId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Task)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaskId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Activity)
+                  .WithMany(a => a.Comments)
+                  .HasForeignKey(e => e.ActivityId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.ParentComment)
+                  .WithMany(c => c.Replies)
+                  .HasForeignKey(e => e.ParentCommentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.LeadId);
+            entity.HasIndex(e => e.TaskId);
+            entity.HasIndex(e => e.ActivityId);
+            entity.HasIndex(e => e.ParentCommentId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Configure Attachment
+        builder.Entity<Attachment>(entity =>
+        {
+            entity.ToTable("Attachments");
+            entity.Property(e => e.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.OriginalFileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.FilePath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.ThumbnailPath).HasMaxLength(500);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.Lead)
+                  .WithMany()
+                  .HasForeignKey(e => e.LeadId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Task)
+                  .WithMany()
+                  .HasForeignKey(e => e.TaskId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Activity)
+                  .WithMany(a => a.Attachments)
+                  .HasForeignKey(e => e.ActivityId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Comment)
+                  .WithMany(c => c.Attachments)
+                  .HasForeignKey(e => e.CommentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.UploadedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.UploadedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.LeadId);
+            entity.HasIndex(e => e.TaskId);
+            entity.HasIndex(e => e.ActivityId);
+            entity.HasIndex(e => e.CommentId);
+            entity.HasIndex(e => e.UploadedByUserId);
+            entity.HasIndex(e => e.ContentType);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
         // Apply global query filters for multi-tenant entities
         // Note: Tenant filtering is disabled in testing mode to allow test data access
         if (!IsTestingMode())
@@ -298,6 +444,21 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
             
         builder.Entity<Core.Entities.Task>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Activity>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Comment>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Attachment>().HasQueryFilter(e => 
             _tenantFilterService != null && 
             _tenantFilterService.GetCurrentOrganizationId() != null && 
             e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());

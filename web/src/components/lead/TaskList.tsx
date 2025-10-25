@@ -14,6 +14,8 @@ import {
 import { Task, TaskType, TaskStatus, TaskPriority } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TaskCreationForm } from '@/components/forms/TaskCreationForm';
+import { TaskEditForm } from '@/components/forms/TaskEditForm';
 import { formatDateTime, formatDate } from '@/lib/utils';
 
 interface TaskListProps {
@@ -117,7 +119,10 @@ export function TaskList({
   onUpdateTask, 
   onDeleteTask 
 }: TaskListProps) {
+  // Ensure tasks is always an array
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   if (isLoading) {
     return (
@@ -163,12 +168,27 @@ export function TaskList({
     }
   };
 
+  const handleTaskEdit = (task: Task) => {
+    setEditingTask(task);
+  };
+
+  const handleTaskUpdate = async (id: string, updates: Partial<Task>) => {
+    if (onUpdateTask) {
+      await onUpdateTask(id, updates);
+      setEditingTask(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">
-          Tâches associées ({tasks.length})
+          Tâches associées ({safeTasks.length})
         </h3>
         <Button
           size="sm"
@@ -182,43 +202,31 @@ export function TaskList({
 
       {/* Create Task Form */}
       {showCreateForm && (
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <div className="text-sm text-gray-600 mb-2">
-            Formulaire de création de tâche - À implémenter
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowCreateForm(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                // Mock task creation
-                const mockTask: Partial<Task> = {
-                  title: 'Nouvelle tâche',
-                  type: 'Call',
-                  priority: 'Medium',
-                  dueDate: new Date(Date.now() + 86400000).toISOString(),
-                  leadId: leadId
-                };
-                if (onCreateTask) {
-                  onCreateTask(mockTask);
-                }
-                setShowCreateForm(false);
-              }}
-            >
-              Créer
-            </Button>
-          </div>
-        </div>
+        <TaskCreationForm
+          leadId={leadId}
+          onSubmit={async (taskData) => {
+            if (onCreateTask) {
+              await onCreateTask(taskData);
+            }
+            setShowCreateForm(false);
+          }}
+          onCancel={() => setShowCreateForm(false)}
+          isLoading={false}
+        />
+      )}
+
+      {/* Edit Task Form */}
+      {editingTask && (
+        <TaskEditForm
+          task={editingTask}
+          onSubmit={handleTaskUpdate}
+          onCancel={handleCancelEdit}
+          isLoading={false}
+        />
       )}
 
       {/* Task List */}
-      {tasks.length === 0 ? (
+      {safeTasks.length === 0 ? (
         <div className="text-center py-8">
           <CheckCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">
@@ -230,7 +238,7 @@ export function TaskList({
         </div>
       ) : (
         <div className="space-y-3">
-          {tasks.map((task) => (
+          {safeTasks.map((task) => (
             <div
               key={task.id}
               className={`border rounded-lg p-4 transition-all ${
@@ -273,13 +281,13 @@ export function TaskList({
                   <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
                     <div className="flex items-center">
                       <CalendarIcon className="h-3 w-3 mr-1" />
-                      Échéance: {formatDate(task.dueDate)}
+                      Échéance: {formatDateTime(task.dueDate)}
                     </div>
                     
-                    {task.assignedUser && (
+                    {task.assignedUserName && (
                       <div className="flex items-center">
                         <UserIcon className="h-3 w-3 mr-1" />
-                        {task.assignedUser.fullName}
+                        {task.assignedUserName}
                       </div>
                     )}
                     
@@ -314,7 +322,7 @@ export function TaskList({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => {/* Edit functionality */}}
+                    onClick={() => handleTaskEdit(task)}
                     className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
                   >
                     <PencilIcon className="h-4 w-4" />
