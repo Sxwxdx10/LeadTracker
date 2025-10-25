@@ -2,6 +2,7 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
+import { useFocusTrap } from '@/hooks/useKeyboardNavigation';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -11,10 +12,15 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   closable?: boolean;
   className?: string;
+  ariaLabel?: string;
+  ariaDescribedBy?: string;
 }
 
 const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
-  ({ isOpen, onClose, title, children, size = 'md', closable = true, className }, ref) => {
+  ({ isOpen, onClose, title, children, size = 'md', closable = true, className, ariaLabel, ariaDescribedBy }, ref) => {
+    const dialogRef = useFocusTrap<HTMLDivElement>(isOpen);
+    const titleId = React.useId();
+    
     // Gérer l'événement Escape
     React.useEffect(() => {
       const handleEscape = (event: KeyboardEvent) => {
@@ -51,11 +57,17 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         <div 
           className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
           onClick={closable ? onClose : undefined}
+          aria-hidden="true"
         />
         
         {/* Modal */}
         <div
-          ref={ref}
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          aria-label={!title ? ariaLabel : undefined}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             "relative mx-4 w-full rounded-lg bg-white shadow-xl transition-all",
             sizeClasses[size],
@@ -66,7 +78,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           {(title || closable) && (
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               {title && (
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 id={titleId} className="text-lg font-semibold text-gray-900">
                   {title}
                 </h2>
               )}
@@ -76,8 +88,9 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
                   size="icon"
                   onClick={onClose}
                   className="h-8 w-8"
+                  ariaLabel="Fermer la boîte de dialogue"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
               )}
             </div>
