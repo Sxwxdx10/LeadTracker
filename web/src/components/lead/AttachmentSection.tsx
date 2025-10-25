@@ -76,6 +76,8 @@ export function AttachmentSection({
   onUploadAttachment, 
   onDeleteAttachment 
 }: AttachmentSectionProps) {
+  // Ensure attachments is always an array
+  const safeAttachments = Array.isArray(attachments) ? attachments : [];
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -221,7 +223,7 @@ export function AttachmentSection({
         </div>
       ) : (
         <div className="space-y-3">
-          {attachments.map((attachment) => (
+          {safeAttachments.map((attachment) => (
             <div
               key={attachment.id}
               className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
@@ -248,7 +250,7 @@ export function AttachmentSection({
                       <span>{formatFileSize(attachment.fileSize)}</span>
                       <div className="flex items-center">
                         <UserIcon className="h-3 w-3 mr-1" />
-                        {attachment.user.fullName}
+                        {attachment.uploadedByUserName || 'Utilisateur inconnu'}
                       </div>
                       <div className="flex items-center">
                         <ClockIcon className="h-3 w-3 mr-1" />

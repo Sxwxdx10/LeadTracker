@@ -114,12 +114,38 @@ public class TenantResolutionMiddleware
                 var userIdClaim = context.User.FindFirst("user_id");
                 var userEmailClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.Email);
                 
-                if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+                if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var applicationUserId))
                 {
-                    if (tenantContext is TenantContext mutableContext)
+                    // Récupérer le DomainUserId depuis ApplicationUser
+                    var appUser = await dbContext.Users
+                        .Where(u => u.Id == applicationUserId)
+                        .Select(u => new { u.DomainUserId, u.Email })
+                        .FirstOrDefaultAsync();
+                        
+                    if (appUser?.DomainUserId.HasValue == true)
                     {
-                        mutableContext.UserId = userId;
-                        mutableContext.UserEmail = userEmailClaim?.Value;
+                        // Vérifier que le BusinessUser existe
+                        var businessUserExists = await dbContext.BusinessUsers
+                            .AnyAsync(bu => bu.Id == appUser.DomainUserId.Value);
+                            
+                        if (businessUserExists)
+                        {
+                            if (tenantContext is TenantContext mutableContext)
+                            {
+                                mutableContext.UserId = appUser.DomainUserId.Value; // BusinessUser.Id
+                                mutableContext.UserEmail = userEmailClaim?.Value ?? appUser.Email;
+                                _logger.LogInformation("Mapped ApplicationUser {AppUserId} to BusinessUser {BusinessUserId}", 
+                                    applicationUserId, appUser.DomainUserId.Value);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogError("BusinessUser {BusinessUserId} does not exist in database", appUser.DomainUserId.Value);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("ApplicationUser {UserId} does not have a DomainUserId", applicationUserId);
                     }
                 }
             }

@@ -19,7 +19,7 @@ export const useSignalR = () => {
     const startConnection = async () => {
       try {
         const connection = new HubConnectionBuilder()
-          .withUrl(`${process.env.NEXT_PUBLIC_API_URL}/kanbanhub`, {
+          .withUrl(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/kanbanhub`, {
             accessTokenFactory: () => {
               // Get token from localStorage or context
               const token = localStorage.getItem('auth-token');

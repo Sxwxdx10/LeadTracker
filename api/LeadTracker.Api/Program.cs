@@ -297,6 +297,12 @@ try
     builder.Services.AddScoped<IKanbanService, LeadTracker.Infrastructure.Services.KanbanService>();
     builder.Services.AddScoped<IKanbanNotificationService, LeadTracker.Api.Services.KanbanNotificationService>();
     
+    // Activity, Comment, Attachment, and Task services
+    builder.Services.AddScoped<IActivityService, ActivityService>();
+    builder.Services.AddScoped<ICommentService, CommentService>();
+    builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+    builder.Services.AddScoped<ITaskService, TaskService>();
+    
     // Add controllers
     builder.Services.AddScoped<LeadTracker.Api.Controllers.MonitoringController>();
     

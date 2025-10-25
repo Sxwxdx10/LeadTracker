@@ -31,6 +31,8 @@ export function CommentSection({
   onUpdateComment, 
   onDeleteComment 
 }: CommentSectionProps) {
+  // Ensure comments is always an array
+  const safeComments = Array.isArray(comments) ? comments : [];
   const [newComment, setNewComment] = useState('');
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -139,7 +141,7 @@ export function CommentSection({
         </div>
       ) : (
         <div className="space-y-4">
-          {comments.map((comment) => (
+          {safeComments.map((comment) => (
             <div
               key={comment.id}
               className="border border-gray-200 rounded-lg p-4 bg-white"
@@ -154,7 +156,7 @@ export function CommentSection({
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-gray-900">
-                        {comment.user.fullName}
+                        {comment.userName || 'Utilisateur inconnu'}
                       </span>
                       <div className="flex items-center text-xs text-gray-500">
                         <ClockIcon className="h-3 w-3 mr-1" />
