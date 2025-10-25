@@ -96,6 +96,8 @@ const TabsList = React.forwardRef<
   return (
     <div
       ref={ref}
+      role="tablist"
+      aria-orientation={orientation}
       className={cn(
         'inline-flex items-center text-gray-500',
         orientation === 'horizontal' ? 'h-10 justify-center' : 'flex-col h-auto w-48 justify-start',
@@ -120,6 +122,8 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
   ({ className, value, children, icon, badge, closable, onClose, ...props }, ref) => {
     const { activeTab, setActiveTab, orientation, variant } = useTabs();
     const isActive = activeTab === value;
+    const panelId = `tabpanel-${value}`;
+    const tabId = `tab-${value}`;
     
     const baseClasses = 'inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
     
@@ -156,6 +160,11 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
     return (
       <button
         ref={ref}
+        id={tabId}
+        role="tab"
+        aria-selected={isActive}
+        aria-controls={panelId}
+        tabIndex={isActive ? 0 : -1}
         className={cn(
           baseClasses,
           variantClasses[variant],
@@ -165,13 +174,16 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
         onClick={() => setActiveTab(value)}
         {...props}
       >
-        {icon && <span className="w-4 h-4">{icon}</span>}
+        {icon && <span className="w-4 h-4" aria-hidden="true">{icon}</span>}
         <span className="truncate">{children}</span>
         {badge && (
-          <span className={cn(
-            'px-2 py-1 text-xs rounded-full',
-            isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
-          )}>
+          <span 
+            className={cn(
+              'px-2 py-1 text-xs rounded-full',
+              isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
+            )}
+            aria-label={`${badge} éléments`}
+          >
             {badge}
           </span>
         )}
@@ -180,8 +192,9 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
             onClick={handleClose}
             className="ml-1 p-0.5 rounded-sm hover:bg-gray-200 transition-colors"
             aria-label="Fermer l'onglet"
+            tabIndex={-1}
           >
-            <X className="w-3 h-3" />
+            <X className="w-3 h-3" aria-hidden="true" />
           </button>
         )}
       </button>
@@ -197,14 +210,21 @@ interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
 const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
   ({ className, value, children, ...props }, ref) => {
     const { activeTab, orientation } = useTabs();
+    const isActive = activeTab === value;
+    const panelId = `tabpanel-${value}`;
+    const tabId = `tab-${value}`;
     
-    if (activeTab !== value) {
+    if (!isActive) {
       return null;
     }
     
     return (
       <div
         ref={ref}
+        id={panelId}
+        role="tabpanel"
+        aria-labelledby={tabId}
+        tabIndex={0}
         className={cn(
           'ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
           orientation === 'horizontal' ? 'mt-4' : 'flex-1',
