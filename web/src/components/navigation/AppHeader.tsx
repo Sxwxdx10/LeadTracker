@@ -26,7 +26,7 @@ export function AppHeader({ title, subtitle, showUserMenu = true }: AppHeaderPro
           <div className="flex items-center">
             {/* Logo/Brand */}
             <Link href="/leads" className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+              <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">LT</span>
               </div>
               <span className="text-xl font-bold text-gray-900">Lead Tracker</span>

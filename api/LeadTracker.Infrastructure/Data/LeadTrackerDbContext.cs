@@ -555,4 +555,17 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
         }
         return Tasks.Where(t => t.OrganizationId == orgId.Value);
     }
+
+    /// <summary>
+    /// Gets organization for current tenant (returns single organization)
+    /// </summary>
+    public IQueryable<Organization> GetOrganizationForCurrentTenant()
+    {
+        var orgId = GetCurrentOrganizationId();
+        if (!orgId.HasValue)
+        {
+            return Organizations.Where(o => false); // Return empty query if no tenant context
+        }
+        return Organizations.Where(o => o.Id == orgId.Value);
+    }
 }

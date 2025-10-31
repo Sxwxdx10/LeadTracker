@@ -23,7 +23,7 @@ export const kanbanKeys = {
 };
 
 // Transformation functions
-const transformLeadToKanbanLead = (lead: Lead): KanbanLead => {
+export const transformLeadToKanbanLead = (lead: Lead): KanbanLead => {
   return {
     id: lead.id,
     title: lead.title,
@@ -53,7 +53,7 @@ const transformLeadToKanbanLead = (lead: Lead): KanbanLead => {
 };
 
 // Create detailed columns based on stage names but grouped by status
-const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
+export const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   const calculateColumnMetrics = (leads: Lead[]) => {
     const totalValue = leads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0);
     const potentialValue = leads.reduce((sum, lead) => sum + ((lead.estimatedValue || 0) * (lead.probability || 0) / 100), 0);
@@ -72,6 +72,9 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   const validStageIds = new Set(stages.map(s => s.id));
 
   openStages.forEach((stage, index) => {
+    // RÈGLE IMPORTANTE : Un lead fermé ne peut PAS conserver son stage d'origine
+    // Seuls les leads avec des statuts "ouverts" peuvent rester dans leur stage d'origine
+    
     // For ALL stages (including "Nouveau"), show leads that are in this specific stage AND have Open status
     const stageLeads = leads.filter(lead => {
       const isInThisStage = lead.stageId === stage.id;
@@ -105,7 +108,9 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   
   // Add Won stages
   wonStages.forEach((stage, index) => {
-    // For Won stages, show ALL leads with Won status regardless of their stageId
+    // RÈGLE IMPORTANTE : Un lead fermé ne peut PAS conserver son stage d'origine
+    // Pour les colonnes Won, montrer TOUS les leads avec status 'Won'
+    // Peu importe leur stageId d'origine, ils sont maintenant dans le stage Won
     const stageLeads = leads.filter(lead => lead.status === 'Won');
     const metrics = calculateColumnMetrics(stageLeads);
     
@@ -127,7 +132,9 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   
   // Add Lost stages
   lostStages.forEach((stage, index) => {
-    // For Lost stages, show ALL leads with Lost status regardless of their stageId
+    // RÈGLE IMPORTANTE : Un lead fermé ne peut PAS conserver son stage d'origine
+    // Pour les colonnes Lost, montrer TOUS les leads avec status 'Lost'
+    // Peu importe leur stageId d'origine, ils sont maintenant dans le stage Lost
     const stageLeads = leads.filter(lead => lead.status === 'Lost');
     const metrics = calculateColumnMetrics(stageLeads);
     
@@ -152,7 +159,7 @@ const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn[] => {
   return columns;
 };
 
-const transformStatsToKanbanMetrics = (stats: LeadStats): KanbanMetrics => ({
+export const transformStatsToKanbanMetrics = (stats: LeadStats): KanbanMetrics => ({
   totalLeads: stats.totalLeads,
   openLeads: stats.openLeads,
   qualifiedLeads: stats.qualifiedLeads,
@@ -175,7 +182,7 @@ const kanbanApi = {
   getBoard: async (): Promise<KanbanBoard> => {
     // Use the same data source as the table view - bypass Kanban API
     const [leadsResponse, stagesResponse, statsResponse] = await Promise.all([
-      leadsApi.getLeads({ pageSize: 1000 }), // Fetch all leads for Kanban view
+      leadsApi.getLeads({ pageSize: 1000, sortBy: 'createdAt', sortDirection: 'desc' }), // Same sorting as table
       stagesApi.getStages(),
       leadsApi.getLeadStats()
     ]);
@@ -208,7 +215,7 @@ const kanbanApi = {
 
   getStages: async (): Promise<KanbanColumn[]> => {
     const [leadsResponse, stagesResponse] = await Promise.all([
-      leadsApi.getLeads({ pageSize: 1000 }),
+      leadsApi.getLeads({ pageSize: 1000, sortBy: 'createdAt', sortDirection: 'desc' }),
       stagesApi.getStages()
     ]);
     

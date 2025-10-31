@@ -75,7 +75,7 @@
 
   /* Loading spinner */
   .spinner {
-    @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-brand-600 rounded-full animate-spin;
+    @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-brand-500 rounded-full animate-spin;
   }
 
   /* Skeleton loading */
@@ -98,7 +98,7 @@
   }
 
   .btn-secondary {
-    @apply btn bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+    @apply btn bg-secondary-200 text-secondary-900 hover:bg-secondary-300 active:bg-secondary-400 dark:bg-secondary-800 dark:text-secondary-100 dark:hover:bg-secondary-700;
   }
 
   .btn-outline {
@@ -165,7 +165,7 @@
   }
 
   .badge-info {
-    @apply badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+    @apply badge bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200;
   }
 
   .badge-neutral {
@@ -178,7 +178,7 @@
   }
 
   .stage-qualified {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+    @apply bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200;
   }
 
   .stage-proposal {
@@ -232,7 +232,7 @@
 
   /* Skip to content link */
   .skip-link {
-    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-md focus:shadow-lg;
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-md focus:shadow-lg;
   }
 
   /* Reduce motion for users who prefer it */

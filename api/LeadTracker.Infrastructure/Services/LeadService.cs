@@ -44,14 +44,17 @@ public class LeadService : ILeadService
         // Apply search filter
         if (!string.IsNullOrEmpty(query.SearchTerm))
         {
-            var searchTerm = query.SearchTerm.ToLower();
+            var searchTerm = query.SearchTerm.Trim();
+            
+            // Simple search with LIKE
             leadsQuery = leadsQuery.Where(l => 
-                l.Title.ToLower().Contains(searchTerm) ||
-                l.FirstName!.ToLower().Contains(searchTerm) ||
-                l.LastName!.ToLower().Contains(searchTerm) ||
-                l.Email!.ToLower().Contains(searchTerm) ||
-                l.Company!.ToLower().Contains(searchTerm) ||
-                l.Notes!.ToLower().Contains(searchTerm));
+                (l.Title != null && l.Title.Contains(searchTerm)) ||
+                (l.FirstName != null && l.FirstName.Contains(searchTerm)) ||
+                (l.LastName != null && l.LastName.Contains(searchTerm)) ||
+                (l.Email != null && l.Email.Contains(searchTerm)) ||
+                (l.Company != null && l.Company.Contains(searchTerm)) ||
+                (l.Notes != null && l.Notes.Contains(searchTerm))
+            );
         }
 
         // Apply stage filter
@@ -276,16 +279,19 @@ public class LeadService : ILeadService
             // Apply full-text search
             if (!string.IsNullOrEmpty(request.SearchQuery))
             {
-                var searchTerm = request.SearchQuery.ToLower();
+                var searchTerm = request.SearchQuery.Trim();
+                
+                // Simple search with LIKE
                 query = query.Where(l => 
-                    l.Title.ToLower().Contains(searchTerm) ||
-                    l.FirstName!.ToLower().Contains(searchTerm) ||
-                    l.LastName!.ToLower().Contains(searchTerm) ||
-                    l.Email!.ToLower().Contains(searchTerm) ||
-                    l.Company!.ToLower().Contains(searchTerm) ||
-                    l.JobTitle!.ToLower().Contains(searchTerm) ||
-                    l.Notes!.ToLower().Contains(searchTerm) ||
-                    l.Source!.ToLower().Contains(searchTerm));
+                    (l.Title != null && l.Title.Contains(searchTerm)) ||
+                    (l.FirstName != null && l.FirstName.Contains(searchTerm)) ||
+                    (l.LastName != null && l.LastName.Contains(searchTerm)) ||
+                    (l.Email != null && l.Email.Contains(searchTerm)) ||
+                    (l.Company != null && l.Company.Contains(searchTerm)) ||
+                    (l.JobTitle != null && l.JobTitle.Contains(searchTerm)) ||
+                    (l.Notes != null && l.Notes.Contains(searchTerm)) ||
+                    (l.Source != null && l.Source.Contains(searchTerm))
+                );
             }
 
             // Apply filters
@@ -320,6 +326,89 @@ public class LeadService : ILeadService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching leads");
+            throw;
+        }
+    }
+
+    public async Task<List<SearchSuggestionDto>> GetSearchSuggestionsAsync(string query, int limit = 10)
+    {
+        try
+        {
+            var organizationId = _tenantContext.OrganizationId;
+            if (organizationId == null)
+            {
+                throw new InvalidOperationException("Organization context is not available");
+            }
+
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return new List<SearchSuggestionDto>();
+            }
+
+            var searchTerm = query.Trim();
+            var suggestions = new List<SearchSuggestionDto>();
+
+            // Get suggestions from different fields
+            var nameSuggestions = await _context.GetLeadsForCurrentTenant()
+                .Where(l => 
+                    (l.FirstName != null && l.FirstName.Contains(searchTerm)) ||
+                    (l.LastName != null && l.LastName.Contains(searchTerm))
+                )
+                .Select(l => new SearchSuggestionDto
+                {
+                    Text = $"{l.FirstName} {l.LastName}".Trim(),
+                    Type = "name",
+                    Count = 1
+                })
+                .Take(limit)
+                .ToListAsync();
+
+            var emailSuggestions = await _context.GetLeadsForCurrentTenant()
+                .Where(l => l.Email != null && l.Email.ToLower().Contains(searchTerm.ToLower()))
+                .Select(l => new SearchSuggestionDto
+                {
+                    Text = l.Email!,
+                    Type = "email",
+                    Count = 1
+                })
+                .Take(limit)
+                .ToListAsync();
+
+            var companySuggestions = await _context.GetLeadsForCurrentTenant()
+                .Where(l => l.Company != null && l.Company.ToLower().Contains(searchTerm.ToLower()))
+                .Select(l => new SearchSuggestionDto
+                {
+                    Text = l.Company!,
+                    Type = "company",
+                    Count = 1
+                })
+                .Take(limit)
+                .ToListAsync();
+
+            // Combine and deduplicate suggestions
+            suggestions.AddRange(nameSuggestions);
+            suggestions.AddRange(emailSuggestions);
+            suggestions.AddRange(companySuggestions);
+
+            // Group by text and sum counts
+            var groupedSuggestions = suggestions
+                .GroupBy(s => s.Text)
+                .Select(g => new SearchSuggestionDto
+                {
+                    Text = g.Key,
+                    Type = g.First().Type,
+                    Count = g.Sum(x => x.Count)
+                })
+                .OrderByDescending(s => s.Count)
+                .ThenBy(s => s.Text)
+                .Take(limit)
+                .ToList();
+
+            return groupedSuggestions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting search suggestions for query: {Query}", query);
             throw;
         }
     }

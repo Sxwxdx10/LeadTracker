@@ -74,7 +74,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               className={cn(
                 'flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors rounded-md',
                 item.active 
-                  ? 'text-blue-600 bg-blue-50' 
+                  ? 'text-brand-600 bg-brand-50' 
                   : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50',
                 variant === 'dark' && 'text-gray-300 hover:text-white hover:bg-gray-800'
               )}
@@ -118,7 +118,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
           className={cn(
             'flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-md',
             item.active 
-              ? 'text-blue-600 bg-blue-50' 
+              ? 'text-brand-600 bg-brand-50' 
               : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50',
             variant === 'dark' && 'text-gray-300 hover:text-white hover:bg-gray-800'
           )}
@@ -182,7 +182,7 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className={cn(
-                      'block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                      'block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500',
                       variant === 'dark' && 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
                     )}
                     placeholder={searchPlaceholder}

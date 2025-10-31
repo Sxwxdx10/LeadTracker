@@ -18,6 +18,8 @@ export interface Lead {
   stageId: string;
   stageName?: string;
   stage?: Stage;
+  assignedUserId?: string;
+  assignedUserName?: string;
   organizationId: string;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +70,12 @@ export interface UpdateLeadDto {
   stageId?: string;
 }
 
+export interface SearchSuggestion {
+  text: string;
+  type: string; // "name", "email", "company", "notes"
+  count: number;
+}
+
 export interface LeadQueryParams {
   page?: number;
   pageSize?: number;
@@ -75,8 +83,10 @@ export interface LeadQueryParams {
   sortDirection?: 'asc' | 'desc';
   searchTerm?: string | undefined;
   stageId?: string | undefined;
-  status?: LeadStatus | undefined;
-  ownerId?: string | undefined;
+  status?: string | undefined; // Changed from LeadStatus to string to match backend
+  assignedUserId?: string | undefined; // Changed from ownerId to assignedUserId to match backend
+  createdFrom?: string | undefined;
+  createdTo?: string | undefined;
 }
 
 export interface PaginatedLeadsResponse {

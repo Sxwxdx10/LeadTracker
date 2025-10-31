@@ -9,19 +9,33 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand colors
+        // Brand colors - Primary: Emerald Green #10B981
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065f46',
+          900: '#064e3b',
+          950: '#022c22',
+        },
+        // Secondary colors - Lavender #D2CAEC
+        secondary: {
+          50: '#f9f7fc',
+          100: '#f3eff9',
+          200: '#e8def2',
+          300: '#d2caec',
+          400: '#b8a8dd',
+          500: '#9c86cb',
+          600: '#7d64b3',
+          700: '#655096',
+          800: '#54427a',
+          900: '#453864',
+          950: '#2e2443',
         },
         // Semantic colors
         success: {

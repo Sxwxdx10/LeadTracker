@@ -36,6 +36,8 @@ import { useToast } from '@/hooks/useToast';
 interface LeadsTableProps {
   searchParams?: LeadQueryParams;
   onParamsChange?: (params: LeadQueryParams) => void;
+  leads?: Lead[];
+  totalCount?: number;
 }
 
 // Fonction utilitaire pour formater la devise
@@ -90,7 +92,7 @@ const translateStatus = (status: LeadStatus) => {
   return translations[status] || status;
 };
 
-export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableProps) {
+export default function LeadsTable({ searchParams, onParamsChange, leads, totalCount }: LeadsTableProps) {
   const router = useRouter();
   const toast = useToast();
   const [sortBy, setSortBy] = useState(searchParams?.sortBy || 'createdAt');
@@ -104,7 +106,64 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
     sortDirection,
   }), [searchParams, sortBy, sortDirection]);
 
-  const { data: leadsData, isLoading, error } = useLeads(queryParams);
+  // Fonction de tri côté client
+  const sortLeads = useMemo(() => {
+    if (!leads) return [];
+    
+    return [...leads].sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'firstName':
+          aValue = (a.firstName || '').toLowerCase();
+          bValue = (b.firstName || '').toLowerCase();
+          break;
+        case 'lastName':
+          aValue = (a.lastName || '').toLowerCase();
+          bValue = (b.lastName || '').toLowerCase();
+          break;
+        case 'company':
+          aValue = (a.company || '').toLowerCase();
+          bValue = (b.company || '').toLowerCase();
+          break;
+        case 'estimatedValue':
+          aValue = a.estimatedValue || 0;
+          bValue = b.estimatedValue || 0;
+          break;
+        case 'probability':
+          aValue = a.probability || 0;
+          bValue = b.probability || 0;
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'expectedCloseDate':
+          aValue = a.expectedCloseDate ? new Date(a.expectedCloseDate).getTime() : 0;
+          bValue = b.expectedCloseDate ? new Date(b.expectedCloseDate).getTime() : 0;
+          break;
+        case 'createdAt':
+        default:
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+      }
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [leads, sortBy, sortDirection]);
+
+  // Utiliser les données passées en props au lieu de l'API
+  const leadsData = leads ? { data: sortLeads, totalCount: totalCount || leads.length } : null;
+  const isLoading = false; // Pas de loading car les données sont déjà chargées
+  const error = null; // Pas d'erreur car les données sont déjà chargées
+  
   const deleteLeadMutation = useDeleteLead();
 
   const handleSort = (column: string) => {
@@ -112,6 +171,8 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
     setSortBy(column);
     setSortDirection(newDirection);
     
+    // Le tri est maintenant géré côté client, pas besoin de passer par l'API
+    // Mais on peut toujours notifier le parent si nécessaire
     if (onParamsChange) {
       onParamsChange({
         ...queryParams,
@@ -204,7 +265,10 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
       <EmptyState
         icon={UserIcon}
         title="Aucun lead trouvé"
-        description="Commencez par créer un nouveau lead."
+        description={leadsData?.totalCount === 0 
+          ? "Commencez par créer un nouveau lead."
+          : "Aucun résultat ne correspond à vos critères de recherche."
+        }
         action={{
           label: 'Créer un lead',
           onClick: () => router.push('/leads/new'),
@@ -216,20 +280,33 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <SortableHeader column="title">Lead</SortableHeader>
-            <SortableHeader column="email">Contact</SortableHeader>
-            <SortableHeader column="company">Entreprise</SortableHeader>
-            <SortableHeader column="estimatedValue">Valeur</SortableHeader>
-            <SortableHeader column="probability">Probabilité</SortableHeader>
-            <SortableHeader column="status">Statut</SortableHeader>
-            <SortableHeader column="expectedCloseDate">Date prévue</SortableHeader>
-            <SortableHeader column="createdAt">Créé le</SortableHeader>
-            <TableHead className="w-32">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
+      {/* Header avec compteur de résultats */}
+      <div className="px-6 lg:px-8 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-gray-900">
+            Résultats
+          </h3>
+          <span className="text-sm text-gray-500">
+            {leadsData.totalCount} lead{leadsData.totalCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <SortableHeader column="title" className="min-w-[200px]">Lead</SortableHeader>
+              <SortableHeader column="email" className="min-w-[180px]">Contact</SortableHeader>
+              <SortableHeader column="company" className="min-w-[160px]">Entreprise</SortableHeader>
+              <SortableHeader column="estimatedValue" className="min-w-[120px]">Valeur</SortableHeader>
+              <SortableHeader column="probability" className="min-w-[140px]">Probabilité</SortableHeader>
+              <SortableHeader column="status" className="min-w-[100px]">Statut</SortableHeader>
+              <SortableHeader column="expectedCloseDate" className="min-w-[130px]">Date prévue</SortableHeader>
+              <SortableHeader column="createdAt" className="min-w-[130px]">Créé le</SortableHeader>
+              <TableHead className="w-32 text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
         <TableBody>
           {leadsData.data.map((lead) => (
             <TableRow key={lead.id} className="hover:bg-gray-50">
@@ -275,7 +352,7 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
               
               <TableCell>
                 {lead.estimatedValue && (
-                  <div className="flex items-center text-sm font-medium">
+                  <div className="flex items-center text-sm font-medium whitespace-nowrap">
                     <CurrencyDollarIcon className="h-4 w-4 mr-1 text-green-500 flex-shrink-0" />
                     {formatCurrency(lead.estimatedValue)}
                   </div>
@@ -284,14 +361,14 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
               
               <TableCell>
                 {lead.probability !== undefined && (
-                  <div className="flex items-center">
-                    <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-[80px] bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-brand-600 h-2 rounded-full transition-all"
                         style={{ width: `${lead.probability}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
                       {lead.probability}%
                     </span>
                   </div>
@@ -316,8 +393,8 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
                 </span>
               </TableCell>
               
-              <TableCell>
-                <div className="flex items-center space-x-2">
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end space-x-2">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -350,6 +427,7 @@ export default function LeadsTable({ searchParams, onParamsChange }: LeadsTableP
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

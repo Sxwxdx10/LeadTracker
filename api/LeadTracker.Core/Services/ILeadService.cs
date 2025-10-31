@@ -44,7 +44,12 @@ public interface ILeadService
     Task<LeadSearchResponse> SearchLeadsAsync(LeadSearchRequest request);
 
     /// <summary>
-    /// Get autocomplete suggestions for search
+    /// Get search suggestions for full-text search
+    /// </summary>
+    Task<List<SearchSuggestionDto>> GetSearchSuggestionsAsync(string query, int limit = 10);
+
+    /// <summary>
+    /// Get autocomplete suggestions for search fields
     /// </summary>
     Task<AutocompleteResponse> GetAutocompleteSuggestionsAsync(AutocompleteRequest request);
 

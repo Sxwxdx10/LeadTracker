@@ -26,8 +26,15 @@ export interface Organization {
     country?: string;
   };
   
+  // Adresse (version plate pour correspondre au backend)
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressPostalCode?: string;
+  addressCountry?: string;
+  
   // Logo et branding
-  logo?: string;
+  logoUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -47,6 +54,12 @@ export interface UpdateOrganizationDto {
     postalCode?: string;
     country?: string;
   };
+  // Adresse version plate pour correspondre au backend
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressPostalCode?: string;
+  addressCountry?: string;
   primaryColor?: string;
   secondaryColor?: string;
 }

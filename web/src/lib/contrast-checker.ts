@@ -69,24 +69,37 @@ export const colorPalette: ColorPair[] = [
     usage: 'Placeholder text',
   },
   
-  // Brand colors
+  // Brand colors - Primary: Emerald Green #10B981
   {
     name: 'Brand Primary',
     foreground: '#ffffff',
-    background: '#0ea5e9', // brand-500
+    background: '#10b981', // brand-500
     usage: 'Primary buttons',
   },
   {
     name: 'Brand Primary Text',
-    foreground: '#0ea5e9',
+    foreground: '#10b981',
     background: '#ffffff',
     usage: 'Links and accents',
   },
   {
     name: 'Brand Dark',
     foreground: '#ffffff',
-    background: '#0284c7', // brand-600
+    background: '#059669', // brand-600
     usage: 'Button hover states',
+  },
+  // Secondary colors - Lavender #D2CAEC
+  {
+    name: 'Secondary Primary',
+    foreground: '#2e2443',
+    background: '#d2caec', // secondary-300
+    usage: 'Secondary buttons',
+  },
+  {
+    name: 'Secondary Text',
+    foreground: '#7d64b3', // secondary-600
+    background: '#ffffff',
+    usage: 'Secondary links and accents',
   },
   
   // Semantic colors

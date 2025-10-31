@@ -42,8 +42,9 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       useKeyboardNavigation(options.length, {
         wrap: true,
         onSelect: (index) => {
-          if (!options[index].disabled) {
-            handleOptionClick(options[index].value);
+          const option = options[index];
+          if (option && !option.disabled) {
+            handleOptionClick(option.value);
           }
         },
         enabled: isOpen,
@@ -195,7 +196,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                     className={cn(
                       "relative flex cursor-pointer items-center px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none",
                       option.disabled && "cursor-not-allowed opacity-50",
-                      isSelected(option.value) && "bg-blue-50 text-blue-600",
+                      isSelected(option.value) && "bg-brand-50 text-brand-600 font-medium",
                       focusedIndex === index && "bg-gray-100"
                     )}
                     onClick={() => !option.disabled && handleOptionClick(option.value)}

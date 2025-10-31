@@ -19,8 +19,9 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { KanbanColumn } from '@/types/kanban';
-import { useKanbanBoard, useMoveLead } from '@/hooks/useKanban';
+import { useKanbanBoard, useMoveLead, transformLeadToKanbanLead, createVirtualColumns, transformStatsToKanbanMetrics } from '@/hooks/useKanban';
 import { useSignalR } from '@/hooks/useSignalR';
+import { Lead, Stage } from '@/types/lead';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { KanbanMetrics } from './KanbanMetrics';
@@ -37,17 +38,27 @@ import { toast } from 'react-hot-toast';
 
 interface KanbanBoardProps {
   className?: string;
+  leads?: Lead[];
+  stages?: Stage[];
 }
 
 
-export function KanbanBoard({ className = '' }: KanbanBoardProps) {
+export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   
-  const { data: board, isLoading, error } = useKanbanBoard();
+  // Utiliser les données passées en props au lieu de l'API
+  const board = leads && stages ? {
+    columns: createVirtualColumns(leads, stages),
+    leads: leads.map(lead => transformLeadToKanbanLead(lead)),
+    metrics: transformStatsToKanbanMetrics({ totalLeads: leads.length, totalValue: leads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0) })
+  } : null;
+  const isLoading = false; // Pas de loading car les données sont déjà chargées
+  const error = null; // Pas d'erreur car les données sont déjà chargées
+  
   const moveLeadMutation = useMoveLead();
   const { isConnected } = useSignalR();
 
@@ -142,7 +153,7 @@ export function KanbanBoard({ className = '' }: KanbanBoardProps) {
     return (
       <div className={`flex items-center justify-center h-96 ${className}`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement du tableau Kanban...</p>
         </div>
       </div>

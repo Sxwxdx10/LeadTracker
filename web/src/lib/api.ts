@@ -6,7 +6,8 @@ import {
   LeadQueryParams, 
   PaginatedLeadsResponse,
   LeadStats,
-  Stage
+  Stage,
+  SearchSuggestion
 } from '@/types/lead';
 
 // Configuration de l'API
@@ -84,6 +85,14 @@ apiClient.interceptors.response.use(
 
 // Services API pour les leads
 export const leadsApi = {
+  // Get search suggestions for full-text search
+  getSearchSuggestions: async (query: string, limit: number = 10): Promise<SearchSuggestion[]> => {
+    const response: AxiosResponse<SearchSuggestion[]> = await apiClient.get(
+      `/api/leads/search-suggestions?query=${encodeURIComponent(query)}&limit=${limit}`
+    );
+    return response.data;
+  },
+
   // Récupérer la liste paginée des leads
   getLeads: async (params?: LeadQueryParams): Promise<PaginatedLeadsResponse> => {
     const queryParams = new URLSearchParams();
@@ -92,14 +101,17 @@ export const leadsApi = {
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
     if (params?.searchTerm) queryParams.append('searchTerm', params.searchTerm);
     if (params?.stageId) queryParams.append('stageId', params.stageId);
-    if (params?.ownerId) queryParams.append('assignedUserId', params.ownerId);
+    if (params?.assignedUserId) queryParams.append('assignedUserId', params.assignedUserId);
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params?.sortDirection) queryParams.append('sortDirection', params.sortDirection);
     if (params?.status) queryParams.append('status', params.status);
+    if (params?.createdFrom) queryParams.append('createdFrom', params.createdFrom);
+    if (params?.createdTo) queryParams.append('createdTo', params.createdTo);
     
     const response: AxiosResponse<PaginatedLeadsResponse> = await apiClient.get(
       `/api/leads?${queryParams.toString()}`
     );
+    
     return response.data;
   },
 

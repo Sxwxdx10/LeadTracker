@@ -73,7 +73,7 @@ export function KanbanColumnComponent({ column, leads, isOver = false }: KanbanC
         className={cn(
           "flex-1 rounded-lg border-2 border-dashed transition-all duration-200 h-full",
           isOver 
-            ? "border-blue-500 bg-blue-100 shadow-lg scale-[1.02]" 
+            ? "border-brand-500 bg-brand-100 shadow-lg scale-[1.02]" 
             : "border-gray-200 bg-gray-50"
         )}
         style={{ 
