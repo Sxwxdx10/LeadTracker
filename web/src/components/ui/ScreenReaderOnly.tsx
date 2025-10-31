@@ -11,11 +11,12 @@ export interface ScreenReaderOnlyProps {
 
 export const ScreenReaderOnly = React.forwardRef<HTMLElement, ScreenReaderOnlyProps>(
   ({ children, as: Component = 'span' }, ref) => {
-    return (
-      <Component
-        ref={ref as any}
-        className="sr-only"
-        style={{
+    return React.createElement(
+      Component,
+      {
+        ref,
+        className: "sr-only",
+        style: {
           position: 'absolute',
           width: '1px',
           height: '1px',
@@ -25,10 +26,9 @@ export const ScreenReaderOnly = React.forwardRef<HTMLElement, ScreenReaderOnlyPr
           clip: 'rect(0, 0, 0, 0)',
           whiteSpace: 'nowrap',
           borderWidth: '0',
-        }}
-      >
-        {children}
-      </Component>
+        },
+      },
+      children
     );
   }
 );

@@ -152,6 +152,16 @@ public class LeadListResponseDto
 }
 
 /// <summary>
+/// DTO for search suggestions
+/// </summary>
+public class SearchSuggestionDto
+{
+    public string Text { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty; // "name", "email", "company", "notes"
+    public int Count { get; set; }
+}
+
+/// <summary>
 /// DTO for lead query parameters
 /// </summary>
 public class LeadQueryDto

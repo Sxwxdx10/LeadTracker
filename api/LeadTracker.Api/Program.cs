@@ -293,6 +293,8 @@ try
     builder.Services.AddScoped<ILeadSeederService, LeadTracker.Infrastructure.Services.LeadSeederService>();
     builder.Services.AddScoped<IMonitoringService, LeadTracker.Infrastructure.Services.MonitoringService>();
     builder.Services.AddScoped<IAlertService, LeadTracker.Infrastructure.Services.AlertService>();
+    builder.Services.AddScoped<IAnalyticsService, LeadTracker.Infrastructure.Services.AnalyticsService>();
+    builder.Services.AddScoped<IOrganizationService, LeadTracker.Infrastructure.Services.OrganizationService>();
     // Kanban services
     builder.Services.AddScoped<IKanbanService, LeadTracker.Infrastructure.Services.KanbanService>();
     builder.Services.AddScoped<IKanbanNotificationService, LeadTracker.Api.Services.KanbanNotificationService>();

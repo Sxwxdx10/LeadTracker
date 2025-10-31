@@ -16,42 +16,71 @@ import {
 export const organizationApi = {
   // Récupérer les informations de l'organisation
   getOrganization: async (): Promise<Organization> => {
-    try {
-      const response: AxiosResponse<Organization> = await apiClient.get('/api/organization');
-      return response.data;
-    } catch (error) {
-      // Fallback avec données de test si l'API n'est pas disponible
-      return {
-        id: 'org-1',
-        name: 'Mon Organisation',
-        description: 'Description de mon organisation',
-        domain: 'mon-org',
-        timeZone: 'America/Toronto',
-        currency: 'CAD',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        contactEmail: 'contact@mon-org.com',
-        contactPhone: '+1 (555) 123-4567',
-        website: 'https://mon-org.com',
-        address: {
-          street: '123 Rue Principale',
-          city: 'Sherbrooke',
-          state: 'QC',
-          postalCode: 'J1K 2R1',
-          country: 'Canada'
-        },
-        primaryColor: '#3B82F6',
-        secondaryColor: '#64748B'
-      };
-    }
+    const response: AxiosResponse<Organization> = await apiClient.get('/api/organization');
+    
+    // Map backend response to frontend format
+    const org = response.data;
+    return {
+      ...org,
+      // Map flat address fields to nested object if needed
+      address: org.address || (org.addressStreet || org.addressCity ? {
+        street: org.addressStreet,
+        city: org.addressCity,
+        state: org.addressState,
+        postalCode: org.addressPostalCode,
+        country: org.addressCountry
+      } : undefined),
+      logoUrl: org.logoUrl || (org as any).logo
+    };
   },
 
   // Mettre à jour l'organisation
   updateOrganization: async (data: UpdateOrganizationDto): Promise<Organization> => {
     try {
-      const response: AxiosResponse<Organization> = await apiClient.put('/api/organization', data);
-      return response.data;
+      // Transform nested address to flat fields for backend and clean empty strings
+      const payload: any = {};
+      
+      // Only include non-empty fields (skip empty strings to avoid validation errors)
+      if (data.name && data.name.trim()) payload.name = data.name.trim();
+      if (data.description !== undefined && data.description?.trim()) payload.description = data.description.trim();
+      if (data.contactEmail !== undefined && data.contactEmail?.trim()) {
+        // Only send if it's a valid email format (basic check)
+        const email = data.contactEmail.trim();
+        if (email.includes('@')) {
+          payload.contactEmail = email;
+        }
+      }
+      if (data.contactPhone !== undefined && data.contactPhone?.trim()) payload.contactPhone = data.contactPhone.trim();
+      if (data.website !== undefined && data.website?.trim()) payload.website = data.website.trim();
+      if (data.timeZone && data.timeZone.trim()) payload.timeZone = data.timeZone.trim();
+      if (data.currency && data.currency.trim()) payload.currency = data.currency.trim();
+      if (data.primaryColor !== undefined && data.primaryColor?.trim()) payload.primaryColor = data.primaryColor.trim();
+      if (data.secondaryColor !== undefined && data.secondaryColor?.trim()) payload.secondaryColor = data.secondaryColor.trim();
+      
+      // Handle address fields - only send if they have values
+      if (data.address) {
+        if (data.address.street?.trim()) payload.addressStreet = data.address.street.trim();
+        if (data.address.city?.trim()) payload.addressCity = data.address.city.trim();
+        if (data.address.state?.trim()) payload.addressState = data.address.state.trim();
+        if (data.address.postalCode?.trim()) payload.addressPostalCode = data.address.postalCode.trim();
+        if (data.address.country?.trim()) payload.addressCountry = data.address.country.trim();
+      }
+      
+      const response: AxiosResponse<Organization> = await apiClient.put('/api/organization', payload);
+      
+      // Map response back to frontend format
+      const org = response.data;
+      return {
+        ...org,
+        address: org.address || (org.addressStreet || org.addressCity ? {
+          street: org.addressStreet,
+          city: org.addressCity,
+          state: org.addressState,
+          postalCode: org.addressPostalCode,
+          country: org.addressCountry
+        } : undefined),
+        logoUrl: org.logoUrl || (org as any).logo
+      };
     } catch (error) {
       console.error('Error updating organization:', error);
       throw new Error('Erreur lors de la mise à jour de l\'organisation');

@@ -29,6 +29,37 @@ public class LeadsController : ControllerBase
 
 
     /// <summary>
+    /// Get search suggestions for full-text search
+    /// </summary>
+    /// <param name="query">Search query</param>
+    /// <param name="limit">Maximum number of suggestions</param>
+    /// <returns>List of search suggestions</returns>
+    [HttpGet("search-suggestions")]
+    [ProducesResponseType(typeof(List<SearchSuggestionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetSearchSuggestions([FromQuery] string query, [FromQuery] int limit = 10)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return Ok(new List<SearchSuggestionDto>());
+            }
+
+            if (limit < 1 || limit > 50) limit = 10;
+
+            var suggestions = await _leadService.GetSearchSuggestionsAsync(query, limit);
+            return Ok(suggestions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting search suggestions for query: {Query}", query);
+            return StatusCode(500, "An error occurred while getting search suggestions");
+        }
+    }
+
+    /// <summary>
     /// Get leads with pagination, filtering, and sorting
     /// </summary>
     /// <param name="query">Query parameters for filtering and pagination</param>

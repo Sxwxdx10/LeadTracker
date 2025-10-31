@@ -35,93 +35,32 @@ import {
   Legend, 
   ResponsiveContainer
 } from 'recharts';
-
-// Types pour les données d'analytics
-interface ConversionFunnelData {
-  stage: string;
-  value: number;
-  percentage: number;
-  color: string;
-}
-
-interface SourceAnalysisData {
-  source: string;
-  leads: number;
-  conversions: number;
-  revenue: number;
-  conversionRate: number;
-  color: string;
-}
-
-interface UserPerformanceData {
-  userId: string;
-  userName: string;
-  leads: number;
-  conversions: number;
-  revenue: number;
-  conversionRate: number;
-  avgDealSize: number;
-  avgSalesCycle: number;
-}
-
-interface TemporalTrendData {
-  period: string;
-  leads: number;
-  conversions: number;
-  revenue: number;
-  conversionRate: number;
-  avgDealSize: number;
-}
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { AnalyticsQueryParams } from '@/types/analytics';
 
 export default function AnalyticsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y' | 'custom'>('30d');
   const [selectedView, setSelectedView] = useState('funnel');
   const [selectedUser, setSelectedUser] = useState('all');
 
-  // Données simulées pour le funnel de conversion
-  const conversionFunnelData: ConversionFunnelData[] = [
-    { stage: 'Visiteurs', value: 1000, percentage: 100, color: '#3B82F6' },
-    { stage: 'Leads', value: 250, percentage: 25, color: '#10B981' },
-    { stage: 'Qualifiés', value: 180, percentage: 18, color: '#F59E0B' },
-    { stage: 'Prospects', value: 120, percentage: 12, color: '#8B5CF6' },
-    { stage: 'Négociation', value: 80, percentage: 8, color: '#EF4444' },
-    { stage: 'Fermé gagné', value: 45, percentage: 4.5, color: '#059669' }
-  ];
+  const query: AnalyticsQueryParams = {
+    period: selectedPeriod,
+    ...(selectedUser !== 'all' && { userId: selectedUser }),
+  };
 
-  // Données simulées pour l'analyse des sources
-  const sourceAnalysisData: SourceAnalysisData[] = [
-    { source: 'Website', leads: 120, conversions: 24, revenue: 180000, conversionRate: 20, color: '#3B82F6' },
-    { source: 'LinkedIn', leads: 85, conversions: 19, revenue: 142500, conversionRate: 22.4, color: '#0077B5' },
-    { source: 'Email Marketing', leads: 65, conversions: 12, revenue: 90000, conversionRate: 18.5, color: '#10B981' },
-    { source: 'Cold Call', leads: 45, conversions: 8, revenue: 60000, conversionRate: 17.8, color: '#F59E0B' },
-    { source: 'Référence', leads: 35, conversions: 15, revenue: 112500, conversionRate: 42.9, color: '#8B5CF6' },
-    { source: 'Événements', leads: 25, conversions: 6, revenue: 45000, conversionRate: 24, color: '#EF4444' }
-  ];
+  const { data: analyticsData, loading, error } = useAnalytics(query);
 
-  // Données simulées pour la performance par utilisateur
-  const userPerformanceData: UserPerformanceData[] = [
-    { userId: '1', userName: 'Marie Dubois', leads: 45, conversions: 18, revenue: 135000, conversionRate: 40, avgDealSize: 7500, avgSalesCycle: 25 },
-    { userId: '2', userName: 'Jean Martin', leads: 38, conversions: 12, revenue: 90000, conversionRate: 31.6, avgDealSize: 7500, avgSalesCycle: 30 },
-    { userId: '3', userName: 'Sophie Bernard', leads: 42, conversions: 15, revenue: 112500, conversionRate: 35.7, avgDealSize: 7500, avgSalesCycle: 28 },
-    { userId: '4', userName: 'Pierre Moreau', leads: 35, conversions: 10, revenue: 75000, conversionRate: 28.6, avgDealSize: 7500, avgSalesCycle: 32 },
-    { userId: '5', userName: 'Claire Petit', leads: 40, conversions: 14, revenue: 105000, conversionRate: 35, avgDealSize: 7500, avgSalesCycle: 26 }
-  ];
-
-  // Données simulées pour les tendances temporelles
-  const temporalTrendData: TemporalTrendData[] = [
-    { period: 'Jan', leads: 45, conversions: 12, revenue: 90000, conversionRate: 26.7, avgDealSize: 7500 },
-    { period: 'Fév', leads: 52, conversions: 18, revenue: 135000, conversionRate: 34.6, avgDealSize: 7500 },
-    { period: 'Mar', leads: 38, conversions: 15, revenue: 112500, conversionRate: 39.5, avgDealSize: 7500 },
-    { period: 'Avr', leads: 61, conversions: 22, revenue: 165000, conversionRate: 36.1, avgDealSize: 7500 },
-    { period: 'Mai', leads: 47, conversions: 19, revenue: 142500, conversionRate: 40.4, avgDealSize: 7500 },
-    { period: 'Juin', leads: 55, conversions: 21, revenue: 157500, conversionRate: 38.2, avgDealSize: 7500 },
-    { period: 'Juil', leads: 42, conversions: 16, revenue: 120000, conversionRate: 38.1, avgDealSize: 7500 },
-    { period: 'Août', leads: 48, conversions: 20, revenue: 150000, conversionRate: 41.7, avgDealSize: 7500 },
-    { period: 'Sep', leads: 53, conversions: 23, revenue: 172500, conversionRate: 43.4, avgDealSize: 7500 },
-    { period: 'Oct', leads: 49, conversions: 18, revenue: 135000, conversionRate: 36.7, avgDealSize: 7500 },
-    { period: 'Nov', leads: 44, conversions: 17, revenue: 127500, conversionRate: 38.6, avgDealSize: 7500 },
-    { period: 'Déc', leads: 51, conversions: 21, revenue: 157500, conversionRate: 41.2, avgDealSize: 7500 }
-  ];
+  // Extract data from API response or use empty arrays
+  const conversionFunnelData = analyticsData?.conversionFunnel || [];
+  const sourceAnalysisData = analyticsData?.sourceAnalysis || [];
+  const userPerformanceData = analyticsData?.userPerformance || [];
+  const temporalTrendData = analyticsData?.temporalTrends || [];
+  const globalMetrics = analyticsData?.globalMetrics || {
+    totalLeads: 0,
+    totalConversions: 0,
+    totalRevenue: 0,
+    avgConversionRate: 0,
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-CA', {
@@ -160,7 +99,7 @@ export default function AnalyticsPage() {
 
   const handlePeriodChange = (value: string | string[]) => {
     if (typeof value === 'string') {
-      setSelectedPeriod(value);
+      setSelectedPeriod(value as '7d' | '30d' | '90d' | '1y' | 'custom');
     }
   };
 
@@ -170,30 +109,16 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Calculer les métriques globales
-  const globalMetrics = useMemo(() => {
-    const totalLeads = sourceAnalysisData.reduce((sum, source) => sum + source.leads, 0);
-    const totalConversions = sourceAnalysisData.reduce((sum, source) => sum + source.conversions, 0);
-    const totalRevenue = sourceAnalysisData.reduce((sum, source) => sum + source.revenue, 0);
-    const avgConversionRate = (totalConversions / totalLeads) * 100;
-    
-    return {
-      totalLeads,
-      totalConversions,
-      totalRevenue,
-      avgConversionRate
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+
+      {/* Page Header with Title, Description, Filters and Export */}
       <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Analytics Avancés</h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 mt-1">
                 Analysez en profondeur les performances et optimisez votre stratégie
               </p>
             </div>
@@ -255,7 +180,34 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Loading state */}
+        {loading && (
+          <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              <span className="ml-4 text-gray-600">Chargement des données analytics...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-red-500 text-xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-red-800">Erreur</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Métriques globales */}
+        {!loading && !error && (
+          <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow-sm rounded-lg">
             <div className="p-6">
@@ -585,7 +537,7 @@ export default function AnalyticsPage() {
                                 {formatCurrency(source.revenue)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {formatCurrency(source.revenue / source.leads)}
+                                {formatCurrency(source.leads > 0 ? source.revenue / source.leads : 0)}
                               </td>
                             </tr>
                           ))}
@@ -829,53 +781,8 @@ export default function AnalyticsPage() {
           </Tabs>
         </div>
 
-        {/* Résumé de la tâche */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mt-8">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">✓</span>
-              </div>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-lg font-medium text-green-800 mb-3">
-                ✅ Tâche 8.2 - Page de statistiques avancées complétée !
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-green-800 mb-2">Fonctionnalités selon FRONTEND_TASKS.md :</h4>
-                  <ul className="space-y-1 text-sm text-green-700">
-                    <li>• ✅ <strong>Funnel de conversion</strong> : Graphique en entonnoir détaillé</li>
-                    <li>• ✅ <strong>Analyse des sources</strong> : Performance par source de leads</li>
-                    <li>• ✅ <strong>Performance par utilisateur</strong> : Classement et métriques</li>
-                    <li>• ✅ <strong>Tendances temporelles</strong> : Évolution dans le temps</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium text-green-800 mb-2">Fonctionnalités avancées :</h4>
-                  <ul className="space-y-1 text-sm text-green-700">
-                    <li>• 4 onglets de navigation spécialisés</li>
-                    <li>• Graphiques interactifs avec Recharts</li>
-                    <li>• Tableaux détaillés avec classements</li>
-                    <li>• Filtres par période et utilisateur</li>
-                    <li>• Export des analytics (PDF, Excel, CSV)</li>
-                    <li>• Métriques globales en temps réel</li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-4 p-3 bg-green-100 rounded-md">
-                <p className="text-sm text-green-800">
-                  <strong>📋 Conforme aux spécifications FRONTEND_TASKS.md (8.2)</strong><br/>
-                  ✅ Fichier créé : web/src/app/analytics/page.tsx<br/>
-                  ✅ Toutes les fonctionnalités demandées implémentées
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useOrganization } from '@/hooks/useOrganization';
+import { useToast } from '@/hooks/useToast';
 import { 
   Building2, 
   Globe, 
@@ -24,27 +26,57 @@ import { Badge } from '@/components/ui/badge';
 export default function OrganizationSettingsPage() {
   const [activeTab, setActiveTab] = useState<'info' | 'domain' | 'billing' | 'integrations'>('info');
   const [isEditing, setIsEditing] = useState(false);
+  const { organization, isLoading, error, fetchOrganization, updateOrganization, uploadLogo } = useOrganization();
+  const toast = useToast();
 
-  // Données statiques pour le test
-  const organization = {
-    name: 'Mon Organisation',
-    description: 'Description de mon organisation',
-    domain: 'mon-org',
-    contactEmail: 'contact@mon-org.com',
-    contactPhone: '+1 (555) 123-4567',
-    website: 'https://mon-org.com',
-    timeZone: 'America/Toronto',
-    currency: 'CAD',
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    contactEmail: '',
+    contactPhone: '',
+    website: '',
+    timeZone: '',
+    currency: '',
     address: {
-      street: '123 Rue Principale',
-      city: 'Sherbrooke',
-      state: 'QC',
-      postalCode: 'J1K 2R1',
-      country: 'Canada'
+      street: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: ''
     },
-    primaryColor: '#3B82F6',
-    secondaryColor: '#64748B'
-  };
+    primaryColor: '',
+    secondaryColor: ''
+  });
+
+  // Load organization data on mount
+  useEffect(() => {
+    fetchOrganization();
+  }, [fetchOrganization]);
+
+  // Populate form when organization loads
+  useEffect(() => {
+    if (organization) {
+      setFormData({
+        name: organization.name || '',
+        description: organization.description || '',
+        contactEmail: organization.contactEmail || '',
+        contactPhone: organization.contactPhone || '',
+        website: organization.website || '',
+        timeZone: organization.timeZone || 'UTC',
+        currency: organization.currency || 'USD',
+        address: organization.address || {
+          street: organization.addressStreet || '',
+          city: organization.addressCity || '',
+          state: organization.addressState || '',
+          postalCode: organization.addressPostalCode || '',
+          country: organization.addressCountry || ''
+        },
+        primaryColor: organization.primaryColor || '',
+        secondaryColor: organization.secondaryColor || ''
+      });
+    }
+  }, [organization]);
 
   const billingSettings = {
     plan: {
@@ -80,11 +112,101 @@ export default function OrganizationSettingsPage() {
   ];
 
   const handleEdit = () => setIsEditing(true);
-  const handleCancel = () => setIsEditing(false);
-  const handleSave = () => {
+  const handleCancel = () => {
     setIsEditing(false);
-    alert('Paramètres sauvegardés (demo)');
+    // Reset form to original values
+    if (organization) {
+      setFormData({
+        name: organization.name || '',
+        description: organization.description || '',
+        contactEmail: organization.contactEmail || '',
+        contactPhone: organization.contactPhone || '',
+        website: organization.website || '',
+        timeZone: organization.timeZone || 'UTC',
+        currency: organization.currency || 'USD',
+        address: organization.address || {
+          street: organization.addressStreet || '',
+          city: organization.addressCity || '',
+          state: organization.addressState || '',
+          postalCode: organization.addressPostalCode || '',
+          country: organization.addressCountry || ''
+        },
+        primaryColor: organization.primaryColor || '',
+        secondaryColor: organization.secondaryColor || ''
+      });
+    }
   };
+
+  const handleSave = async () => {
+    try {
+      await updateOrganization({
+        name: formData.name,
+        description: formData.description,
+        contactEmail: formData.contactEmail,
+        contactPhone: formData.contactPhone,
+        website: formData.website,
+        timeZone: formData.timeZone,
+        currency: formData.currency,
+        address: formData.address,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor
+      });
+      setIsEditing(false);
+      toast.success('Paramètres sauvegardés avec succès');
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Le fichier est trop volumineux (max 2MB)');
+      return;
+    }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez PNG ou JPG');
+      return;
+    }
+
+    try {
+      await uploadLogo(file);
+      toast.success('Logo mis à jour avec succès');
+      await fetchOrganization(); // Refresh to get new logo URL
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors du téléchargement du logo');
+    }
+  };
+
+  if (isLoading && !organization) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement des paramètres...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !organization) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="mt-4 text-red-600">{error}</p>
+          <Button onClick={() => fetchOrganization()} className="mt-4">
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -160,15 +282,24 @@ export default function OrganizationSettingsPage() {
                 {/* Logo */}
                 <div className="flex items-center space-x-6">
                   <div className="relative">
-                    <div className="w-24 h-24 rounded-lg bg-blue-100 border-2 border-gray-200 flex items-center justify-center">
-                      <Building2 className="h-8 w-8 text-blue-600" />
-                    </div>
+                    {organization?.logoUrl ? (
+                      <img 
+                        src={organization.logoUrl} 
+                        alt="Logo" 
+                        className="w-24 h-24 rounded-lg border-2 border-gray-200 object-cover"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-lg bg-blue-100 border-2 border-gray-200 flex items-center justify-center">
+                        <Building2 className="h-8 w-8 text-blue-600" />
+                      </div>
+                    )}
                     {isEditing && (
                       <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-lg cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
                         <Upload className="h-5 w-5" />
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/png,image/jpeg,image/jpg"
+                          onChange={handleLogoUpload}
                           className="hidden"
                         />
                       </label>
@@ -190,11 +321,12 @@ export default function OrganizationSettingsPage() {
                     </label>
                     {isEditing ? (
                       <Input
-                        defaultValue={organization.name}
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="Nom de l'organisation"
                       />
                     ) : (
-                      <p className="text-gray-900">{organization.name}</p>
+                      <p className="text-gray-900">{organization?.name || ''}</p>
                     )}
                   </div>
 
@@ -202,7 +334,7 @@ export default function OrganizationSettingsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Domaine
                     </label>
-                    <p className="text-gray-900">{organization.domain}.leadtracker.app</p>
+                    <p className="text-gray-900">{organization?.domain || ''}.leadtracker.app</p>
                   </div>
 
                   <div className="md:col-span-2">
@@ -211,13 +343,14 @@ export default function OrganizationSettingsPage() {
                     </label>
                     {isEditing ? (
                       <textarea
-                        defaultValue={organization.description}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         rows={3}
                         className="flex w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         placeholder="Description de l'organisation"
                       />
                     ) : (
-                      <p className="text-gray-900">{organization.description}</p>
+                      <p className="text-gray-900">{organization?.description || ''}</p>
                     )}
                   </div>
                 </div>
@@ -234,11 +367,12 @@ export default function OrganizationSettingsPage() {
                       {isEditing ? (
                         <Input
                           type="email"
-                          defaultValue={organization.contactEmail}
+                          value={formData.contactEmail}
+                          onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                           placeholder="contact@organization.com"
                         />
                       ) : (
-                        <p className="text-gray-900">{organization.contactEmail}</p>
+                        <p className="text-gray-900">{organization?.contactEmail || '-'}</p>
                       )}
                     </div>
 
@@ -249,11 +383,12 @@ export default function OrganizationSettingsPage() {
                       </label>
                       {isEditing ? (
                         <Input
-                          defaultValue={organization.contactPhone}
+                          value={formData.contactPhone}
+                          onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                           placeholder="+1 (555) 123-4567"
                         />
                       ) : (
-                        <p className="text-gray-900">{organization.contactPhone}</p>
+                        <p className="text-gray-900">{organization?.contactPhone || '-'}</p>
                       )}
                     </div>
 
@@ -265,14 +400,19 @@ export default function OrganizationSettingsPage() {
                       {isEditing ? (
                         <Input
                           type="url"
-                          defaultValue={organization.website}
+                          value={formData.website}
+                          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                           placeholder="https://organization.com"
                         />
                       ) : (
                         <p className="text-gray-900">
-                          <a href={organization.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            {organization.website}
-                          </a>
+                          {organization?.website ? (
+                            <a href={organization.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              {organization.website}
+                            </a>
+                          ) : (
+                            '-'
+                          )}
                         </p>
                       )}
                     </div>
@@ -292,11 +432,15 @@ export default function OrganizationSettingsPage() {
                       </label>
                       {isEditing ? (
                         <Input
-                          defaultValue={organization.address.street}
+                          value={formData.address.street}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            address: { ...formData.address, street: e.target.value } 
+                          })}
                           placeholder="123 Rue Principale"
                         />
                       ) : (
-                        <p className="text-gray-900">{organization.address.street}</p>
+                        <p className="text-gray-900">{organization?.address?.street || organization?.addressStreet || '-'}</p>
                       )}
                     </div>
 
@@ -306,11 +450,15 @@ export default function OrganizationSettingsPage() {
                       </label>
                       {isEditing ? (
                         <Input
-                          defaultValue={organization.address.city}
+                          value={formData.address.city}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            address: { ...formData.address, city: e.target.value } 
+                          })}
                           placeholder="Sherbrooke"
                         />
                       ) : (
-                        <p className="text-gray-900">{organization.address.city}</p>
+                        <p className="text-gray-900">{organization?.address?.city || organization?.addressCity || '-'}</p>
                       )}
                     </div>
 
@@ -320,11 +468,15 @@ export default function OrganizationSettingsPage() {
                       </label>
                       {isEditing ? (
                         <Input
-                          defaultValue={organization.address.state}
+                          value={formData.address.state}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            address: { ...formData.address, state: e.target.value } 
+                          })}
                           placeholder="QC"
                         />
                       ) : (
-                        <p className="text-gray-900">{organization.address.state}</p>
+                        <p className="text-gray-900">{organization?.address?.state || organization?.addressState || '-'}</p>
                       )}
                     </div>
                   </div>
@@ -347,7 +499,7 @@ export default function OrganizationSettingsPage() {
                         Domaine actuel
                       </h3>
                       <p className="text-sm text-blue-700 mt-1">
-                        Votre organisation est accessible via : <strong>{organization.domain}.leadtracker.app</strong>
+                        Votre organisation est accessible via : <strong>{organization?.domain || ''}.leadtracker.app</strong>
                       </p>
                     </div>
                   </div>
@@ -466,28 +618,6 @@ export default function OrganizationSettingsPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Statut de développement */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex">
-            <Check className="h-5 w-5 text-green-400" />
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">
-                ✅ Page des paramètres d'organisation fonctionnelle !
-              </h3>
-              <div className="text-sm text-green-700 mt-2">
-                <p className="mb-2">Fonctionnalités implémentées :</p>
-                <ul className="space-y-1">
-                  <li>• Interface avec onglets de navigation</li>
-                  <li>• Section informations de l'organisation (éditable)</li>
-                  <li>• Gestion du domaine (vue de base)</li>
-                  <li>• Paramètres de facturation (aperçu du plan)</li>
-                  <li>• Gestion des intégrations (liste des intégrations actives)</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       </div>

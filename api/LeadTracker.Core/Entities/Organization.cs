@@ -28,6 +28,43 @@ public class Organization : BaseEntity
     
     public DateTime? SubscriptionExpiresAt { get; set; }
     
+    // Contact information
+    [MaxLength(255)]
+    [EmailAddress]
+    public string? ContactEmail { get; set; }
+    
+    [MaxLength(20)]
+    public string? ContactPhone { get; set; }
+    
+    [MaxLength(255)]
+    public string? Website { get; set; }
+    
+    // Address
+    [MaxLength(200)]
+    public string? AddressStreet { get; set; }
+    
+    [MaxLength(100)]
+    public string? AddressCity { get; set; }
+    
+    [MaxLength(50)]
+    public string? AddressState { get; set; }
+    
+    [MaxLength(20)]
+    public string? AddressPostalCode { get; set; }
+    
+    [MaxLength(100)]
+    public string? AddressCountry { get; set; }
+    
+    // Branding
+    [MaxLength(500)]
+    public string? LogoPath { get; set; }
+    
+    [MaxLength(7)]
+    public string? PrimaryColor { get; set; }
+    
+    [MaxLength(7)]
+    public string? SecondaryColor { get; set; }
+    
     // Navigation properties
     public virtual ICollection<User> Users { get; set; } = new List<User>();
     public virtual ICollection<Lead> Leads { get; set; } = new List<Lead>();

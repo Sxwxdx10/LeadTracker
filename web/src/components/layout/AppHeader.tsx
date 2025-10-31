@@ -8,7 +8,9 @@ import {
   ChartBarIcon, 
   Cog6ToothIcon,
   BuildingOfficeIcon,
-  PlusIcon
+  PlusIcon,
+  PresentationChartLineIcon,
+  Squares2X2Icon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import UserMenu from '@/components/auth/UserMenu';
@@ -16,14 +18,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
-  title: string;
+  title?: string;
   description?: string;
   actions?: React.ReactNode;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, actions }) => {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+
+  // Ne pas afficher si non authentifié
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // Vérifier si l'utilisateur a le rôle admin
   const isAdmin = user?.roles?.includes('admin') || false;
@@ -34,6 +41,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, action
       href: '/leads',
       icon: ChartBarIcon,
       current: pathname.startsWith('/leads'),
+    },
+    {
+      name: 'Kanban',
+      href: '/kanban',
+      icon: Squares2X2Icon,
+      current: pathname.startsWith('/kanban'),
+    },
+    {
+      name: 'Analytics',
+      href: '/analytics',
+      icon: PresentationChartLineIcon,
+      current: pathname.startsWith('/analytics'),
     },
     {
       name: 'Utilisateurs',
@@ -64,7 +83,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, action
               href="/leads" 
               className="flex items-center space-x-2 font-bold text-xl text-gray-900"
             >
-              <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
+              <BuildingOfficeIcon className="h-8 w-8 text-brand-500" />
               <span>Lead Tracker</span>
             </Link>
 
@@ -77,8 +96,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, action
                   className={cn(
                     'flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors',
                     item.current
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'text-brand-600 bg-brand-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-secondary-50'
                   )}
                 >
                   <item.icon className="h-4 w-4" />

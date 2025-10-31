@@ -88,7 +88,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
                   size="icon"
                   onClick={onClose}
                   className="h-8 w-8"
-                  ariaLabel="Fermer la boîte de dialogue"
+                  aria-label="Fermer la boîte de dialogue"
                 >
                   <X className="h-4 w-4" aria-hidden="true" />
                 </Button>

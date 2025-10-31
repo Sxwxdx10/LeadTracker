@@ -96,7 +96,7 @@ export function useOrganization(): UseOrganizationResult {
       if (organization) {
         setOrganization({
           ...organization,
-          logo: result.logoUrl
+          logoUrl: result.logoUrl
         });
       }
     } catch (err: any) {

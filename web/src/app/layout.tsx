@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SimpleToastContainer } from '@/components/ui/simple-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { MainLayout } from '@/components/layout/MainLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -78,7 +79,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <Providers>
             <AuthProvider>
-              {children}
+              <MainLayout>
+                {children}
+              </MainLayout>
               <SimpleToastContainer />
             </AuthProvider>
           </Providers>
