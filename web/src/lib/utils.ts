@@ -8,10 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 // Date formatting utilities
 export function formatDate(dateString?: string) {
   if (!dateString) return '-';
+  // Force UTC timezone to avoid date shifting issues
   return new Intl.DateTimeFormat('fr-CA', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   }).format(new Date(dateString));
 }
 

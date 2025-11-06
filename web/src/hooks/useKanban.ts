@@ -78,7 +78,8 @@ export const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn
     // For ALL stages (including "Nouveau"), show leads that are in this specific stage AND have Open status
     const stageLeads = leads.filter(lead => {
       const isInThisStage = lead.stageId === stage.id;
-      const hasOpenStatus = lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified';
+      // Statuts ouverts: Open et Qualified (aligné avec le backend)
+      const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified';
       return isInThisStage && hasOpenStatus;
     });
     
@@ -159,12 +160,12 @@ export const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn
   return columns;
 };
 
-export const transformStatsToKanbanMetrics = (stats: LeadStats): KanbanMetrics => ({
+export const transformStatsToKanbanMetrics = (stats: LeadStats & { lostLeads?: number }): KanbanMetrics => ({
   totalLeads: stats.totalLeads,
   openLeads: stats.openLeads,
   qualifiedLeads: stats.qualifiedLeads,
   wonLeads: stats.wonLeads,
-  lostLeads: 0, // Not available in LeadStats
+  lostLeads: stats.lostLeads ?? 0, // Calculé dans KanbanBoard
   totalValue: stats.totalValue,
   wonValue: 0, // Not available in LeadStats
   potentialValue: stats.totalValue * 0.7, // Estimate if not available
@@ -261,7 +262,15 @@ const kanbanApi = {
         throw new Error(`Invalid stage ID: ${request.toStageId}`);
       }
       
-      newStatus = 'Open';
+      // If moving from Won/Lost to a normal stage, set to Open
+      // Otherwise, preserve the current status (Open/Qualified)
+      const currentStatus = currentLead.status;
+      if (currentStatus === 'Won' || currentStatus === 'Lost') {
+        newStatus = 'Open';
+      } else {
+        // Preserve Open/Qualified status when moving between normal stages
+        newStatus = currentStatus || 'Open';
+      }
     }
     
     // Update the lead's status and stage, including all required fields

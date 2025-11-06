@@ -31,9 +31,8 @@ export const mapStageFilterToKanbanLogic = (
         // Pour les colonnes normales (Nouveau → Négociation), vérifier stageId ET status approprié
         // Seuls les leads avec des statuts "ouverts" peuvent rester dans leur stage d'origine
         const isInThisStage = lead.stageId === stageId;
-        const hasOpenStatus = lead.status === 'Open' || 
-                             lead.status === 'InProgress' || 
-                             lead.status === 'Qualified';
+        // Statuts ouverts: Open et Qualified (aligné avec le backend)
+        const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified';
         
         // Un lead fermé (Won/Lost) ne peut PAS être dans un stage normal
         // Il doit être dans le stage Won ou Lost correspondant
@@ -62,7 +61,7 @@ export const getStageFilterOptions = (stages: Stage[], leads: Lead[]) => {
       // Un lead fermé (Won/Lost) ne peut PAS être dans un stage normal
       count = leads.filter(lead => 
         lead.stageId === stage.id && 
-        (lead.status === 'Open' || lead.status === 'InProgress' || lead.status === 'Qualified')
+        (lead.status === 'Open' || lead.status === 'Qualified')
       ).length;
     }
     

@@ -2,14 +2,27 @@
 
 import React from 'react';
 import { KanbanMetrics as KanbanMetricsType } from '@/types/kanban';
-import { formatCurrency, formatPercentage, formatDays } from '@/hooks/useKanban';
+import { formatCurrency, formatPercentage, formatDays } from '@/utils/cardUtils';
 import { 
   ChartBarIcon,
   CurrencyEuroIcon,
   ClockIcon,
   ArrowTrendingUpIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
 interface KanbanMetricsProps {
   metrics: KanbanMetricsType;
@@ -90,81 +103,90 @@ export function KanbanMetrics({ metrics }: KanbanMetricsProps) {
         ))}
       </div>
 
-      {/* Detailed Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Leads by Stage */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart: Leads by Stage */}
+        {metrics.leadCountByStage && Object.keys(metrics.leadCountByStage).length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
             Leads par Étape
           </h3>
-          <div className="space-y-2">
-            {metrics.leadCountByStage ? Object.entries(metrics.leadCountByStage).map(([stageId, count]) => (
-              <div key={stageId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Étape {stageId}</span>
-                <span className="font-medium text-gray-900">{count}</span>
-              </div>
-            )) : (
-              <div className="text-sm text-gray-500">Aucune donnée disponible</div>
-            )}
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={Object.entries(metrics.leadCountByStage).map(([stageId, count]) => ({ name: `Étape ${stageId}`, leads: count }))}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="leads" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        )}
+
+        {/* Pie Chart: Status Distribution */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">
+            Répartition des Statuts
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Ouverts', value: metrics.openLeads },
+                  { name: 'Qualifiés', value: metrics.qualifiedLeads },
+                  { name: 'Gagnés', value: metrics.wonLeads },
+                  { name: 'Perdus', value: metrics.lostLeads }
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                <Cell fill="#3B82F6" />
+                <Cell fill="#10B981" />
+                <Cell fill="#22C55E" />
+                <Cell fill="#EF4444" />
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Value by Stage */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
+        {metrics.valueByStage && Object.keys(metrics.valueByStage).length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
             Valeur par Étape
           </h3>
-          <div className="space-y-2">
-            {metrics.valueByStage ? Object.entries(metrics.valueByStage).map(([stageId, value]) => (
-              <div key={stageId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Étape {stageId}</span>
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(value)}
-                </span>
-              </div>
-            )) : (
-              <div className="text-sm text-gray-500">Aucune donnée disponible</div>
-            )}
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={Object.entries(metrics.valueByStage).map(([stageId, value]) => ({ name: `Étape ${stageId}`, value }))}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Bar dataKey="value" fill="#10B981" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        )}
 
-        {/* Conversion Rates by Stage */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
+        {/* Conversion Rates */}
+        {metrics.conversionRatesByStage && Object.keys(metrics.conversionRatesByStage).length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
             Taux de Conversion par Étape
           </h3>
-          <div className="space-y-2">
-            {metrics.conversionRatesByStage ? Object.entries(metrics.conversionRatesByStage).map(([stageId, rate]) => (
-              <div key={stageId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Étape {stageId}</span>
-                <span className="font-medium text-gray-900">
-                  {formatPercentage(rate)}
-                </span>
-              </div>
-            )) : (
-              <div className="text-sm text-gray-500">Aucune donnée disponible</div>
-            )}
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={Object.entries(metrics.conversionRatesByStage).map(([stageId, rate]) => ({ name: `Étape ${stageId}`, rate }))}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+                <Tooltip formatter={(value: number) => `${value}%`} />
+                <Bar dataKey="rate" fill="#F59E0B" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Average Time by Stage */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            Temps Moyen par Étape
-          </h3>
-          <div className="space-y-2">
-            {metrics.averageTimeByStage ? Object.entries(metrics.averageTimeByStage).map(([stageId, time]) => (
-              <div key={stageId} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Étape {stageId}</span>
-                <span className="font-medium text-gray-900">
-                  {formatDays(time)}
-                </span>
-              </div>
-            )) : (
-              <div className="text-sm text-gray-500">Aucune donnée disponible</div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

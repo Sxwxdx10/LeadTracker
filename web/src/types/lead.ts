@@ -1,4 +1,6 @@
-export type LeadStatus = 'Open' | 'InProgress' | 'Qualified' | 'Unqualified' | 'Won' | 'Lost';
+// LeadStatus aligné avec le backend (LeadStatus.cs)
+// Backend enum: Open = 1, Qualified = 2, Won = 3, Lost = 4, Cancelled = 5
+export type LeadStatus = 'Open' | 'Qualified' | 'Won' | 'Lost' | 'Cancelled';
 
 export interface Lead {
   id: string;

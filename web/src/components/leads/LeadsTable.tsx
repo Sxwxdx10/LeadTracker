@@ -64,15 +64,13 @@ const getStatusBadgeVariant = (status: LeadStatus) => {
   switch (status) {
     case 'Open':
       return 'info';
-    case 'InProgress':
-      return 'warning';
     case 'Qualified':
       return 'success';
     case 'Won':
       return 'success';
     case 'Lost':
       return 'destructive';
-    case 'Unqualified':
+    case 'Cancelled':
       return 'secondary';
     default:
       return 'default';
@@ -81,13 +79,12 @@ const getStatusBadgeVariant = (status: LeadStatus) => {
 
 // Fonction utilitaire pour traduire le statut
 const translateStatus = (status: LeadStatus) => {
-  const translations = {
+  const translations: Record<LeadStatus, string> = {
     'Open': 'Ouvert',
-    'InProgress': 'En cours',
     'Qualified': 'Qualifié',
-    'Unqualified': 'Non qualifié',
     'Won': 'Gagné',
     'Lost': 'Perdu',
+    'Cancelled': 'Annulé',
   };
   return translations[status] || status;
 };
@@ -251,10 +248,14 @@ export default function LeadsTable({ searchParams, onParamsChange, leads, totalC
   }
 
   if (error) {
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? String((error as { message: unknown }).message)
+      : 'Une erreur inconnue s\'est produite';
+    
     return (
       <ErrorDisplay
         title="Erreur lors du chargement des leads"
-        message={error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite'}
+        message={errorMessage}
         className="py-12"
       />
     );
