@@ -197,11 +197,17 @@ public class LeadService : ILeadService
         lead.JobTitle = updateDto.JobTitle;
         lead.EstimatedValue = updateDto.EstimatedValue;
         lead.Probability = updateDto.Probability;
-        lead.ExpectedCloseDate = updateDto.ExpectedCloseDate;
+        // Convert DateTime to UTC if it has a value
+        lead.ExpectedCloseDate = updateDto.ExpectedCloseDate.HasValue 
+            ? DateTime.SpecifyKind(updateDto.ExpectedCloseDate.Value, DateTimeKind.Utc) 
+            : null;
         lead.Notes = updateDto.Notes;
         lead.Source = updateDto.Source;
         lead.Status = updateDto.Status;
-        lead.LastContactedAt = updateDto.LastContactedAt;
+        // Convert DateTime to UTC if it has a value
+        lead.LastContactedAt = updateDto.LastContactedAt.HasValue 
+            ? DateTime.SpecifyKind(updateDto.LastContactedAt.Value, DateTimeKind.Utc) 
+            : null;
         lead.StageId = updateDto.StageId;
         lead.AssignedUserId = updateDto.AssignedUserId;
         lead.UpdatedAt = DateTime.UtcNow;

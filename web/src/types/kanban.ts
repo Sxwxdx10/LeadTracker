@@ -12,6 +12,15 @@ export interface KanbanColumn {
   totalValue: number;
   potentialValue: number;
   averageTimeInStageDays: number; // in days
+  // Monday.com style additions
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  wipLimit?: number;
+  isCollapsed?: boolean;
+  showCount?: boolean;
+  showValue?: boolean;
+  showAverageTime?: boolean;
 }
 
 export interface KanbanLead {
@@ -39,12 +48,25 @@ export interface KanbanLead {
   createdAt: string;
   stageEnteredAt: string;
   isOverdue: boolean;
+  // Monday.com style additions
+  avatar?: string;
+  initials?: string;
+  priority?: 'high' | 'medium' | 'low';
+  tags?: string[];
+  color?: string;
+  isSelected?: boolean;
+  lastActivity?: string;
+  notes?: string;
 }
 
 export interface KanbanBoard {
   columns: KanbanColumn[];
   leads: KanbanLead[];
   metrics: KanbanMetrics;
+  // Monday.com style additions
+  swimLanes?: any; // Will be typed properly after swimlanes implementation
+  viewType?: 'standard' | 'timeline' | 'workload';
+  selectedLeads?: string[];
 }
 
 export interface KanbanMetrics {
@@ -142,6 +164,16 @@ export interface KanbanCustomization {
   colorScheme: 'default' | 'colorful' | 'minimal';
   columnWidth: number;
   maxLeadsPerColumn: number;
+  // Monday.com style additions
+  cardLayout?: 'compact' | 'detailed';
+  swimLaneConfig?: any; // Will be typed properly after swimlanes implementation
+  showAvatar?: boolean;
+  showBadges?: boolean;
+  showProgress?: boolean;
+  showTimeline?: boolean;
+  colorBarPosition?: 'left' | 'top' | 'right';
+  columnResizeEnabled?: boolean;
+  cardExpandable?: boolean;
 }
 
 export interface KanbanFilters {
@@ -160,4 +192,41 @@ export interface KanbanFilters {
     max: number;
   };
   showOverdueOnly: boolean;
+  // Monday.com style additions
+  priorityFilter?: ('high' | 'medium' | 'low')[];
+  tagsFilter?: string[];
+  stageFilter?: string[];
+  statusFilter?: string[];
+  quickFilters?: QuickFilter[];
+}
+
+export interface QuickFilter {
+  id: string;
+  label: string;
+  active: boolean;
+  color?: string;
+  count?: number;
+}
+
+// Bulk Actions
+export interface BulkAction {
+  id: string;
+  label: string;
+  icon?: string;
+  destructive?: boolean;
+  requiresConfirmation?: boolean;
+  handler: (selectedLeadIds: string[]) => Promise<void> | void;
+}
+
+// Undo/Redo
+export interface KanbanUndoState {
+  action: string;
+  timestamp: number;
+  data: any;
+}
+
+export interface KanbanHistory {
+  past: KanbanUndoState[];
+  present: any;
+  future: KanbanUndoState[];
 }

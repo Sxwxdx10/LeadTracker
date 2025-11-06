@@ -179,7 +179,31 @@ public class KanbanService : IKanbanService
             throw new ArgumentException("Stage not found");
         }
 
+        // Update StageId
         lead.StageId = toStageId;
+        
+        // CRITICAL FIX: Automatically update Status based on stage type
+        // This ensures consistency between StageId and Status
+        if (stage.IsWonStage)
+        {
+            lead.Status = "Won";
+        }
+        else if (stage.IsLostStage)
+        {
+            lead.Status = "Lost";
+        }
+        else
+        {
+            // For normal stages (Nouveau, Qualifié, Proposition, Négociation)
+            // Only set to Open if the lead is currently Won or Lost
+            // This allows leads that are Open/Qualified to remain Open/Qualified
+            if (lead.Status == "Won" || lead.Status == "Lost")
+            {
+                lead.Status = "Open";
+            }
+            // Otherwise, keep the current status (Open, Qualified, etc.)
+        }
+        
         lead.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

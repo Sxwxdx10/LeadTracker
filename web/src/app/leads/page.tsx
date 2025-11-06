@@ -1,17 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   PlusIcon, 
   ChartBarIcon, 
   ArrowDownTrayIcon,
-  TableCellsIcon,
-  Squares2X2Icon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import LeadsTable from '@/components/leads/LeadsTable';
+import { MondayTableView } from '@/components/views/MondayTableView';
+import { TimelineView } from '@/components/views/TimelineView';
+import { CalendarView } from '@/components/views/CalendarView';
+import { ViewSelector } from '@/components/views/ViewSelector';
+import { useUpdateLead, useDeleteLead } from '@/hooks/useLeads';
 import { LeadStats } from '@/components/leads/LeadStats';
 import { LeadFiltersPanel } from '@/components/leads/LeadFiltersPanel';
 import { ActiveFiltersDisplay } from '@/components/leads/ActiveFiltersDisplay';
@@ -20,9 +24,11 @@ import { useSignalR } from '@/hooks/useSignalR';
 import { useFilterPanel } from '@/hooks/useFilterPanel';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useLeads, useStages } from '@/hooks/useLeads';
+import { ViewType } from '@/types/views';
 
 export default function LeadsPage() {
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<ViewType>('kanban');
   const [queryParams, setQueryParams] = useState({
     page: 1,
     pageSize: 50,
@@ -36,6 +42,10 @@ export default function LeadsPage() {
   // Filter panel hooks
   const filterPanel = useFilterPanel();
   const savedFilters = useSavedFilters();
+
+  // Mutation hooks
+  const updateLeadMutation = useUpdateLead();
+  const deleteLeadMutation = useDeleteLead();
   
   // Récupérer les données des leads pour les options dynamiques
   const { data: leadsData } = useLeads({
@@ -98,27 +108,11 @@ export default function LeadsPage() {
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center space-x-4">
-              {/* Sélecteur de vue */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className="flex items-center gap-2 h-8"
-                >
-                  <TableCellsIcon className="h-4 w-4" />
-                  Tableau
-                </Button>
-                <Button
-                  variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('kanban')}
-                  className="flex items-center gap-2 h-8"
-                >
-                  <Squares2X2Icon className="h-4 w-4" />
-                  Kanban
-                </Button>
-              </div>
+              {/* Sélecteur de vue Monday.com style */}
+              <ViewSelector 
+                currentView={viewMode} 
+                onViewChange={setViewMode}
+              />
             </div>
 
             <div className="flex items-center space-x-4">
@@ -197,17 +191,21 @@ export default function LeadsPage() {
         {/* Contenu principal */}
         <div className="space-y-4">
           {viewMode === 'table' ? (
-            <LeadsTable 
-              searchParams={{
-                ...queryParams,
-                // Ne pas passer les filtres à l'API, on les applique côté client
-              }}
-              onParamsChange={handleParamsChange}
-              // Passer les données filtrées côté client
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-260px)]">
+              <MondayTableView
               leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
-              totalCount={leadsData?.totalCount || 0}
+                onLeadClick={(lead) => {
+                  router.push(`/leads/${lead.id}`);
+                }}
+                onLeadUpdate={async (leadId, updates) => {
+                  await updateLeadMutation.mutateAsync({ id: leadId, data: updates });
+                }}
+                onLeadDelete={async (leadId) => {
+                  await deleteLeadMutation.mutateAsync(leadId);
+                }}
             />
-          ) : (
+            </div>
+          ) : viewMode === 'kanban' ? (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <KanbanBoard 
                 className="h-[calc(100vh-300px)]" 
@@ -216,7 +214,27 @@ export default function LeadsPage() {
                 stages={stagesData || []}
               />
             </div>
-          )}
+          ) : viewMode === 'timeline' ? (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-300px)]">
+              <TimelineView 
+                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                onLeadClick={(lead) => {
+                  // Navigate to lead detail
+                  window.location.href = `/leads/${lead.id}`;
+                }}
+              />
+            </div>
+          ) : viewMode === 'calendar' ? (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-300px)]">
+              <CalendarView 
+                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                onLeadClick={(lead) => {
+                  // Navigate to lead detail
+                  window.location.href = `/leads/${lead.id}`;
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

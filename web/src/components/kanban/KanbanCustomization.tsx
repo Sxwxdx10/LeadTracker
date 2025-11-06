@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
   AdjustmentsHorizontalIcon,
-  XMarkIcon,
-  EyeIcon,
-  EyeSlashIcon
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 interface KanbanCustomizationProps {
@@ -16,7 +14,7 @@ interface KanbanCustomizationProps {
 }
 
 export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizationProps) {
-  const [customization, setCustomization] = useState<KanbanCustomizationType>({
+  const [customization, setCustomization] = useState<Partial<KanbanCustomizationType>>({
     showMetrics: true,
     showTaskCount: true,
     showOverdue: true,
@@ -32,11 +30,11 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
   const handleCustomizationChange = (key: keyof KanbanCustomizationType, value: any) => {
     const newCustomization = { ...customization, [key]: value };
     setCustomization(newCustomization);
-    onCustomizationChange(newCustomization);
+    onCustomizationChange(newCustomization as KanbanCustomizationType);
   };
 
   const resetCustomization = () => {
-    const defaultCustomization: KanbanCustomizationType = {
+    const defaultCustomization: Partial<KanbanCustomizationType> = {
       showMetrics: true,
       showTaskCount: true,
       showOverdue: true,
@@ -47,7 +45,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
       maxLeadsPerColumn: 50,
     };
     setCustomization(defaultCustomization);
-    onCustomizationChange(defaultCustomization);
+    onCustomizationChange(defaultCustomization as KanbanCustomizationType);
   };
 
   return (
@@ -89,7 +87,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
             Taille des cartes
           </Label>
           <select
-            value={customization.cardSize}
+            value={customization.cardSize || 'medium'}
             onChange={(e) => handleCustomizationChange('cardSize', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -105,7 +103,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
             Thème de couleur
           </Label>
           <select
-            value={customization.colorScheme}
+            value={customization.colorScheme || 'default'}
             onChange={(e) => handleCustomizationChange('colorScheme', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -125,7 +123,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
             min="250"
             max="500"
             step="10"
-            value={customization.columnWidth}
+            value={customization.columnWidth || 320}
             onChange={(e) => handleCustomizationChange('columnWidth', Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -141,7 +139,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
             min="10"
             max="100"
             step="10"
-            value={customization.maxLeadsPerColumn}
+            value={customization.maxLeadsPerColumn || 50}
             onChange={(e) => handleCustomizationChange('maxLeadsPerColumn', Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -161,7 +159,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
               <input
                 type="checkbox"
                 id="show-metrics"
-                checked={customization.showMetrics}
+                checked={customization.showMetrics !== false}
                 onChange={(e) => handleCustomizationChange('showMetrics', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
@@ -175,7 +173,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
               <input
                 type="checkbox"
                 id="show-task-count"
-                checked={customization.showTaskCount}
+                checked={customization.showTaskCount !== false}
                 onChange={(e) => handleCustomizationChange('showTaskCount', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
@@ -189,7 +187,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
               <input
                 type="checkbox"
                 id="show-overdue"
-                checked={customization.showOverdue}
+                checked={customization.showOverdue !== false}
                 onChange={(e) => handleCustomizationChange('showOverdue', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
@@ -203,7 +201,7 @@ export function KanbanCustomization({ onCustomizationChange }: KanbanCustomizati
               <input
                 type="checkbox"
                 id="show-assigned-user"
-                checked={customization.showAssignedUser}
+                checked={customization.showAssignedUser !== false}
                 onChange={(e) => handleCustomizationChange('showAssignedUser', e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
