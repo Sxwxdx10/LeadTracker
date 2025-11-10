@@ -510,6 +510,84 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.ToTable("Leads", (string)null);
                 });
 
+            modelBuilder.Entity("LeadTracker.Core.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RelatedLeadId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RelatedTaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsRead");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("RelatedLeadId");
+
+                    b.HasIndex("RelatedTaskId");
+
+                    b.HasIndex("Type");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
             modelBuilder.Entity("LeadTracker.Core.Entities.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -751,7 +829,7 @@ namespace LeadTracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("AssignedUserId")
+                    b.Property<Guid>("AssignedUserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CompletedAt")
@@ -775,6 +853,16 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.Property<int?>("DurationMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("HasReminder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsRecurring")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid?>("LeadId")
                         .HasColumnType("uuid");
 
@@ -785,12 +873,38 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ParentTaskId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Medium");
+
+                    b.Property<DateTime?>("RecurrenceEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RecurrenceInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecurrencePattern")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ReminderAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReminderMinutesBefore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(60);
+
+                    b.Property<bool>("ReminderSent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -831,7 +945,13 @@ namespace LeadTracker.Infrastructure.Migrations
 
                     b.HasIndex("OrganizationId");
 
+                    b.HasIndex("ParentTaskId");
+
+                    b.HasIndex("ReminderAt");
+
                     b.HasIndex("Status");
+
+                    b.HasIndex("AssignedUserId", "DueDate", "Status");
 
                     b.ToTable("Tasks", (string)null);
                 });
@@ -1279,6 +1399,39 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.Navigation("Stage");
                 });
 
+            modelBuilder.Entity("LeadTracker.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("LeadTracker.Core.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LeadTracker.Core.Entities.Lead", "RelatedLead")
+                        .WithMany()
+                        .HasForeignKey("RelatedLeadId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("LeadTracker.Core.Entities.Task", "RelatedTask")
+                        .WithMany()
+                        .HasForeignKey("RelatedTaskId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("LeadTracker.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("RelatedLead");
+
+                    b.Navigation("RelatedTask");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LeadTracker.Core.Entities.SavedSearchFilter", b =>
                 {
                     b.HasOne("LeadTracker.Core.Entities.ApplicationUser", "CreatedByUser")
@@ -1314,7 +1467,8 @@ namespace LeadTracker.Infrastructure.Migrations
                     b.HasOne("LeadTracker.Core.Entities.User", "AssignedUser")
                         .WithMany("AssignedTasks")
                         .HasForeignKey("AssignedUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("LeadTracker.Core.Entities.Lead", "Lead")
                         .WithMany("Tasks")
@@ -1327,11 +1481,18 @@ namespace LeadTracker.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("LeadTracker.Core.Entities.Task", "ParentTask")
+                        .WithMany("RecurringInstances")
+                        .HasForeignKey("ParentTaskId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AssignedUser");
 
                     b.Navigation("Lead");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ParentTask");
                 });
 
             modelBuilder.Entity("LeadTracker.Core.Entities.User", b =>
@@ -1452,6 +1613,11 @@ namespace LeadTracker.Infrastructure.Migrations
             modelBuilder.Entity("LeadTracker.Core.Entities.Stage", b =>
                 {
                     b.Navigation("Leads");
+                });
+
+            modelBuilder.Entity("LeadTracker.Core.Entities.Task", b =>
+                {
+                    b.Navigation("RecurringInstances");
                 });
 
             modelBuilder.Entity("LeadTracker.Core.Entities.User", b =>

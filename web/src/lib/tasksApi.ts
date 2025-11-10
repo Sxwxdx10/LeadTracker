@@ -27,16 +27,18 @@ const apiClient = axios.create({
 // Intercepteur pour ajouter le token d'authentification
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // Ajouter l'ID de l'organisation pour le multi-tenant
-    const organization = localStorage.getItem('organization');
-    if (organization) {
-      const orgData = JSON.parse(organization);
-      config.headers['X-Org-Id'] = orgData.id;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // Ajouter l'ID de l'organisation pour le multi-tenant
+      const organization = localStorage.getItem('organization');
+      if (organization) {
+        const orgData = JSON.parse(organization);
+        config.headers['X-Org-Id'] = orgData.id;
+      }
     }
     
     return config;
@@ -97,7 +99,7 @@ export const tasksApi = {
 
   // Marquer une tâche comme terminée
   completeTask: async (id: string): Promise<Task> => {
-    const response = await apiClient.patch(`/api/tasks/${id}/complete`);
+    const response = await apiClient.post(`/api/tasks/${id}/complete`);
     return response.data;
   },
 

@@ -29,7 +29,19 @@ public class CreateTaskDto
     
     public Guid? LeadId { get; set; }
     
-    public Guid? AssignedUserId { get; set; }
+    [Required]
+    public Guid AssignedUserId { get; set; }
+    
+    // Reminder configuration
+    public bool HasReminder { get; set; } = true;
+    public DateTime? ReminderAt { get; set; }
+    public int? ReminderMinutesBefore { get; set; } = 60;
+    
+    // Recurrence configuration
+    public bool IsRecurring { get; set; } = false;
+    public string? RecurrencePattern { get; set; }
+    public int? RecurrenceInterval { get; set; }
+    public DateTime? RecurrenceEndDate { get; set; }
 }
 
 /// <summary>
@@ -70,7 +82,21 @@ public class UpdateTaskDto
     
     public Guid? LeadId { get; set; }
     
-    public Guid? AssignedUserId { get; set; }
+    [Required]
+    public Guid AssignedUserId { get; set; }
+    
+    // Reminder configuration
+    public bool HasReminder { get; set; } = true;
+    public DateTime? ReminderAt { get; set; }
+    public int? ReminderMinutesBefore { get; set; } = 60;
+    public bool ReminderSent { get; set; } = false;
+    
+    // Recurrence configuration
+    public bool IsRecurring { get; set; } = false;
+    public string? RecurrencePattern { get; set; }
+    public int? RecurrenceInterval { get; set; }
+    public DateTime? RecurrenceEndDate { get; set; }
+    public Guid? ParentTaskId { get; set; }
 }
 
 /// <summary>
@@ -89,9 +115,22 @@ public class TaskResponseDto
     public string? Notes { get; set; }
     public int? DurationMinutes { get; set; }
     public Guid? LeadId { get; set; }
-    public Guid? AssignedUserId { get; set; }
+    public Guid AssignedUserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    
+    // Reminder configuration
+    public bool HasReminder { get; set; }
+    public DateTime? ReminderAt { get; set; }
+    public int? ReminderMinutesBefore { get; set; }
+    public bool ReminderSent { get; set; }
+    
+    // Recurrence configuration
+    public bool IsRecurring { get; set; }
+    public string? RecurrencePattern { get; set; }
+    public int? RecurrenceInterval { get; set; }
+    public DateTime? RecurrenceEndDate { get; set; }
+    public Guid? ParentTaskId { get; set; }
     
     // Related data
     public string? LeadTitle { get; set; }
@@ -132,4 +171,17 @@ public class TaskQueryDto
     public DateTime? DueTo { get; set; }
     public string? SortBy { get; set; } = "DueDate";
     public string? SortDirection { get; set; } = "asc";
+}
+
+/// <summary>
+/// DTO for "My Day" view response
+/// </summary>
+public class MyDayTasksResponseDto
+{
+    public List<TaskResponseDto> TodayTasks { get; set; } = new();
+    public List<TaskResponseDto> ThisWeekTasks { get; set; } = new();
+    public List<TaskResponseDto> OverdueTasks { get; set; } = new();
+    public int TotalTodayCount { get; set; }
+    public int TotalThisWeekCount { get; set; }
+    public int TotalOverdueCount { get; set; }
 }

@@ -166,7 +166,7 @@ public class AuthService : IAuthService
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15), // Should match JWT config
                 User = new UserInfo
                 {
-                    Id = user.Id,
+                    Id = domainUser.Id, // Use DomainUser.Id for task assignments
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email!,
@@ -277,6 +277,13 @@ public class AuthService : IAuthService
 
             _logger.LogInformation("User {Email} logged in successfully", user.Email);
 
+            // Ensure DomainUserId is set (should be set during registration)
+            if (!user.DomainUserId.HasValue)
+            {
+                _logger.LogError("User {Email} has no DomainUserId set", user.Email);
+                throw new InvalidOperationException("User account is not properly configured");
+            }
+
             return new AuthResponse
             {
                 AccessToken = accessToken,
@@ -284,7 +291,7 @@ public class AuthService : IAuthService
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15), // Should match JWT config
                 User = new UserInfo
                 {
-                    Id = user.Id,
+                    Id = user.DomainUserId.Value, // Use DomainUser.Id for task assignments
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email!,

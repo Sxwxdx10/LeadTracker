@@ -127,21 +127,33 @@ export default function AnalyticsPage() {
               {/* Filtres de période */}
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="h-4 w-4 text-gray-500" />
-                <Select
+                <select
                   value={selectedPeriod}
-                  onChange={handlePeriodChange}
-                  options={periodOptions}
-                />
+                  onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                  className="h-10 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+                >
+                  {periodOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Filtre utilisateur */}
               <div className="flex items-center space-x-2">
                 <UserGroupIcon className="h-4 w-4 text-gray-500" />
-                <Select
+                <select
                   value={selectedUser}
-                  onChange={handleUserChange}
-                  options={userOptions}
-                />
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="h-10 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+                >
+                  {userOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Actions d'export */}

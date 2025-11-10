@@ -10,10 +10,12 @@ import {
   BuildingOfficeIcon,
   PlusIcon,
   PresentationChartLineIcon,
-  Squares2X2Icon
+  CalendarIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import UserMenu from '@/components/auth/UserMenu';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -37,16 +39,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, action
 
   const navigation = [
     {
+      name: 'Ma Journée',
+      href: '/my-day',
+      icon: CalendarIcon,
+      current: pathname.startsWith('/my-day'),
+    },
+    {
+      name: 'Tâches',
+      href: '/tasks',
+      icon: CheckCircleIcon,
+      current: pathname.startsWith('/tasks'),
+    },
+    {
       name: 'Leads',
       href: '/leads',
       icon: ChartBarIcon,
       current: pathname.startsWith('/leads'),
-    },
-    {
-      name: 'Kanban',
-      href: '/kanban',
-      icon: Squares2X2Icon,
-      current: pathname.startsWith('/kanban'),
     },
     {
       name: 'Analytics',
@@ -110,6 +118,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, description, action
           {/* Actions et menu utilisateur */}
           <div className="flex items-center space-x-4">
             {actions}
+            <NotificationCenter />
             <UserMenu />
           </div>
         </div>

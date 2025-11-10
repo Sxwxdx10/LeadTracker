@@ -23,21 +23,11 @@ import { Skeleton, SkeletonCard, SkeletonProfile } from '@/components/ui/skeleto
 import { useLead, useDeleteLead } from '@/hooks/useLeads';
 import { LeadStatus } from '@/types/lead';
 import { useToast } from '@/hooks/useToast';
-import { 
-  useTasksByLead, 
-  useActivities, 
-  useComments, 
-  useAttachments,
-  useCreateTask,
-  useUpdateTask,
-  useDeleteTask,
-  useCreateComment,
-  useUploadAttachment
-} from '@/hooks/useTasks';
-import { ActivityTimeline } from '@/components/lead/ActivityTimeline';
+import { useTasksByLead } from '@/hooks/useTasks';
+// import { ActivityTimeline } from '@/components/lead/ActivityTimeline';
 import { TaskList } from '@/components/lead/TaskList';
-import { CommentSection } from '@/components/lead/CommentSection';
-import { AttachmentSection } from '@/components/lead/AttachmentSection';
+// import { CommentSection } from '@/components/lead/CommentSection';
+// import { AttachmentSection } from '@/components/lead/AttachmentSection';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 
 
@@ -46,15 +36,13 @@ const getStatusBadgeVariant = (status: LeadStatus) => {
   switch (status) {
     case 'Open':
       return 'info';
-    case 'InProgress':
-      return 'warning';
     case 'Qualified':
       return 'success';
     case 'Won':
       return 'success';
     case 'Lost':
       return 'destructive';
-    case 'Unqualified':
+    case 'Cancelled':
       return 'secondary';
     default:
       return 'default';
@@ -63,13 +51,12 @@ const getStatusBadgeVariant = (status: LeadStatus) => {
 
 // Fonction utilitaire pour traduire le statut
 const translateStatus = (status: LeadStatus) => {
-  const translations = {
+  const translations: Record<LeadStatus, string> = {
     'Open': 'Ouvert',
-    'InProgress': 'En cours',
     'Qualified': 'Qualifié',
-    'Unqualified': 'Non qualifié',
     'Won': 'Gagné',
     'Lost': 'Perdu',
+    'Cancelled': 'Annulé',
   };
   return translations[status] || status;
 };
@@ -83,17 +70,8 @@ export default function LeadDetailPage() {
   const { data: lead, isLoading, error } = useLead(leadId);
   const deleteLeadMutation = useDeleteLead();
   
-  // Hooks for new functionality
-  const { data: tasks, isLoading: tasksLoading } = useTasksByLead(leadId);
-  const { data: activities, isLoading: activitiesLoading } = useActivities(leadId);
-  const { data: comments, isLoading: commentsLoading } = useComments(leadId);
-  const { data: attachments, isLoading: attachmentsLoading } = useAttachments(leadId);
-  
-  const createTaskMutation = useCreateTask();
-  const updateTaskMutation = useUpdateTask();
-  const deleteTaskMutation = useDeleteTask();
-  const createCommentMutation = useCreateComment();
-  const uploadAttachmentMutation = useUploadAttachment();
+  // Hooks for tasks - using our custom hook
+  const { tasks, loading: tasksLoading, error: tasksError, refreshTasks } = useTasksByLead(leadId);
 
   const handleEdit = () => {
     router.push(`/leads/${leadId}/edit`);
@@ -130,51 +108,79 @@ export default function LeadDetailPage() {
     router.back();
   };
 
-  // Handlers for new functionality
+  // Handlers for tasks - Real implementation
   const handleCreateTask = async (taskData: any) => {
     try {
-      await createTaskMutation.mutateAsync(taskData);
-    } catch (error) {
+      console.log('Creating task:', taskData);
+      
+      // Import tasksApi
+      const { tasksApi } = await import('@/lib/tasksApi');
+      
+      // Create task via API
+      const newTask = await tasksApi.createTask(taskData);
+      
+      // Refresh tasks list
+      await refreshTasks();
+      
+      toast.success('Tâche créée', `La tâche "${taskData.title}" a été créée avec succès`);
+    } catch (error: any) {
       console.error('Error creating task:', error);
+      toast.error('Erreur', error.message || 'Impossible de créer la tâche');
     }
   };
 
   const handleUpdateTask = async (id: string, updates: any) => {
     try {
-      await updateTaskMutation.mutateAsync({ id, data: updates });
-    } catch (error) {
+      console.log('Updating task:', id, updates);
+      
+      // If updates is empty, just refresh (called after complete)
+      if (Object.keys(updates).length === 0) {
+        await refreshTasks();
+        return;
+      }
+      
+      const { tasksApi } = await import('@/lib/tasksApi');
+      
+      await tasksApi.updateTask(id, updates);
+      await refreshTasks();
+      
+      toast.success('Tâche modifiée', 'La tâche a été modifiée avec succès');
+    } catch (error: any) {
       console.error('Error updating task:', error);
+      toast.error('Erreur', error.message || 'Impossible de modifier la tâche');
     }
   };
 
   const handleDeleteTask = async (id: string) => {
     try {
-      await deleteTaskMutation.mutateAsync(id);
-    } catch (error) {
+      if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+        return;
+      }
+      
+      console.log('Deleting task:', id);
+      
+      const { tasksApi } = await import('@/lib/tasksApi');
+      
+      await tasksApi.deleteTask(id);
+      await refreshTasks();
+      
+      toast.success('Tâche supprimée', 'La tâche a été supprimée avec succès');
+    } catch (error: any) {
       console.error('Error deleting task:', error);
+      toast.error('Erreur', error.message || 'Impossible de supprimer la tâche');
     }
   };
 
   const handleCreateComment = async (content: string) => {
-    try {
-      await createCommentMutation.mutateAsync({
-        content,
-        leadId
-      });
-    } catch (error) {
-      console.error('Error creating comment:', error);
-    }
+    console.log('Create comment:', content);
+    toast.info('Fonctionnalité en cours', 'Les commentaires seront bientôt disponibles');
+    // TODO: Implement with API
   };
 
   const handleUploadAttachment = async (file: File) => {
-    try {
-      await uploadAttachmentMutation.mutateAsync({
-        file,
-        leadId
-      });
-    } catch (error) {
-      console.error('Error uploading attachment:', error);
-    }
+    console.log('Upload attachment:', file.name);
+    toast.info('Fonctionnalité en cours', 'Les pièces jointes seront bientôt disponibles');
+    // TODO: Implement with API
   };
 
   if (isLoading) {
@@ -428,12 +434,14 @@ export default function LeadDetailPage() {
           {/* Contenu principal */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="details">Détails</TabsTrigger>
-                <TabsTrigger value="activities">Activités</TabsTrigger>
                 <TabsTrigger value="tasks">Tâches</TabsTrigger>
+                {/* TODO: Uncomment when ready
+                <TabsTrigger value="activities">Activités</TabsTrigger>
                 <TabsTrigger value="comments">Commentaires</TabsTrigger>
                 <TabsTrigger value="attachments">Pièces jointes</TabsTrigger>
+                */}
               </TabsList>
 
               <TabsContent value="details" className="space-y-6">
@@ -458,14 +466,16 @@ export default function LeadDetailPage() {
                 </div>
               </TabsContent>
 
+              {/* TODO: Uncomment when activities are implemented
               <TabsContent value="activities" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <ActivityTimeline 
-                    activities={Array.isArray(activities?.activities) ? activities.activities : []} 
-                    isLoading={activitiesLoading} 
+                    activities={[]} 
+                    isLoading={false} 
                   />
                 </div>
               </TabsContent>
+              */}
 
               <TabsContent value="tasks" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
@@ -480,27 +490,31 @@ export default function LeadDetailPage() {
                 </div>
               </TabsContent>
 
+              {/* TODO: Uncomment when comments are implemented
               <TabsContent value="comments" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <CommentSection 
-                    comments={Array.isArray(comments) ? comments : []} 
+                    comments={[]} 
                     leadId={leadId}
-                    isLoading={commentsLoading}
+                    isLoading={false}
                     onCreateComment={handleCreateComment}
                   />
                 </div>
               </TabsContent>
+              */}
 
+              {/* TODO: Uncomment when attachments are implemented
               <TabsContent value="attachments" className="space-y-6">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                   <AttachmentSection 
-                    attachments={Array.isArray(attachments) ? attachments : []} 
+                    attachments={[]} 
                     leadId={leadId}
-                    isLoading={attachmentsLoading}
+                    isLoading={false}
                     onUploadAttachment={handleUploadAttachment}
                   />
                 </div>
               </TabsContent>
+              */}
             </Tabs>
           </div>
         </div>

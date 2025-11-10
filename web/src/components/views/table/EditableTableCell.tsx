@@ -112,7 +112,7 @@ export function EditableTableCell({
       <div className="flex items-center gap-1">
         {column.type === 'number' ? (
           <input
-            ref={inputRef}
+            ref={inputRef as React.RefObject<HTMLInputElement>}
             type="number"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
@@ -121,7 +121,7 @@ export function EditableTableCell({
           />
         ) : column.type === 'date' ? (
           <input
-            ref={inputRef}
+            ref={inputRef as React.RefObject<HTMLInputElement>}
             type="date"
             value={editValue || ''}
             onChange={(e) => setEditValue(e.target.value)}
@@ -144,7 +144,7 @@ export function EditableTableCell({
           </select>
         ) : (
           <input
-            ref={inputRef}
+            ref={inputRef as React.RefObject<HTMLInputElement>}
             type="text"
             value={editValue || ''}
             onChange={(e) => setEditValue(e.target.value)}

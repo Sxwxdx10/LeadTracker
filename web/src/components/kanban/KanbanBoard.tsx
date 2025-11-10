@@ -104,20 +104,38 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
     const lostLeads = correctedLeads.filter(lead => lead.status === 'Lost').length;
     const averageValue = totalLeads > 0 ? totalValue / totalLeads : 0;
     const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
+    
+    // Debug logs
+    console.log('📊 Kanban Metrics Calculation:', {
+      totalLeads,
+      wonLeads,
+      openLeads,
+      qualifiedLeads,
+      lostLeads,
+      conversionRate: `${conversionRate.toFixed(1)}%`
+    });
+
+    const metrics = transformStatsToKanbanMetrics({
+      totalLeads,
+      openLeads,
+      qualifiedLeads,
+      wonLeads,
+      lostLeads,
+      totalValue,
+      averageValue,
+      conversionRate
+    });
+    
+    console.log('📈 Transformed Metrics:', {
+      overallConversionRate: metrics.overallConversionRate,
+      totalLeads: metrics.totalLeads,
+      wonLeads: metrics.wonLeads
+    });
 
     return {
       columns: createVirtualColumns(correctedLeads, stages),
       leads: correctedLeads.map(lead => transformLeadToKanbanLead(lead)),
-      metrics: transformStatsToKanbanMetrics({
-        totalLeads,
-        openLeads,
-        qualifiedLeads,
-        wonLeads,
-        lostLeads, // Ajout du comptage Lost
-        totalValue,
-        averageValue,
-        conversionRate
-      })
+      metrics
     };
   })() : null;
   const isLoading = false; // Pas de loading car les données sont déjà chargées

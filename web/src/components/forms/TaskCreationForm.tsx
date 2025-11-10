@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { CreateTaskDto, TaskType, TaskPriority } from '@/types/task';
 import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
+import { usersApi, SimpleUser } from '@/lib/usersApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Validation schema
 const taskSchema = z.object({
@@ -24,8 +26,16 @@ const taskSchema = z.object({
   dueDate: z.string().min(1, 'La date d\'échéance est requise'),
   dueTime: z.string().optional(),
   notes: z.string().max(1000, 'Les notes ne peuvent pas dépasser 1000 caractères').optional(),
-  assignedUserId: z.string().optional(),
+  assignedUserId: z.string().min(1, 'L\'assignation est obligatoire'),
   durationMinutes: z.number().min(1, 'La durée doit être d\'au moins 1 minute').max(480, 'La durée ne peut pas dépasser 8 heures').optional(),
+  // Reminder fields
+  hasReminder: z.boolean().optional(),
+  reminderMinutesBefore: z.number().min(1).max(10080).optional(), // Max 1 week
+  // Recurrence fields
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: z.enum(['Daily', 'Weekly', 'Monthly', 'Custom']).optional(),
+  recurrenceInterval: z.number().min(1).max(365).optional(),
+  recurrenceEndDate: z.string().optional(),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -35,12 +45,7 @@ interface TaskCreationFormProps {
   onSubmit: (data: CreateTaskDto) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
-  assignedUsers?: Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-  }>;
+  assignedUsers?: SimpleUser[]; // This will be ignored, we fetch users internally
   defaultValues?: Partial<TaskFormData>;
 }
 
@@ -67,11 +72,16 @@ export function TaskCreationForm({
   onSubmit,
   onCancel,
   isLoading = false,
-  assignedUsers = [],
+  assignedUsers: providedUsers = [],
   defaultValues
 }: TaskCreationFormProps) {
+  const { user } = useAuth();
   const [selectedType, setSelectedType] = useState<TaskType>(defaultValues?.type || 'Call');
   const [selectedPriority, setSelectedPriority] = useState<TaskPriority>(defaultValues?.priority || 'Medium');
+  const [hasReminder, setHasReminder] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [assignedUsers, setAssignedUsers] = useState<SimpleUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const toast = useToast();
 
   const {
@@ -93,6 +103,11 @@ export function TaskCreationForm({
       notes: defaultValues?.notes || '',
       assignedUserId: defaultValues?.assignedUserId || '',
       durationMinutes: defaultValues?.durationMinutes || 30,
+      hasReminder: true,
+      reminderMinutesBefore: 60,
+      isRecurring: false,
+      recurrencePattern: 'Daily',
+      recurrenceInterval: 1,
     }
   });
 
@@ -100,6 +115,48 @@ export function TaskCreationForm({
   const watchedDescription = watch('description');
   const watchedDueDate = watch('dueDate');
   const watchedDueTime = watch('dueTime');
+
+  // Load users if admin, otherwise auto-assign to current user
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('Admin');
+      
+      if (isAdmin) {
+        // Admin can assign to anyone - load all users
+        try {
+          setLoadingUsers(true);
+          const users = await usersApi.getSimpleUsers();
+          setAssignedUsers(users);
+          
+          // Auto-select current user as default
+          if (user?.id) {
+            setValue('assignedUserId', user.id);
+          }
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          toast.error('Erreur', 'Impossible de charger la liste des utilisateurs');
+        } finally {
+          setLoadingUsers(false);
+        }
+      } else {
+        // Non-admin: auto-assign to self
+        if (user?.id) {
+          setValue('assignedUserId', user.id);
+          setAssignedUsers([{
+            id: user.id,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+            email: user.email
+          }]);
+        }
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Get current task type info
   const currentTypeInfo = taskTypeOptions.find(option => option.value === selectedType);
@@ -129,6 +186,7 @@ export function TaskCreationForm({
         type: data.type,
         dueDate,
         priority: data.priority,
+        assignedUserId: data.assignedUserId, // Now required
       };
 
       // Conditionally add optional properties
@@ -141,8 +199,27 @@ export function TaskCreationForm({
       if (leadId) {
         taskData.leadId = leadId;
       }
-      if (data.assignedUserId) {
-        taskData.assignedUserId = data.assignedUserId;
+      
+      // Reminder configuration
+      if (data.hasReminder !== undefined) {
+        taskData.hasReminder = data.hasReminder;
+      }
+      if (data.reminderMinutesBefore) {
+        taskData.reminderMinutesBefore = data.reminderMinutesBefore;
+      }
+      
+      // Recurrence configuration
+      if (data.isRecurring) {
+        taskData.isRecurring = data.isRecurring;
+        if (data.recurrencePattern) {
+          taskData.recurrencePattern = data.recurrencePattern;
+        }
+        if (data.recurrenceInterval) {
+          taskData.recurrenceInterval = data.recurrenceInterval;
+        }
+        if (data.recurrenceEndDate) {
+          taskData.recurrenceEndDate = data.recurrenceEndDate;
+        }
       }
 
       await onSubmit(taskData);
@@ -336,29 +413,54 @@ export function TaskCreationForm({
           )}
         </div>
 
-        {/* Assigned User */}
-        {assignedUsers.length > 0 && (
-          <div>
-            <Label htmlFor="assignedUserId" className="form-label">
-              Assigner à
-            </Label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Select onValueChange={(value) => setValue('assignedUserId', value)}>
-                <SelectTrigger className="form-input pl-10">
+        {/* Assigned User - Admin can choose, non-admin auto-assigned */}
+        <div>
+          <Label htmlFor="assignedUserId" className="form-label">
+            Assigner à {(user?.roles?.includes('admin') || user?.roles?.includes('Admin')) && '*'}
+          </Label>
+          <div className="relative">
+            <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            {loadingUsers ? (
+              <div className="form-input pl-10 flex items-center text-gray-500">
+                Chargement des utilisateurs...
+              </div>
+            ) : (user?.roles?.includes('admin') || user?.roles?.includes('Admin')) ? (
+              // Admin: Show dropdown with all users
+              <Select onValueChange={(value) => setValue('assignedUserId', value)} required>
+                <SelectTrigger className={cn('form-input pl-10', errors.assignedUserId && 'border-red-300')}>
                   <SelectValue placeholder="Sélectionner un utilisateur" />
                 </SelectTrigger>
                 <SelectContent>
-                  {assignedUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.fullName}
+                  {assignedUsers.length > 0 ? (
+                    assignedUsers.map((assignedUser) => (
+                      <SelectItem key={assignedUser.id} value={assignedUser.id}>
+                        {assignedUser.fullName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-users-placeholder" disabled>
+                      Aucun utilisateur disponible
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
-            </div>
+            ) : (
+              // Non-admin: Just show current user (read-only)
+              <div className="form-input pl-10 flex items-center text-gray-700 bg-gray-50 cursor-not-allowed">
+                {user?.firstName} {user?.lastName} (vous)
+              </div>
+            )}
           </div>
-        )}
+          {errors.assignedUserId && (
+            <p className="form-error">{errors.assignedUserId.message}</p>
+          )}
+          <p className="form-help">
+            {(user?.roles?.includes('admin') || user?.roles?.includes('Admin'))
+              ? `${assignedUsers.length} utilisateur(s) disponible(s)`
+              : 'Assigné automatiquement à vous'
+            }
+          </p>
+        </div>
 
         {/* Description */}
         <div>
@@ -379,6 +481,139 @@ export function TaskCreationForm({
             <p className="form-help">
               {watchedDescription.length}/500 caractères
             </p>
+          )}
+        </div>
+
+        {/* Reminder Section */}
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Label className="form-label">🔔 Rappel</Label>
+              <p className="text-xs text-gray-500">Recevez un rappel avant l'échéance</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasReminder}
+                onChange={(e) => {
+                  setHasReminder(e.target.checked);
+                  setValue('hasReminder', e.target.checked);
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+            </label>
+          </div>
+
+          {hasReminder && (
+            <div>
+              <Label htmlFor="reminderMinutesBefore" className="form-label">
+                Rappeler avant l'échéance
+              </Label>
+              <Select 
+                onValueChange={(value) => setValue('reminderMinutesBefore', parseInt(value))}
+                defaultValue="60"
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="Sélectionner le délai" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 minutes avant</SelectItem>
+                  <SelectItem value="30">30 minutes avant</SelectItem>
+                  <SelectItem value="60">1 heure avant</SelectItem>
+                  <SelectItem value="120">2 heures avant</SelectItem>
+                  <SelectItem value="240">4 heures avant</SelectItem>
+                  <SelectItem value="1440">1 jour avant</SelectItem>
+                  <SelectItem value="2880">2 jours avant</SelectItem>
+                  <SelectItem value="10080">1 semaine avant</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="form-help">
+                Vous recevrez un email et une notification in-app
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Recurrence Section */}
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Label className="form-label">🔄 Récurrence</Label>
+              <p className="text-xs text-gray-500">Créer automatiquement cette tâche de manière répétée</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked);
+                  setValue('isRecurring', e.target.checked);
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+            </label>
+          </div>
+
+          {isRecurring && (
+            <div className="space-y-4">
+              {/* Recurrence Pattern */}
+              <div>
+                <Label htmlFor="recurrencePattern" className="form-label">
+                  Fréquence
+                </Label>
+                <Select 
+                  onValueChange={(value) => setValue('recurrencePattern', value as any)}
+                  defaultValue="Daily"
+                >
+                  <SelectTrigger className="form-input">
+                    <SelectValue placeholder="Sélectionner la fréquence" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Daily">Quotidien</SelectItem>
+                    <SelectItem value="Weekly">Hebdomadaire</SelectItem>
+                    <SelectItem value="Monthly">Mensuel</SelectItem>
+                    <SelectItem value="Custom">Personnalisé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Recurrence Interval */}
+              <div>
+                <Label htmlFor="recurrenceInterval" className="form-label">
+                  Intervalle
+                </Label>
+                <Input
+                  id="recurrenceInterval"
+                  type="number"
+                  min="1"
+                  max="365"
+                  defaultValue="1"
+                  {...register('recurrenceInterval', { valueAsNumber: true })}
+                  className="form-input"
+                />
+                <p className="form-help">
+                  Répéter tous les X jours/semaines/mois
+                </p>
+              </div>
+
+              {/* Recurrence End Date */}
+              <div>
+                <Label htmlFor="recurrenceEndDate" className="form-label">
+                  Date de fin (optionnel)
+                </Label>
+                <Input
+                  id="recurrenceEndDate"
+                  type="date"
+                  {...register('recurrenceEndDate')}
+                  className="form-input"
+                />
+                <p className="form-help">
+                  Laisser vide pour une récurrence sans fin
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

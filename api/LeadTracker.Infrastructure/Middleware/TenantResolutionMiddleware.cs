@@ -114,39 +114,33 @@ public class TenantResolutionMiddleware
                 var userIdClaim = context.User.FindFirst("user_id");
                 var userEmailClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.Email);
                 
-                if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var applicationUserId))
+                if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var businessUserId))
                 {
-                    // Récupérer le DomainUserId depuis ApplicationUser
-                    var appUser = await dbContext.Users
-                        .Where(u => u.Id == applicationUserId)
-                        .Select(u => new { u.DomainUserId, u.Email })
+                    // The user_id claim now directly contains the BusinessUser.Id (DomainUserId)
+                    // Verify that the BusinessUser exists
+                    var businessUser = await dbContext.BusinessUsers
+                        .Where(bu => bu.Id == businessUserId && bu.IsActive)
+                        .Select(bu => new { bu.Id, bu.Email })
                         .FirstOrDefaultAsync();
                         
-                    if (appUser?.DomainUserId.HasValue == true)
+                    if (businessUser != null)
                     {
-                        // Vérifier que le BusinessUser existe
-                        var businessUserExists = await dbContext.BusinessUsers
-                            .AnyAsync(bu => bu.Id == appUser.DomainUserId.Value);
-                            
-                        if (businessUserExists)
+                        if (tenantContext is TenantContext mutableContext)
                         {
-                            if (tenantContext is TenantContext mutableContext)
-                            {
-                                mutableContext.UserId = appUser.DomainUserId.Value; // BusinessUser.Id
-                                mutableContext.UserEmail = userEmailClaim?.Value ?? appUser.Email;
-                                _logger.LogInformation("Mapped ApplicationUser {AppUserId} to BusinessUser {BusinessUserId}", 
-                                    applicationUserId, appUser.DomainUserId.Value);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogError("BusinessUser {BusinessUserId} does not exist in database", appUser.DomainUserId.Value);
+                            mutableContext.UserId = businessUser.Id; // BusinessUser.Id
+                            mutableContext.UserEmail = userEmailClaim?.Value ?? businessUser.Email;
+                            _logger.LogInformation("Resolved BusinessUser {BusinessUserId} from JWT token", 
+                                businessUser.Id);
                         }
                     }
                     else
                     {
-                        _logger.LogWarning("ApplicationUser {UserId} does not have a DomainUserId", applicationUserId);
+                        _logger.LogWarning("BusinessUser {BusinessUserId} not found or inactive", businessUserId);
                     }
+                }
+                else
+                {
+                    _logger.LogWarning("user_id claim not found or invalid in JWT token");
                 }
             }
 

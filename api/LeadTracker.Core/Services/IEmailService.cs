@@ -27,6 +27,13 @@ public interface IEmailService
     /// <param name="verification">Email verification details</param>
     /// <returns>True if email was sent successfully</returns>
     Task<bool> SendEmailVerificationAsync(EmailVerificationEmail verification);
+    
+    /// <summary>
+    /// Send task reminder email
+    /// </summary>
+    /// <param name="reminder">Task reminder details</param>
+    /// <returns>True if email was sent successfully</returns>
+    Task<bool> SendTaskReminderEmailAsync(TaskReminderEmail reminder);
 }
 
 /// <summary>
@@ -63,4 +70,21 @@ public class EmailVerificationEmail
     public string ToName { get; set; } = string.Empty;
     public string VerificationToken { get; set; } = string.Empty;
     public string VerificationUrl { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Task reminder email model
+/// </summary>
+public class TaskReminderEmail
+{
+    public string ToEmail { get; set; } = string.Empty;
+    public string ToName { get; set; } = string.Empty;
+    public string TaskTitle { get; set; } = string.Empty;
+    public string TaskDescription { get; set; } = string.Empty;
+    public DateTime TaskDueDate { get; set; }
+    public string TaskPriority { get; set; } = string.Empty;
+    public string TaskType { get; set; } = string.Empty;
+    public string? LeadTitle { get; set; }
+    public string OrganizationName { get; set; } = string.Empty;
+    public string TaskUrl { get; set; } = string.Empty;
 }

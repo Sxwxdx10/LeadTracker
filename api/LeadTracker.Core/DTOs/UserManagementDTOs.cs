@@ -95,6 +95,17 @@ public class UpdateUserRequest
     public string? PhoneNumber { get; set; }
 }
 
+/// <summary>
+/// Simple user information for task assignment and basic displays
+/// </summary>
+public class SimpleUserInfo
+{
+    public Guid Id { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
 
 /// <summary>
 /// User information for display in admin interface

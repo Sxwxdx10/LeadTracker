@@ -25,8 +25,8 @@ const authClient = axios.create({
 authClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expiré ou invalide
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Token expiré ou invalide (uniquement côté client)
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
@@ -94,6 +94,7 @@ export const authApi = {
 export const tokenUtils = {
   // Sauvegarder les tokens
   saveTokens: (authResponse: AuthResponse) => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('accessToken', authResponse.accessToken);
     localStorage.setItem('refreshToken', authResponse.refreshToken);
     localStorage.setItem('user', JSON.stringify(authResponse.user));
@@ -103,28 +104,33 @@ export const tokenUtils = {
 
   // Récupérer le token d'accès
   getAccessToken: (): string | null => {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('accessToken');
   },
 
   // Récupérer le token de rafraîchissement
   getRefreshToken: (): string | null => {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('refreshToken');
   },
 
   // Récupérer les informations utilisateur
   getUser: (): any | null => {
+    if (typeof window === 'undefined') return null;
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
   // Récupérer les informations de l'organisation
   getOrganization: (): any | null => {
+    if (typeof window === 'undefined') return null;
     const orgStr = localStorage.getItem('organization');
     return orgStr ? JSON.parse(orgStr) : null;
   },
 
   // Vérifier si le token est expiré
   isTokenExpired: (): boolean => {
+    if (typeof window === 'undefined') return true;
     const expiryStr = localStorage.getItem('tokenExpiry');
     if (!expiryStr) return true;
     
@@ -135,6 +141,7 @@ export const tokenUtils = {
 
   // Nettoyer tous les tokens
   clearTokens: () => {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');

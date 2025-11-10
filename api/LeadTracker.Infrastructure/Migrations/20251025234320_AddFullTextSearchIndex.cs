@@ -11,8 +11,9 @@ namespace LeadTracker.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Add full-text search index for leads
+            // Note: CONCURRENTLY removed to allow execution in transaction
             migrationBuilder.Sql(@"
-                CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_leads_fulltext_search 
+                CREATE INDEX IF NOT EXISTS idx_leads_fulltext_search 
                 ON ""Leads"" USING gin(
                     to_tsvector('english', 
                         COALESCE(""Title"", '') || ' ' ||

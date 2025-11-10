@@ -34,6 +34,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Lead> Leads { get; set; }
     public DbSet<Stage> Stages { get; set; }
     public DbSet<Core.Entities.Task> Tasks { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     public DbSet<UserInvitation> UserInvitations { get; set; }
     public DbSet<SavedSearchFilter> SavedSearchFilters { get; set; }
     public DbSet<Activity> Activities { get; set; }
@@ -207,6 +208,11 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
             entity.Property(e => e.Priority).HasMaxLength(20).HasDefaultValue("Medium");
             entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.HasReminder).HasDefaultValue(true);
+            entity.Property(e => e.ReminderMinutesBefore).HasDefaultValue(60);
+            entity.Property(e => e.ReminderSent).HasDefaultValue(false);
+            entity.Property(e => e.IsRecurring).HasDefaultValue(false);
+            entity.Property(e => e.RecurrencePattern).HasMaxLength(20);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             
@@ -224,7 +230,12 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasOne(e => e.AssignedUser)
                   .WithMany(u => u.AssignedTasks)
                   .HasForeignKey(e => e.AssignedUserId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.Restrict); // Changed from SetNull to Restrict since it's now required
+                  
+            entity.HasOne(e => e.ParentTask)
+                  .WithMany(t => t.RecurringInstances)
+                  .HasForeignKey(e => e.ParentTaskId)
+                  .OnDelete(DeleteBehavior.Restrict);
             
             // Indexes
             entity.HasIndex(e => e.OrganizationId);
@@ -232,7 +243,53 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.AssignedUserId);
             entity.HasIndex(e => e.DueDate);
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.ReminderAt); // For efficient reminder queries
+            entity.HasIndex(e => e.ParentTaskId); // For recurring task queries
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.AssignedUserId, e.DueDate, e.Status }); // For "My Day" queries
+        });
+
+        // Configure Notification
+        builder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.Property(e => e.Type).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade); // Delete notifications when user is deleted
+                  
+            entity.HasOne(e => e.RelatedTask)
+                  .WithMany()
+                  .HasForeignKey(e => e.RelatedTaskId)
+                  .OnDelete(DeleteBehavior.Cascade); // Delete notification when task is deleted
+                  
+            entity.HasOne(e => e.RelatedLead)
+                  .WithMany()
+                  .HasForeignKey(e => e.RelatedLeadId)
+                  .OnDelete(DeleteBehavior.Cascade); // Delete notification when lead is deleted
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.RelatedTaskId);
+            entity.HasIndex(e => e.RelatedLeadId);
+            entity.HasIndex(e => e.IsRead);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.UserId, e.IsRead, e.CreatedAt }); // For user notification queries
         });
 
         // Configure SavedSearchFilter
@@ -462,6 +519,11 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             _tenantFilterService != null && 
             _tenantFilterService.GetCurrentOrganizationId() != null && 
             e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<Notification>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
     }
 
     private bool IsTestingMode()
@@ -567,5 +629,18 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             return Organizations.Where(o => false); // Return empty query if no tenant context
         }
         return Organizations.Where(o => o.Id == orgId.Value);
+    }
+
+    /// <summary>
+    /// Gets notifications filtered by current organization
+    /// </summary>
+    public IQueryable<Notification> GetNotificationsForCurrentTenant()
+    {
+        var orgId = GetCurrentOrganizationId();
+        if (!orgId.HasValue)
+        {
+            return Notifications.Where(n => false); // Return empty query if no tenant context
+        }
+        return Notifications.Where(n => n.OrganizationId == orgId.Value);
     }
 }

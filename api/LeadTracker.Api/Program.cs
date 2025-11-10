@@ -304,6 +304,8 @@ try
     builder.Services.AddScoped<ICommentService, CommentService>();
     builder.Services.AddScoped<IAttachmentService, AttachmentService>();
     builder.Services.AddScoped<ITaskService, TaskService>();
+    builder.Services.AddScoped<INotificationService, NotificationService>();
+    builder.Services.AddScoped<ITaskReminderService, TaskReminderService>();
     
     // Add controllers
     builder.Services.AddScoped<LeadTracker.Api.Controllers.MonitoringController>();
@@ -355,6 +357,26 @@ try
         {
             Authorization = new[] { new HangfireAuthorizationFilter() }
         });
+        
+        // Configure recurring jobs for task reminders and recurring tasks
+        // Only schedule jobs in non-testing environments where Hangfire is enabled
+        RecurringJob.AddOrUpdate<ITaskReminderService>(
+            "check-overdue-tasks",
+            service => service.CheckOverdueTasksAsync(),
+            "*/15 * * * *" // Every 15 minutes
+        );
+
+        RecurringJob.AddOrUpdate<ITaskReminderService>(
+            "process-recurring-tasks",
+            service => service.ProcessRecurringTasksAsync(),
+            "0 0 * * *" // Daily at midnight UTC
+        );
+
+        RecurringJob.AddOrUpdate<INotificationService>(
+            "cleanup-old-notifications",
+            service => service.DeleteOldReadNotificationsAsync(30),
+            "0 2 * * *" // Daily at 2:00 AM UTC
+        );
     }
 
     // Health Checks
