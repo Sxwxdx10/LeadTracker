@@ -243,6 +243,7 @@ public class LeadService : ILeadService
 
         var totalLeads = leads.Count;
         var openLeads = leads.Count(l => l.Status == "Open");
+        var qualifiedLeads = leads.Count(l => l.Status == "Qualified");
         var wonLeads = leads.Count(l => l.Status == "Won");
         var lostLeads = leads.Count(l => l.Status == "Lost");
         
@@ -256,12 +257,14 @@ public class LeadService : ILeadService
         {
             TotalLeads = totalLeads,
             OpenLeads = openLeads,
+            QualifiedLeads = qualifiedLeads,
             WonLeads = wonLeads,
             LostLeads = lostLeads,
             TotalValue = totalValue,
             WonValue = wonValue,
             AverageDealSize = averageDealSize,
-            WinRate = winRate
+            WinRate = winRate,
+            ConversionRate = winRate // Same as WinRate for frontend compatibility
         };
     }
 

@@ -14,13 +14,27 @@ export interface Task {
   notes?: string;
   durationMinutes?: number;
   leadId?: string;
-  assignedUserId?: string;
+  leadTitle?: string; // Lead title for display
+  assignedUserId: string; // Now required
   assignedUserName?: string; // String instead of user object
   organizationId: string;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
   updatedBy?: string;
+  
+  // Reminder configuration
+  hasReminder: boolean;
+  reminderAt?: string;
+  reminderMinutesBefore?: number;
+  reminderSent: boolean;
+  
+  // Recurrence configuration
+  isRecurring: boolean;
+  recurrencePattern?: 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
+  recurrenceInterval?: number;
+  recurrenceEndDate?: string;
+  parentTaskId?: string;
   
   // Computed properties
   isOverdue: boolean;
@@ -36,7 +50,18 @@ export interface CreateTaskDto {
   priority?: TaskPriority;
   notes?: string;
   leadId?: string;
-  assignedUserId?: string;
+  assignedUserId: string; // Now required
+  
+  // Reminder configuration
+  hasReminder?: boolean;
+  reminderAt?: string;
+  reminderMinutesBefore?: number;
+  
+  // Recurrence configuration
+  isRecurring?: boolean;
+  recurrencePattern?: 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
+  recurrenceInterval?: number;
+  recurrenceEndDate?: string;
 }
 
 export interface UpdateTaskDto {
@@ -50,6 +75,19 @@ export interface UpdateTaskDto {
   durationMinutes?: number;
   completedAt?: string | undefined;
   assignedUserId?: string;
+  
+  // Reminder configuration
+  hasReminder?: boolean;
+  reminderAt?: string;
+  reminderMinutesBefore?: number;
+  reminderSent?: boolean;
+  
+  // Recurrence configuration
+  isRecurring?: boolean;
+  recurrencePattern?: 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
+  recurrenceInterval?: number;
+  recurrenceEndDate?: string;
+  parentTaskId?: string;
 }
 
 export interface TaskQueryParams {
@@ -132,4 +170,14 @@ export interface UploadAttachmentDto {
   file: File;
   leadId: string;
   description?: string;
+}
+
+// My Day view response
+export interface MyDayTasksResponse {
+  todayTasks: Task[];
+  thisWeekTasks: Task[];
+  overdueTasks: Task[];
+  totalTodayCount: number;
+  totalThisWeekCount: number;
+  totalOverdueCount: number;
 }

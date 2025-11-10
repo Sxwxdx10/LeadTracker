@@ -37,10 +37,11 @@ public class JwtService : IJwtService
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()), // ApplicationUser.Id
             new(ClaimTypes.Email, user.Email ?? string.Empty),
             new(ClaimTypes.Name, user.FullName),
-            new("user_id", user.Id.ToString()),
+            new("user_id", user.DomainUserId?.ToString() ?? user.Id.ToString()), // Use DomainUser.Id for task assignments
+            new("identity_user_id", user.Id.ToString()), // Keep ApplicationUser.Id for reference
             new("org_id", user.OrganizationId.ToString()),
             new("first_name", user.FirstName),
             new("last_name", user.LastName),

@@ -144,19 +144,19 @@ export function TaskList({
     );
   }
 
-  const handleTaskComplete = (task: Task) => {
-    if (onUpdateTask) {
-      const updates: Partial<Task> = {
-        status: task.status === 'Completed' ? 'Pending' : 'Completed'
-      };
+  const handleTaskComplete = async (task: Task) => {
+    try {
+      // Use the complete endpoint instead of update
+      const { tasksApi } = await import('@/lib/tasksApi');
+      await tasksApi.completeTask(task.id);
       
-      if (task.status === 'Completed') {
-        delete updates.completedAt;
-      } else {
-        updates.completedAt = new Date().toISOString();
+      // Refresh the task list via the parent's update handler
+      if (onUpdateTask) {
+        // This will trigger a refresh
+        onUpdateTask(task.id, {});
       }
-      
-      onUpdateTask(task.id, updates);
+    } catch (error) {
+      console.error('Error completing task:', error);
     }
   };
 

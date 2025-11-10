@@ -324,4 +324,145 @@ This verification link will expire in 24 hours.
 
 © 2024 Lead Tracker. All rights reserved.";
     }
+
+    public async Task<bool> SendTaskReminderEmailAsync(TaskReminderEmail reminder)
+    {
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_fromName, _fromAddress));
+            message.To.Add(new MailboxAddress(reminder.ToName, reminder.ToEmail));
+            message.Subject = $"Rappel: {reminder.TaskTitle} - {reminder.OrganizationName}";
+
+            var bodyBuilder = new BodyBuilder();
+            bodyBuilder.HtmlBody = GenerateTaskReminderEmailHtml(reminder);
+            bodyBuilder.TextBody = GenerateTaskReminderEmailText(reminder);
+            
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(_smtpHost, _smtpPort, SecureSocketOptions.None);
+            
+            if (!string.IsNullOrEmpty(_smtpUser))
+            {
+                await client.AuthenticateAsync(_smtpUser, _smtpPassword);
+            }
+            
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation("Task reminder email sent successfully to {Email}", reminder.ToEmail);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send task reminder email to {Email}", reminder.ToEmail);
+            return false;
+        }
+    }
+
+    private string GenerateTaskReminderEmailHtml(TaskReminderEmail reminder)
+    {
+        var priorityColor = reminder.TaskPriority switch
+        {
+            "Urgent" => "#EF4444",
+            "High" => "#F97316",
+            "Medium" => "#F59E0B",
+            _ => "#10B981"
+        };
+
+        var leadInfo = !string.IsNullOrEmpty(reminder.LeadTitle) 
+            ? $"<p><strong>Lead:</strong> {reminder.LeadTitle}</p>" 
+            : "";
+
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Rappel de tâche</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
+        .content {{ background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
+        .task-card {{ background-color: white; padding: 20px; border-left: 4px solid {priorityColor}; border-radius: 6px; margin: 20px 0; }}
+        .priority-badge {{ display: inline-block; background-color: {priorityColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+        .type-badge {{ display: inline-block; background-color: #6B7280; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; margin-left: 8px; }}
+        .button {{ display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 14px; }}
+        .due-date {{ font-size: 18px; font-weight: bold; color: #4F46E5; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>🔔 Rappel de tâche</h1>
+        </div>
+        <div class='content'>
+            <p>Bonjour {reminder.ToName},</p>
+            <p>Ceci est un rappel pour votre tâche à venir :</p>
+            
+            <div class='task-card'>
+                <h2>{reminder.TaskTitle}</h2>
+                <div style='margin: 10px 0;'>
+                    <span class='priority-badge'>{reminder.TaskPriority}</span>
+                    <span class='type-badge'>{reminder.TaskType}</span>
+                </div>
+                
+                <p><strong>Échéance:</strong> <span class='due-date'>{reminder.TaskDueDate:dd/MM/yyyy à HH:mm}</span></p>
+                
+                {leadInfo}
+                
+                {(string.IsNullOrEmpty(reminder.TaskDescription) ? "" : $"<p><strong>Description:</strong></p><p>{reminder.TaskDescription}</p>")}
+            </div>
+            
+            <p style='text-align: center;'>
+                <a href='{reminder.TaskUrl}' class='button'>Voir la tâche</a>
+            </p>
+            
+            <p style='color: #666; font-size: 14px;'>Assurez-vous de compléter cette tâche avant l'échéance pour rester organisé et productif.</p>
+        </div>
+        <div class='footer'>
+            <p>Vous recevez cet email car vous êtes assigné à cette tâche dans {reminder.OrganizationName}.</p>
+            <p>© 2024 Lead Tracker. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>";
+    }
+
+    private string GenerateTaskReminderEmailText(TaskReminderEmail reminder)
+    {
+        var leadInfo = !string.IsNullOrEmpty(reminder.LeadTitle) 
+            ? $"\nLead: {reminder.LeadTitle}" 
+            : "";
+
+        var description = !string.IsNullOrEmpty(reminder.TaskDescription) 
+            ? $"\n\nDescription:\n{reminder.TaskDescription}" 
+            : "";
+
+        return $@"
+Rappel de tâche
+
+Bonjour {reminder.ToName},
+
+Ceci est un rappel pour votre tâche à venir :
+
+{reminder.TaskTitle}
+
+Priorité: {reminder.TaskPriority}
+Type: {reminder.TaskType}
+Échéance: {reminder.TaskDueDate:dd/MM/yyyy à HH:mm}{leadInfo}{description}
+
+Pour voir les détails complets de la tâche, visitez:
+{reminder.TaskUrl}
+
+Assurez-vous de compléter cette tâche avant l'échéance pour rester organisé et productif.
+
+---
+Vous recevez cet email car vous êtes assigné à cette tâche dans {reminder.OrganizationName}.
+
+© 2024 Lead Tracker. Tous droits réservés.";
+    }
 }

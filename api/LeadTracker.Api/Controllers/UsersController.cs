@@ -54,6 +54,46 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Get simple list of users for task assignment (all authenticated users)
+    /// </summary>
+    /// <returns>Simple list of users for selection</returns>
+    [HttpGet("simple")]
+    [ProducesResponseType(typeof(List<SimpleUserInfo>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetSimpleUsers()
+    {
+        try
+        {
+            var organizationId = _tenantContext.OrganizationId;
+            if (organizationId == null)
+            {
+                return BadRequest(new { message = "Organization not found" });
+            }
+
+            var users = await _context.BusinessUsers
+                .Where(u => u.OrganizationId == organizationId && u.IsActive)
+                .Select(u => new SimpleUserInfo
+                {
+                    Id = u.Id,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    FullName = u.FullName,
+                    Email = u.Email
+                })
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToListAsync();
+
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving simple user list");
+            return StatusCode(500, new { message = "An error occurred while retrieving users" });
+        }
+    }
+
+    /// <summary>
     /// Get all business users for the current organization (Admin only)
     /// </summary>
     /// <returns>List of business users with management info</returns>

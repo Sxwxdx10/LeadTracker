@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   PlusIcon, 
@@ -26,7 +26,7 @@ import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useLeads, useStages } from '@/hooks/useLeads';
 import { ViewType } from '@/types/views';
 
-export default function LeadsPage() {
+function LeadsPageContent() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewType>('kanban');
   const [queryParams, setQueryParams] = useState({
@@ -258,5 +258,31 @@ export default function LeadsPage() {
         stages={stagesData || []}
       />
     </div>
+  );
+}
+
+export default function LeadsPage() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <LeadsPageContent />
+    </Suspense>
   );
 }

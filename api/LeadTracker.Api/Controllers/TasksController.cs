@@ -222,6 +222,27 @@ public class TasksController : ControllerBase
     }
 
     /// <summary>
+    /// Get tasks for "My Day" view (today, this week, overdue)
+    /// </summary>
+    /// <returns>Tasks grouped by today, this week, and overdue</returns>
+    [HttpGet("my-day")]
+    [ProducesResponseType(typeof(MyDayTasksResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyDayTasks()
+    {
+        try
+        {
+            var tasks = await _taskService.GetMyDayTasksAsync();
+            return Ok(tasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving my day tasks");
+            return StatusCode(500, new { message = "An error occurred while retrieving your tasks" });
+        }
+    }
+
+    /// <summary>
     /// Mark a task as completed
     /// </summary>
     /// <param name="id">Task ID</param>

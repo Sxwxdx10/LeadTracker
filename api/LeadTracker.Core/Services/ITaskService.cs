@@ -46,4 +46,19 @@ public interface ITaskService
     /// Mark a task as completed
     /// </summary>
     Task<TaskResponseDto?> CompleteTaskAsync(Guid id, string? notes, int? durationMinutes);
+    
+    /// <summary>
+    /// Get tasks due today and this week for "My Day" view
+    /// </summary>
+    Task<MyDayTasksResponseDto> GetMyDayTasksAsync();
+    
+    /// <summary>
+    /// Get upcoming tasks for the next N days
+    /// </summary>
+    Task<List<TaskResponseDto>> GetUpcomingTasksAsync(int days);
+    
+    /// <summary>
+    /// Validate that a user exists and can be assigned tasks
+    /// </summary>
+    Task<bool> ValidateTaskAssignmentAsync(Guid userId);
 }

@@ -86,10 +86,12 @@ public class LeadStatsDto
 {
     public int TotalLeads { get; set; }
     public int OpenLeads { get; set; }
+    public int QualifiedLeads { get; set; }
     public int WonLeads { get; set; }
     public int LostLeads { get; set; }
     public decimal TotalValue { get; set; }
     public decimal WonValue { get; set; }
     public decimal AverageDealSize { get; set; }
     public double WinRate { get; set; }
+    public double ConversionRate { get; set; } // Alias for WinRate for frontend compatibility
 }

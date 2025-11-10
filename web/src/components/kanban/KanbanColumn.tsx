@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { 
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  GripVerticalIcon,
+  Bars3Icon,
   ArrowsPointingOutIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ export function KanbanColumnComponent({
 }: KanbanColumnProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [columnWidth, setColumnWidth] = useState(column.width || 320);
-  const resizeRef = useRef<HTMLDivElement>(null);
+  const resizeRef = useRef<HTMLButtonElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
 
@@ -133,7 +133,7 @@ export function KanbanColumnComponent({
               className="ml-2 p-1 hover:bg-gray-200 rounded cursor-col-resize transition-colors flex-shrink-0"
               aria-label="Redimensionner la colonne"
             >
-              <GripVerticalIcon className="h-4 w-4 text-gray-400" />
+              <Bars3Icon className="h-4 w-4 text-gray-400" />
             </button>
           )}
         </div>
@@ -216,9 +216,11 @@ export function KanbanColumnComponent({
               <span className="text-gray-900">{formatDays(column.averageTimeInStageDays)}</span>
           </div>
           <div>
-            <span className="font-medium">Conversion:</span>
+            <span className="font-medium">Utilisation:</span>
             <br />
-              <span className="text-gray-900">{formatPercentage(0)}</span>
+              <span className="text-gray-900">
+                {column.wipLimit && column.wipLimit > 0 ? formatPercentage((column.leadCount / column.wipLimit) * 100) : '-'}
+              </span>
             </div>
           </div>
         )}
@@ -282,8 +284,8 @@ export function KanbanColumnComponent({
                     lead={lead} 
                     cardSize={cardSize}
                     cardLayout={cardLayout}
-                    onDoubleClick={onLeadClick}
-                    onSelect={onLeadSelect}
+                    {...(onLeadClick && { onDoubleClick: onLeadClick })}
+                    {...(onLeadSelect && { onSelect: onLeadSelect })}
                     showSelectCheckbox={showSelectCheckboxes}
                   />
                 ))}

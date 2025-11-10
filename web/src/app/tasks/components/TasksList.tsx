@@ -1,17 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   CalendarDaysIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  ListBulletIcon,
   UserIcon,
-  TagIcon,
   PencilIcon,
   TrashIcon,
   BellAlertIcon
@@ -21,70 +18,18 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Task, TaskPriority } from '@/types/task';
+import EmptyState from '@/components/ui/empty-state';
+import Loading from '@/components/ui/loading';
+import { formatDate } from '@/lib/utils';
 
-// Données simulées des tâches
-const tasks = [
-  {
-    id: 1,
-    title: 'Appeler prospect ABC',
-    description: 'Suivre le devis envoyé la semaine dernière',
-    dueDate: '2024-01-15',
-    status: 'pending',
-    priority: 'high',
-    tags: ['commercial', 'suivi'],
-    assignedTo: 'Jean Dupont',
-    estimatedTime: '30 min',
-    actualTime: null
-  },
-  {
-    id: 2,
-    title: 'Préparer présentation Q1',
-    description: 'Créer les slides pour la réunion de direction',
-    dueDate: '2024-01-20',
-    status: 'in_progress',
-    priority: 'medium',
-    tags: ['présentation', 'direction'],
-    assignedTo: 'Marie Martin',
-    estimatedTime: '2h',
-    actualTime: '1h30'
-  },
-  {
-    id: 3,
-    title: 'Mettre à jour CRM',
-    description: 'Saisir les nouvelles données clients',
-    dueDate: '2024-01-10',
-    status: 'overdue',
-    priority: 'low',
-    tags: ['admin', 'crm'],
-    assignedTo: 'Pierre Durand',
-    estimatedTime: '1h',
-    actualTime: null
-  },
-  {
-    id: 4,
-    title: 'Envoyer newsletter',
-    description: 'Préparer et envoyer la newsletter mensuelle',
-    dueDate: '2024-01-25',
-    status: 'pending',
-    priority: 'medium',
-    tags: ['marketing', 'newsletter'],
-    assignedTo: 'Sophie Leroy',
-    estimatedTime: '1h30',
-    actualTime: null
-  },
-  {
-    id: 5,
-    title: 'Formation équipe',
-    description: 'Organiser la formation sur le nouveau produit',
-    dueDate: '2024-01-18',
-    status: 'completed',
-    priority: 'high',
-    tags: ['formation', 'équipe'],
-    assignedTo: 'Alex Moreau',
-    estimatedTime: '3h',
-    actualTime: '2h45'
-  }
-];
+interface TasksListProps {
+  tasks: Task[];
+  loading?: boolean;
+  onEdit: (task: Task) => void;
+  onDelete: (taskId: string) => void;
+  onComplete: (taskId: string) => void;
+}
 
 const filterOptions = [
   { value: 'today', label: "Aujourd'hui" },
@@ -93,47 +38,167 @@ const filterOptions = [
   { value: 'completed', label: 'Terminées' }
 ];
 
-const priorityColors = {
-  high: 'bg-red-100 text-red-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  low: 'bg-green-100 text-green-800'
+const priorityColors: Record<TaskPriority, string> = {
+  'Urgent': 'bg-red-100 text-red-800',
+  'High': 'bg-orange-100 text-orange-800',
+  'Medium': 'bg-yellow-100 text-yellow-800',
+  'Low': 'bg-green-100 text-green-800'
 };
 
-const statusColors = {
-  pending: 'bg-blue-100 text-blue-800',
-  in_progress: 'bg-yellow-100 text-yellow-800',
-  overdue: 'bg-red-100 text-red-800',
-  completed: 'bg-green-100 text-green-800'
+const priorityLabels: Record<TaskPriority, string> = {
+  'Urgent': 'Urgente',
+  'High': 'Élevée',
+  'Medium': 'Moyenne',
+  'Low': 'Basse'
 };
 
-export default function TasksList() {
+const statusLabels = {
+  'Pending': 'À faire',
+  'Completed': 'Terminée',
+  'Cancelled': 'Annulée'
+};
+
+export default function TasksList({ tasks, loading = false, onEdit, onDelete, onComplete }: TasksListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('today');
   const [activeTab, setActiveTab] = useState('today');
 
   const handleFilterChange = (value: string | string[]) => {
     if (typeof value === 'string') {
-      setFilterStatus(value);
       setActiveTab(value);
     }
   };
 
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.description.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter tasks based on active tab and search query
+  const filteredTasks = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    return tasks.filter(task => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesSearch) return false;
+
+      const dueDate = new Date(task.dueDate);
+      const isPending = task.status === 'Pending';
+      const isCompleted = task.status === 'Completed';
+      const isOverdue = isPending && dueDate < now;
+      const isToday = dueDate >= todayStart && dueDate < todayEnd;
+      const isUpcoming = isPending && dueDate >= now && !isToday;
+
+      // Tab filter
+      if (activeTab === 'today') {
+        return isToday && isPending;
+      } else if (activeTab === 'overdue') {
+        return isOverdue;
+      } else if (activeTab === 'upcoming') {
+        return isUpcoming;
+      } else if (activeTab === 'completed') {
+        return isCompleted;
+      }
+      
+      return true;
+    });
+  }, [tasks, searchQuery, activeTab]);
+
+  // Render task card
+  const renderTaskCard = (task: Task, borderColor: string) => {
+    const isCompleted = task.status === 'Completed';
     
-    if (filterStatus === 'today') {
-      return matchesSearch && task.status === 'pending';
-    } else if (filterStatus === 'overdue') {
-      return matchesSearch && task.status === 'overdue';
-    } else if (filterStatus === 'upcoming') {
-      return matchesSearch && task.status === 'in_progress';
-    } else if (filterStatus === 'completed') {
-      return matchesSearch && task.status === 'completed';
-    }
-    
-    return matchesSearch;
-  });
+    return (
+      <div key={task.id} className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${borderColor}`}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className={`text-lg font-medium text-gray-900 ${isCompleted ? 'line-through' : ''}`}>
+                {task.title}
+              </h3>
+              <Badge className={priorityColors[task.priority]}>
+                {priorityLabels[task.priority]}
+              </Badge>
+              <Badge className={task.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                {statusLabels[task.status]}
+              </Badge>
+            </div>
+            
+            {task.description && (
+              <p className="text-gray-600 mb-3">{task.description}</p>
+            )}
+            
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <CalendarDaysIcon className="h-4 w-4" />
+                {formatDate(task.dueDate)}
+              </div>
+              {task.assignedUserName && (
+                <div className="flex items-center gap-1">
+                  <UserIcon className="h-4 w-4" />
+                  {task.assignedUserName}
+                </div>
+              )}
+              {task.durationMinutes && (
+                <div className="flex items-center gap-1">
+                  <ClockIcon className="h-4 w-4" />
+                  {task.durationMinutes} min
+                </div>
+              )}
+              {task.hasReminder && (
+                <div className="flex items-center gap-1 text-purple-600">
+                  <BellAlertIcon className="h-4 w-4" />
+                  Rappel
+                </div>
+              )}
+            </div>
+            
+            {task.leadTitle && (
+              <div className="mt-2 text-sm text-gray-500">
+                Lead: <span className="font-medium">{task.leadTitle}</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 ml-4">
+            {!isCompleted && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onComplete(task.id)}
+                className="text-green-600 hover:text-green-700"
+                title="Marquer comme terminée"
+              >
+                <CheckCircleIcon className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEdit(task)}
+              title="Modifier"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onDelete(task.id)}
+              className="text-red-600 hover:text-red-700"
+              title="Supprimer"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <div className="space-y-6">
@@ -154,15 +219,11 @@ export default function TasksList() {
           </div>
           <div className="w-full sm:w-48">
             <Select
-              value={filterStatus}
+              value={activeTab}
               onChange={handleFilterChange}
               options={filterOptions}
             />
           </div>
-          <Button className="flex items-center gap-2">
-            <PlusIcon className="h-4 w-4" />
-            Nouvelle tâche
-          </Button>
         </div>
       </div>
 
@@ -188,184 +249,59 @@ export default function TasksList() {
         </TabsList>
 
         <TabsContent value="today" className="mt-6">
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <div key={task.id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                      <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                        {task.priority}
-                      </Badge>
-                      <Badge className={statusColors[task.status as keyof typeof statusColors]}>
-                        {task.status}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3">{task.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <CalendarDaysIcon className="h-4 w-4" />
-                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-4 w-4" />
-                        {task.assignedTo}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4" />
-                        {task.estimatedTime}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      {task.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          <TagIcon className="h-3 w-3 mr-1" />
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="outline">
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <BellAlertIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {filteredTasks.length === 0 ? (
+            <EmptyState
+              icon={CalendarDaysIcon}
+              title="Aucune tâche pour aujourd'hui"
+              description="Vous n'avez pas de tâche prévue pour aujourd'hui."
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredTasks.map((task) => renderTaskCard(task, 'border-blue-500'))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="overdue" className="mt-6">
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <div key={task.id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                      <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                        {task.priority}
-                      </Badge>
-                      <Badge className="bg-red-100 text-red-800">
-                        En retard
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3">{task.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <CalendarDaysIcon className="h-4 w-4" />
-                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-4 w-4" />
-                        {task.assignedTo}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="outline">
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <BellAlertIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {filteredTasks.length === 0 ? (
+            <EmptyState
+              icon={ExclamationTriangleIcon}
+              title="Aucune tâche en retard"
+              description="Bravo ! Vous n'avez pas de tâche en retard."
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredTasks.map((task) => renderTaskCard(task, 'border-red-500'))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="upcoming" className="mt-6">
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <div key={task.id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                      <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                        {task.priority}
-                      </Badge>
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        En cours
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3">{task.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <CalendarDaysIcon className="h-4 w-4" />
-                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-4 w-4" />
-                        {task.assignedTo}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4" />
-                        {task.actualTime || task.estimatedTime}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="outline">
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <BellAlertIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {filteredTasks.length === 0 ? (
+            <EmptyState
+              icon={ClockIcon}
+              title="Aucune tâche à venir"
+              description="Vous n'avez pas de tâche planifiée pour plus tard."
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredTasks.map((task) => renderTaskCard(task, 'border-yellow-500'))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="completed" className="mt-6">
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <div key={task.id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900 line-through">{task.title}</h3>
-                      <Badge className="bg-green-100 text-green-800">
-                        Terminée
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3">{task.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <CalendarDaysIcon className="h-4 w-4" />
-                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-4 w-4" />
-                        {task.assignedTo}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4" />
-                        {task.actualTime} / {task.estimatedTime}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="outline">
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {filteredTasks.length === 0 ? (
+            <EmptyState
+              icon={CheckCircleIcon}
+              title="Aucune tâche terminée"
+              description="Vous n'avez pas encore terminé de tâche."
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredTasks.map((task) => renderTaskCard(task, 'border-green-500'))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

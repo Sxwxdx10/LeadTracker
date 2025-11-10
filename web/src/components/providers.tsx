@@ -12,16 +12,17 @@ const createQueryClient = () => new QueryClient({
     queries: {
       staleTime: 60 * 1000, // 1 minute
       refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(createQueryClient);
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
   }, []);
 
   return (
@@ -29,7 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <CacheProvider>
         <ToastProvider defaultPosition="top-right">
           {children}
-          {isClient && <ReactQueryDevtools initialIsOpen={false} />}
+          {mounted && <ReactQueryDevtools initialIsOpen={false} />}
         </ToastProvider>
       </CacheProvider>
     </QueryClientProvider>

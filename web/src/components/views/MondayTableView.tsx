@@ -264,34 +264,7 @@ export function MondayTableView({
       return;
     }
 
-    // Find the lead to get its current data
-    const lead = leads.find(l => l.id === leadId);
-    if (!lead) {
-      setEditingCell(null);
-      return;
-    }
-
-    // Include all required fields to avoid validation errors
-    const updates = {
-      title: lead.title, // Required field
-      firstName: lead.firstName || null,
-      lastName: lead.lastName || null,
-      email: lead.email || null,
-      phoneNumber: lead.phoneNumber || null,
-      company: lead.company || null,
-      jobTitle: lead.jobTitle || null,
-      estimatedValue: lead.estimatedValue || null,
-      probability: lead.probability || 50,
-      expectedCloseDate: lead.expectedCloseDate || null,
-      notes: lead.notes || null,
-      source: lead.source || null,
-      status: lead.status,
-      lastContactedAt: lead.lastContactedAt || null,
-      stageId: lead.stageId, // Required foreign key
-      assignedUserId: lead.assignedUserId || null,
-      [column.field]: value // Override with the new value
-    };
-    
+    const updates = { [column.field]: value };
     await onLeadUpdate(leadId, updates);
     setEditingCell(null);
   };
@@ -345,7 +318,7 @@ export function MondayTableView({
   return (
     <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
@@ -399,7 +372,7 @@ export function MondayTableView({
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     {/* Checkbox column */}
-                    <th className="px-3 py-2 border-b border-gray-200 text-left">
+                    <th className="px-4 py-3 border-b border-gray-200 text-left">
                       <input
                         type="checkbox"
                         checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
@@ -421,7 +394,7 @@ export function MondayTableView({
                     ))}
 
                     {/* Actions column */}
-                    <th className="px-3 py-2 border-b border-gray-200 text-right w-32">
+                    <th className="px-4 py-3 border-b border-gray-200 text-right w-32">
                       Actions
                     </th>
                   </tr>
@@ -464,7 +437,7 @@ export function MondayTableView({
                         )}
                       >
                         {/* Checkbox */}
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-3">
                           <input
                             type="checkbox"
                             checked={selectedLeads.has(lead.id)}
@@ -478,7 +451,7 @@ export function MondayTableView({
                           <td
                             key={column.id}
                             className={cn(
-                              "px-3 py-2 text-sm",
+                              "px-4 py-3",
                               column.align === 'right' && "text-right",
                               column.align === 'center' && "text-center"
                             )}
@@ -496,7 +469,7 @@ export function MondayTableView({
                         ))}
 
                         {/* Actions */}
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end space-x-2">
                             {onLeadClick && (
                               <button
@@ -522,7 +495,7 @@ export function MondayTableView({
 
                   {filteredLeads.length === 0 && (
                     <tr>
-                      <td colSpan={visibleColumns.length + 2} className="px-3 py-8 text-center text-gray-500">
+                      <td colSpan={visibleColumns.length + 2} className="px-4 py-12 text-center text-gray-500">
                         Aucun lead trouvé
                       </td>
                     </tr>
@@ -535,7 +508,7 @@ export function MondayTableView({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-1.5 border-t border-gray-200 bg-gray-50 text-sm text-gray-600">
+      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 text-sm text-gray-600">
         {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} 
         {filteredLeads.length !== leads.length && ` (${leads.length} au total)`}
       </div>
