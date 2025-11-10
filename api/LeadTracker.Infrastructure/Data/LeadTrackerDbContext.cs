@@ -40,6 +40,7 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Activity> Activities { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Attachment> Attachments { get; set; }
+    public DbSet<ImportHistory> ImportHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -464,6 +465,37 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.CreatedAt);
         });
 
+        // Configure ImportHistory
+        builder.Entity<ImportHistory>(entity =>
+        {
+            entity.ToTable("ImportHistories");
+            entity.Property(e => e.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Source).IsRequired();
+            entity.Property(e => e.Status).IsRequired().HasDefaultValue(ImportStatus.Pending);
+            entity.Property(e => e.ImportedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.ImportedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ImportedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.ImportedByUserId);
+            entity.HasIndex(e => e.Source);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.ImportedAt);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
         // Apply global query filters for multi-tenant entities
         // Note: Tenant filtering is disabled in testing mode to allow test data access
         if (!IsTestingMode())
@@ -521,6 +553,11 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
             
         builder.Entity<Notification>().HasQueryFilter(e => 
+            _tenantFilterService != null && 
+            _tenantFilterService.GetCurrentOrganizationId() != null && 
+            e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());
+            
+        builder.Entity<ImportHistory>().HasQueryFilter(e => 
             _tenantFilterService != null && 
             _tenantFilterService.GetCurrentOrganizationId() != null && 
             e.OrganizationId == _tenantFilterService.GetCurrentOrganizationId());

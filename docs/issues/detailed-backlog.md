@@ -395,18 +395,18 @@ Implémenter un système de monitoring des performances en production pour surve
 Board par étapes, déplacement de cartes, recalcul métriques.
 
 #### Critères d'acceptation
-- [ ] Vue Kanban avec colonnes par étape
-- [ ] Drag & drop des cartes entre colonnes
-- [ ] Mise à jour temps réel via WebSocket
-- [ ] Métriques par colonne (nombre, valeur totale)
-- [ ] Filtrage des cartes affichées
-- [ ] Performance fluide avec 500+ leads
+- [x] Vue Kanban avec colonnes par étape
+- [x] Drag & drop des cartes entre colonnes
+- [x] Mise à jour temps réel via WebSocket
+- [x] Métriques par colonne (nombre, valeur totale)
+- [x] Filtrage des cartes affichées
+- [x] Performance fluide avec 500+ leads
 
 #### Tests
-- [ ] Tests E2E pour drag & drop
-- [ ] Tests de performance avec gros datasets
-- [ ] Tests de synchronisation temps réel
-- [ ] Tests d'accessibilité pour interactions
+- [x] Tests E2E pour drag & drop
+- [x] Tests de performance avec gros datasets
+- [x] Tests de synchronisation temps réel
+- [x] Tests d'accessibilité pour interactions
 
 ---
 
@@ -418,17 +418,17 @@ Board par étapes, déplacement de cartes, recalcul métriques.
 CRUD des étapes, ordre personnalisable par org.
 
 #### Critères d'acceptation
-- [ ] CRUD complet pour les étapes
-- [ ] Ordre personnalisable (drag & drop)
-- [ ] Validation : au moins une étape active
-- [ ] Migration automatique des leads lors de suppression d'étape
-- [ ] Couleurs personnalisables par étape
+- [x] CRUD complet pour les étapes
+- [x] Ordre personnalisable (drag & drop)
+- [x] Validation : au moins une étape active
+- [x] Migration automatique des leads lors de suppression d'étape
+- [x] Couleurs personnalisables par étape
 
 #### Tests
-- [ ] Tests CRUD pour étapes
-- [ ] Tests de réorganisation
-- [ ] Tests de migration des données
-- [ ] Tests de validation métier
+- [x] Tests CRUD pour étapes
+- [x] Tests de réorganisation
+- [x] Tests de migration des données
+- [x] Tests de validation métier
 
 ---
 
@@ -711,3 +711,152 @@ Rédaction initiale; mise à jour continue; section FAQ.
 - **Tâche 10** : CI GitHub Actions (build/lint/test + image)
 - **Tâche 11** : Tests d'intégration complets
 - **Tâche 12** : Documentation API (Swagger/OpenAPI)
+
+---
+
+## 🚀 Futures Améliorations - Création de Leads (Backlog)
+
+### 21. Templates de Création Rapide par Type de Lead
+**Labels:** `feature`, `frontend`, `ux`  
+**Poids:** 2  
+**Statut:** Backlog
+
+#### Description
+Templates pré-configurés pour différents types de leads avec des champs et valeurs par défaut adaptés.
+
+#### Fonctionnalités
+- **Lead B2B** : Focus sur entreprise, décideur, valeur estimée élevée
+- **Lead B2C** : Focus sur particulier, besoins personnels
+- **Lead Événement** : Capture depuis salon/conférence avec contexte
+- **Lead Partenaire** : Potentiel de collaboration, pas de vente directe
+
+#### Critères d'acceptation
+- [ ] Interface de sélection de template dans le modal de création
+- [ ] 4 templates pré-configurés avec champs spécifiques
+- [ ] Possibilité de créer des templates personnalisés
+- [ ] Templates sauvegardés par organisation
+- [ ] Auto-complétion intelligente basée sur le template
+
+---
+
+### 22. Browser Extension pour Capture depuis LinkedIn
+**Labels:** `feature`, `extension`, `integration`  
+**Poids:** 5  
+**Statut:** Backlog
+
+#### Description
+Extension Chrome/Firefox pour capturer automatiquement les informations de profils LinkedIn et créer des leads directement dans LeadTracker.
+
+#### Fonctionnalités
+- **Capture de profil LinkedIn** : Extraction automatique nom, poste, entreprise
+- **Cartes de visite digitales** : Support vCard et autres formats
+- **Pages entreprise** : Capture d'informations société
+- **Export direct** : Création de lead en un clic
+- **Mode batch** : Capture multiple depuis résultats de recherche
+
+#### Critères d'acceptation
+- [ ] Extension compatible Chrome et Firefox
+- [ ] Détection automatique des pages LinkedIn
+- [ ] Bouton d'action flottant sur les profils
+- [ ] Pré-remplissage du formulaire de création
+- [ ] Authentification sécurisée à LeadTracker
+- [ ] Mode hors-ligne avec synchronisation différée
+- [ ] Respect des politiques LinkedIn
+
+#### Technologies
+- Manifest V3 pour Chrome
+- WebExtensions API pour Firefox
+- Communication sécurisée avec l'API LeadTracker
+
+---
+
+### 23. Drag & Drop Email pour Création de Lead
+**Labels:** `feature`, `frontend`, `email`  
+**Poids:** 3  
+**Statut:** Backlog
+
+#### Description
+Drag & drop d'emails (.eml, .msg, fichiers Outlook) pour extraire automatiquement les informations de contact et créer un lead.
+
+#### Fonctionnalités
+- **Parsing d'email** : Extraction expéditeur, signature, corps
+- **Détection automatique** : Reconnaissance nom, entreprise, coordonnées
+- **Historique initial** : Premier échange enregistré comme note
+- **Pièces jointes** : Sauvegarde automatique des documents joints
+- **Threading** : Détection des fils de conversation
+
+#### Critères d'acceptation
+- [ ] Support formats .eml, .msg, .txt (email brut)
+- [ ] Extraction automatique des coordonnées depuis signature
+- [ ] Parsing du corps d'email pour contexte
+- [ ] Sauvegarde pièces jointes comme attachments
+- [ ] Création automatique d'une activité "Email reçu"
+- [ ] Preview avant création pour validation
+- [ ] Gestion des emails multilingues
+
+#### Parser Email
+- Utiliser bibliothèque comme `mailparser` (Node.js)
+- Regex pour extraction signature email
+- IA/NLP pour extraction contexte (optionnel)
+
+---
+
+### 24. Import Carte de Visite (Photo OCR)
+**Labels:** `feature`, `mobile`, `ocr`  
+**Poids:** 3  
+**Statut:** Backlog
+
+#### Description
+Prise de photo de carte de visite (mobile ou desktop) avec OCR optimisé spécifiquement pour les cartes de visite.
+
+#### Fonctionnalités
+- **OCR spécialisé** : Reconnaissance optimisée pour layout de carte
+- **Détection QR codes** : Lecture vCard encodée
+- **Multi-langues** : Support français, anglais, autres
+- **Recognition de layout** : Détection automatique zones (nom, titre, contact)
+- **Amélioration d'image** : Redressement, amélioration contraste
+- **Mode batch** : Photo multiple de cartes
+
+#### Critères d'acceptation
+- [ ] Interface de capture photo (camera ou upload)
+- [ ] OCR avec Tesseract.js + modèle spécialisé cartes
+- [ ] Détection et parsing QR codes vCard
+- [ ] Pré-traitement d'image (rotation, contraste, bruit)
+- [ ] Extraction structurée des champs
+- [ ] Confidence score par champ
+- [ ] Interface de correction avant création
+- [ ] Sauvegarde photo originale comme pièce jointe
+
+#### Technologies
+- **OCR** : Tesseract.js avec training data spécialisé
+- **QR Code** : jsQR ou similar
+- **Image processing** : Sharp.js ou Canvas API
+- **Mobile** : PWA avec accès caméra ou React Native
+
+#### Notes d'implémentation
+- Entraîner modèle Tesseract sur corpus de cartes de visite
+- Utiliser heuristiques pour positionner les champs (haut=nom, bas=contact)
+- Valider formats téléphone/email pour améliorer précision
+
+---
+
+## 📊 Résumé des Nouvelles Fonctionnalités
+
+| Feature | Poids | Impact Utilisateur | Complexité Technique |
+|---------|-------|-------------------|---------------------|
+| Templates de création | 2 | 🟢 Haute | 🟢 Faible |
+| Extension LinkedIn | 5 | 🟢 Très haute | 🔴 Élevée |
+| Drag & Drop Email | 3 | 🟡 Moyenne | 🟡 Moyenne |
+| Carte de visite OCR | 3 | 🟢 Haute | 🟡 Moyenne |
+
+**Total poids**: 13 points  
+**Temps estimé**: 6-8 sprints (12-16 semaines)
+
+---
+
+## 🎯 Ordre de Priorité Recommandé
+
+1. **Templates de création** (Sprint 1) - Quick win, haute valeur
+2. **Drag & Drop Email** (Sprint 2-3) - Workflow naturel pour commerciaux
+3. **Carte de visite OCR** (Sprint 4-5) - Utile événements/salons
+4. **Extension LinkedIn** (Sprint 6-8) - Plus complexe mais très demandée

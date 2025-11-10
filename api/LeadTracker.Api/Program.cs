@@ -286,6 +286,7 @@ try
     builder.Services.AddScoped<IJwtService, JwtService>();
     builder.Services.AddScoped<IAuthService, LeadTracker.Infrastructure.Services.AuthService>();
     builder.Services.AddScoped<ILeadService, LeadService>();
+    builder.Services.AddScoped<ILeadImportService, LeadTracker.Infrastructure.Services.LeadImportService>();
     builder.Services.AddScoped<IKanbanService, LeadTracker.Infrastructure.Services.KanbanService>();
     builder.Services.AddScoped<IKanbanNotificationService, LeadTracker.Api.Services.SimpleKanbanNotificationService>();
     builder.Services.AddScoped<IEmailService, LeadTracker.Infrastructure.Services.EmailService>();
