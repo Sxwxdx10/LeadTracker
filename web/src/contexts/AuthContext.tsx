@@ -111,11 +111,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialiser l'authentification au chargement
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const initializeAuth = async () => {
       try {
         // Vérifier si on est côté client
         if (typeof window === 'undefined') {
-          dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+          if (isMounted) {
+            dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+          }
           return;
         }
 
@@ -131,58 +136,82 @@ export function AuthProvider({ children }: AuthProviderProps) {
             try {
               const refreshPromise = authApi.refreshToken(refreshToken);
               const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 3000)
+                setTimeout(() => reject(new Error('Timeout')), 2000)
               );
               
               const refreshResponse = await Promise.race([refreshPromise, timeoutPromise]) as any;
               
-              tokenUtils.saveTokens({
-                accessToken: refreshResponse.accessToken,
-                refreshToken: refreshResponse.refreshToken,
-                expiresAt: refreshResponse.expiresAt,
-                user,
-                organization,
-              });
+              if (isMounted) {
+                tokenUtils.saveTokens({
+                  accessToken: refreshResponse.accessToken,
+                  refreshToken: refreshResponse.refreshToken,
+                  expiresAt: refreshResponse.expiresAt,
+                  user,
+                  organization,
+                });
 
+                dispatch({
+                  type: 'AUTH_SUCCESS',
+                  payload: {
+                    user,
+                    organization,
+                    accessToken: refreshResponse.accessToken,
+                    refreshToken: refreshResponse.refreshToken,
+                  },
+                });
+              }
+            } catch (error) {
+              console.warn('Erreur lors du refresh du token:', error);
+              // Token de rafraîchissement invalide, déconnecter
+              if (isMounted) {
+                tokenUtils.clearTokens();
+                dispatch({ type: 'AUTH_LOGOUT' });
+              }
+            }
+          } else {
+            // Token valide
+            if (isMounted) {
               dispatch({
                 type: 'AUTH_SUCCESS',
                 payload: {
                   user,
                   organization,
-                  accessToken: refreshResponse.accessToken,
-                  refreshToken: refreshResponse.refreshToken,
+                  accessToken,
+                  refreshToken,
                 },
               });
-            } catch (error) {
-              console.warn('Erreur lors du refresh du token:', error);
-              // Token de rafraîchissement invalide, déconnecter
-              tokenUtils.clearTokens();
-              dispatch({ type: 'AUTH_LOGOUT' });
             }
-          } else {
-            // Token valide
-            dispatch({
-              type: 'AUTH_SUCCESS',
-              payload: {
-                user,
-                organization,
-                accessToken,
-                refreshToken,
-              },
-            });
           }
         } else {
-          dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+          // Pas de tokens, arrêter le chargement
+          if (isMounted) {
+            dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+        if (isMounted) {
+          dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+        }
       }
     };
 
+    // Timeout de sécurité pour s'assurer que isLoading est toujours mis à false
+    timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.warn('Auth initialization timeout - setting isLoading to false');
+        dispatch({ type: 'AUTH_SET_LOADING', payload: false });
+      }
+    }, 5000); // 5 secondes max
+
     // Délai pour éviter les problèmes d'hydratation
     const timer = setTimeout(initializeAuth, 100);
-    return () => clearTimeout(timer);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Fonction de connexion

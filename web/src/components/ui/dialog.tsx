@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -26,25 +27,49 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
-  return (
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Bloquer le scroll du body quand le modal est ouvert
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <DialogContext.Provider value={{ isOpen: open, onOpenChange }}>
       <AnimatePresence>
         {open && (
-          <>
+          <div
+            className="fixed inset-0 z-[9998] flex items-center justify-center"
+          >
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => onOpenChange(false)}
-              className="fixed inset-0 bg-black/50 z-50"
+              className="absolute inset-0 bg-black/50"
             />
             {/* Content */}
             {children}
-          </>
+          </div>
         )}
       </AnimatePresence>
-    </DialogContext.Provider>
+    </DialogContext.Provider>,
+    document.body
   );
 }
 
@@ -58,10 +83,10 @@ export function DialogContent({ children, className }: DialogContentProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 ${className || ''}`}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={`relative z-[9999] max-h-[90vh] max-w-[90vw] bg-white rounded-lg shadow-xl ${className || ''}`}
     >
       {children}
     </motion.div>

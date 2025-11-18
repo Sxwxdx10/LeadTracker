@@ -9,6 +9,7 @@ export interface Lead {
   lastName: string;
   email: string;
   phoneNumber?: string;
+  website?: string;
   company?: string;
   jobTitle?: string;
   estimatedValue?: number;
@@ -45,6 +46,7 @@ export interface CreateLeadDto {
   lastName: string;
   email: string;
   phoneNumber?: string;
+  website?: string;
   company?: string;
   jobTitle?: string;
   estimatedValue?: number;
@@ -61,6 +63,7 @@ export interface UpdateLeadDto {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
+  website?: string;
   company?: string;
   jobTitle?: string;
   estimatedValue?: number;

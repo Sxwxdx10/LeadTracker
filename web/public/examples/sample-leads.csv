@@ -1,0 +1,14 @@
+Email,Prénom,Nom,Société,Téléphone,Poste,Source,Valeur estimée,Probabilité
+john.doe@acme.com,John,Doe,Acme Corporation,+33612345678,Directeur Commercial,LinkedIn,50000,75
+jane.smith@techcorp.com,Jane,Smith,Tech Corp,+33698765432,CEO,Conférence,100000,90
+pierre.martin@startup.fr,Pierre,Martin,StartUp France,+33645678901,CTO,Site web,25000,50
+marie.dubois@consulting.fr,Marie,Dubois,Consulting Plus,+33656789012,Consultante Senior,Référencement,35000,60
+alex.bernard@innovation.com,Alex,Bernard,Innovation Labs,+33634567890,Product Manager,Email,45000,70
+sophie.laurent@digital.fr,Sophie,Laurent,Digital Agency,+33667890123,Directrice Marketing,Réseau,55000,65
+thomas.petit@solutions.com,Thomas,Petit,Solutions Pro,+33623456789,Ingénieur Commercial,Salon,40000,55
+emma.robert@services.fr,Emma,Robert,Services Premium,+33678901234,Responsable Développement,Recommandation,60000,80
+lucas.moreau@group.com,Lucas,Moreau,Group International,+33689012345,Directeur Régional,Partenaire,80000,85
+julie.simon@enterprise.fr,Julie,Simon,Enterprise Solutions,+33601234567,Account Manager,Cold Call,30000,45
+
+
+

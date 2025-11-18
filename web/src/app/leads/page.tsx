@@ -25,6 +25,7 @@ import { useFilterPanel } from '@/hooks/useFilterPanel';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useLeads, useStages } from '@/hooks/useLeads';
 import { ViewType } from '@/types/views';
+import { CreateLeadModal } from '@/components/leads/import';
 
 function LeadsPageContent() {
   const router = useRouter();
@@ -261,6 +262,16 @@ function LeadsPageContent() {
         onSaveFilter={handleSaveFilter}
         leads={leadsData?.data || []}
         stages={stagesData || []}
+      />
+
+      {/* Modal de création de leads */}
+      <CreateLeadModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          router.refresh();
+        }}
       />
     </div>
   );
