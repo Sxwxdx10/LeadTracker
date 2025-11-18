@@ -6,7 +6,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SimpleToastContainer } from '@/components/ui/simple-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { ClientOnly } from '@/components/ClientOnly';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -77,22 +76,16 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <ClientOnly fallback={
-          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        }>
-          <Providers>
-            <ErrorBoundary>
-              <AuthProvider>
-                <MainLayout>
-                  {children}
-                </MainLayout>
-                <SimpleToastContainer />
-              </AuthProvider>
-            </ErrorBoundary>
-          </Providers>
-        </ClientOnly>
+        <Providers>
+          <ErrorBoundary>
+            <AuthProvider>
+              <MainLayout>
+                {children}
+              </MainLayout>
+              <SimpleToastContainer />
+            </AuthProvider>
+          </ErrorBoundary>
+        </Providers>
       </body>
     </html>
   );

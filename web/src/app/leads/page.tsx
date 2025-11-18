@@ -25,10 +25,12 @@ import { useFilterPanel } from '@/hooks/useFilterPanel';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useLeads, useStages } from '@/hooks/useLeads';
 import { ViewType } from '@/types/views';
+import { CreateLeadModal } from '@/components/leads/import';
 
 function LeadsPageContent() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewType>('kanban');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [queryParams, setQueryParams] = useState({
     page: 1,
     pageSize: 50,
@@ -100,6 +102,10 @@ function LeadsPageContent() {
     }
   };
 
+  const handleNewLead = () => {
+    setIsCreateModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -151,7 +157,7 @@ function LeadsPageContent() {
                 Statistiques
               </Button>
               
-              <Button className="flex items-center gap-2">
+              <Button onClick={handleNewLead} className="flex items-center gap-2">
                 <PlusIcon className="h-4 w-4" />
                 Nouveau lead
               </Button>
@@ -256,6 +262,16 @@ function LeadsPageContent() {
         onSaveFilter={handleSaveFilter}
         leads={leadsData?.data || []}
         stages={stagesData || []}
+      />
+
+      {/* Modal de création de leads */}
+      <CreateLeadModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          router.refresh();
+        }}
       />
     </div>
   );

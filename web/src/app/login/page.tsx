@@ -56,9 +56,22 @@ export default function LoginPage() {
     }));
   };
 
-  if (isLoading) {
+  // Ne pas bloquer l'affichage si le chargement prend trop de temps
+  // Afficher le formulaire même pendant le chargement initial
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    // Afficher le formulaire après un court délai même si isLoading est true
+    const timer = setTimeout(() => {
+      setShowForm(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Si le chargement prend trop de temps, afficher quand même le formulaire
+  if (isLoading && !showForm) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loading />
       </div>
     );

@@ -100,7 +100,7 @@ const nextConfig = {
   },
   
   // Output configuration
-  output: 'standalone',
+  // output: 'standalone', // Commented out for development
   
   // Compression
   compress: true,

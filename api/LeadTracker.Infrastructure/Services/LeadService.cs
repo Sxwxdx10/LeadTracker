@@ -153,6 +153,7 @@ public class LeadService : ILeadService
             LastName = createDto.LastName,
             Email = createDto.Email,
             PhoneNumber = createDto.PhoneNumber,
+            Website = createDto.Website,
             Company = createDto.Company,
             JobTitle = createDto.JobTitle,
             EstimatedValue = createDto.EstimatedValue,
@@ -193,6 +194,7 @@ public class LeadService : ILeadService
         lead.LastName = updateDto.LastName;
         lead.Email = updateDto.Email;
         lead.PhoneNumber = updateDto.PhoneNumber;
+        lead.Website = updateDto.Website;
         lead.Company = updateDto.Company;
         lead.JobTitle = updateDto.JobTitle;
         lead.EstimatedValue = updateDto.EstimatedValue;
@@ -862,6 +864,7 @@ public class LeadService : ILeadService
             LastName = lead.LastName,
             Email = lead.Email,
             PhoneNumber = lead.PhoneNumber,
+            Website = lead.Website,
             Company = lead.Company,
             JobTitle = lead.JobTitle,
             EstimatedValue = lead.EstimatedValue,

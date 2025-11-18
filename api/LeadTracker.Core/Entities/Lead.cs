@@ -25,6 +25,10 @@ public class Lead : TenantEntity
     [MaxLength(20)]
     public string? PhoneNumber { get; set; }
     
+    [MaxLength(255)]
+    [Url]
+    public string? Website { get; set; }
+    
     [MaxLength(200)]
     public string? Company { get; set; }
     

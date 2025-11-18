@@ -25,6 +25,10 @@ public class CreateLeadDto
     [RegularExpression(@"^\+?1\d{10}$", ErrorMessage = "Phone number must be in Canadian format (+19999999999)")]
     public string? PhoneNumber { get; set; }
     
+    [MaxLength(255)]
+    [Url]
+    public string? Website { get; set; }
+    
     [MaxLength(200)]
     public string? Company { get; set; }
     
@@ -74,6 +78,10 @@ public class UpdateLeadDto
     [RegularExpression(@"^\+?1\d{10}$", ErrorMessage = "Phone number must be in Canadian format (+19999999999)")]
     public string? PhoneNumber { get; set; }
     
+    [MaxLength(255)]
+    [Url]
+    public string? Website { get; set; }
+    
     [MaxLength(200)]
     public string? Company { get; set; }
     
@@ -116,6 +124,7 @@ public class LeadResponseDto
     public string? LastName { get; set; }
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
+    public string? Website { get; set; }
     public string? Company { get; set; }
     public string? JobTitle { get; set; }
     public decimal? EstimatedValue { get; set; }
