@@ -100,7 +100,7 @@ const nextConfig = {
   },
   
   // Output configuration
-  // output: 'standalone', // Commented out for development
+  output: 'standalone', // Required for Docker builds
   
   // Compression
   compress: true,

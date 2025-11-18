@@ -175,6 +175,33 @@ try
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
             ClockSkew = TimeSpan.Zero
         };
+        
+        // Configure JWT Bearer for SignalR
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                
+                // If the request is for SignalR hub and has access_token in query string
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/kanbanhub"))
+                {
+                    context.Token = accessToken;
+                }
+                // Also check Authorization header
+                else if (context.Request.Headers.ContainsKey("Authorization"))
+                {
+                    var authHeader = context.Request.Headers["Authorization"].ToString();
+                    if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                    }
+                }
+                
+                return System.Threading.Tasks.Task.CompletedTask;
+            }
+        };
     });
 
     // Authorization
@@ -185,23 +212,14 @@ try
     {
         options.AddPolicy("DefaultPolicy", policy =>
         {
-            // En développement, accepter toutes les origins
-            if (builder.Environment.IsDevelopment())
-            {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
-            }
-            else
-            {
-                var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
-                    ?? new[] { "http://localhost:3000", "https://localhost:3000" };
-                    
-                policy.WithOrigins(allowedOrigins)
-                      .AllowAnyMethod()
-                      .AllowAnyHeader()
-                      .AllowCredentials();
-            }
+            var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() 
+                ?? new[] { "http://localhost:3000", "https://localhost:3000", "http://localhost:3001", "https://localhost:3001" };
+            
+            // Always use WithOrigins to allow credentials (required for SignalR)
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // Required for SignalR authentication
         });
     });
 
@@ -404,9 +422,9 @@ try
             // Only run migrations for non-testing environments
             if (!app.Environment.IsEnvironment("Testing"))
             {
-                logger.LogInformation("Skipping database migrations for now...");
-                // TODO: Fix migration conflicts
-                // await context.Database.MigrateAsync();
+                logger.LogInformation("Applying database migrations...");
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully.");
             }
             
         }
