@@ -23,7 +23,7 @@ interface CsvImportFormProps {
 
 export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
   const router = useRouter();
-  const { showToast } = useToast();
+  const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,17 +44,35 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
       const autoMapping = autoDetectColumnMapping(localData.headers);
       setMapping(autoMapping);
 
-      // Get preview from backend
-      const previewData = await leadImportApi.previewCsv(csvFile);
+      // Normalize field names to match backend expectations (lowercase)
+      const normalizedMapping: Record<string, string> = {};
+      for (const [csvColumn, leadField] of Object.entries(autoMapping)) {
+        normalizedMapping[csvColumn] = leadField.toLowerCase();
+      }
+      
+      // Get preview from backend with mapping
+      const csvMapping: CsvMapping = {
+        columnMapping: normalizedMapping,
+        skipFirstRow: true,
+        delimiter: ',',
+        skipDuplicates: true,
+      };
+      const previewData = await leadImportApi.previewCsv(csvFile, csvMapping);
       setPreview(previewData);
       setStep('preview');
     } catch (error: any) {
       console.error('Error previewing CSV:', error);
-      showToast.error('Erreur', error?.message || 'Erreur lors de la prévisualisation du CSV');
+      toast.error(
+        'Erreur',
+        error?.response?.data?.title ||
+          error?.response?.data?.message ||
+          error?.message ||
+          'Erreur lors de la prévisualisation du CSV'
+      );
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -71,8 +89,14 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
     setStep('importing');
 
     try {
+      // Normalize field names to match backend expectations (lowercase)
+      const normalizedMapping: Record<string, string> = {};
+      for (const [csvColumn, leadField] of Object.entries(mapping)) {
+        normalizedMapping[csvColumn] = leadField.toLowerCase();
+      }
+      
       const csvMapping: CsvMapping = {
-        columnMapping: mapping,
+        columnMapping: normalizedMapping,
         skipFirstRow: true,
         delimiter: ',',
         skipDuplicates: true,
@@ -80,7 +104,7 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
 
       const result = await leadImportApi.importCsv(file, csvMapping);
 
-      showToast.success(
+      toast.success(
         'Import réussi',
         `${result.successCount} leads créés avec succès${
           result.duplicateCount > 0 ? ` (${result.duplicateCount} doublons ignorés)` : ''
@@ -91,7 +115,13 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
       router.refresh();
     } catch (error: any) {
       console.error('Error importing CSV:', error);
-      showToast.error('Erreur', error?.message || "Erreur lors de l'import");
+      toast.error(
+        'Erreur',
+        error?.response?.data?.title ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Erreur lors de l'import"
+      );
       setStep('preview');
     } finally {
       setLoading(false);
@@ -122,14 +152,14 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
           className={`
             border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
             transition-colors duration-200
-            ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+            ${isDragActive ? 'border-brand-500 bg-brand-50' : 'border-gray-300 hover:border-gray-400'}
             ${loading ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
           <input {...getInputProps()} />
           <DocumentArrowUpIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
           {isDragActive ? (
-            <p className="text-lg font-medium text-blue-600">
+            <p className="text-lg font-medium text-brand-600">
               Déposez le fichier CSV ici...
             </p>
           ) : (
@@ -147,11 +177,11 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
           )}
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">
+        <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
+          <h4 className="font-medium text-brand-900 mb-2">
             💡 Format attendu
           </h4>
-          <ul className="text-sm text-blue-800 space-y-1">
+          <ul className="text-sm text-brand-800 space-y-1">
             <li>• Fichier au format CSV avec séparateur virgule</li>
             <li>• Première ligne = en-têtes de colonnes</li>
             <li>• Colonnes recommandées : Email, Prénom, Nom, Société, Téléphone</li>
@@ -301,7 +331,7 @@ export function CsvImportForm({ onSuccess, onCancel }: CsvImportFormProps) {
   if (step === 'importing') {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4" />
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4" />
         <p className="text-lg font-medium text-gray-900">Import en cours...</p>
         <p className="text-sm text-gray-500">Veuillez patienter</p>
       </div>

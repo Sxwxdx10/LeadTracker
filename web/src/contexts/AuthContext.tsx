@@ -6,7 +6,8 @@ import {
   AuthState, 
   AuthContextType, 
   LoginRequest, 
-  RegisterRequest, 
+  RegisterRequest,
+  RegisterWithInvitationRequest, 
   UserInfo, 
   OrganizationInfo 
 } from '@/types/auth';
@@ -30,7 +31,8 @@ type AuthAction =
   | { type: 'AUTH_FAILURE'; payload: string }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'AUTH_CLEAR_ERROR' }
-  | { type: 'AUTH_SET_LOADING'; payload: boolean };
+  | { type: 'AUTH_SET_LOADING'; payload: boolean }
+  | { type: 'AUTH_UPDATE_USER'; payload: UserInfo };
 
 // Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -83,6 +85,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return {
         ...state,
         isLoading: action.payload,
+      };
+    case 'AUTH_UPDATE_USER':
+      return {
+        ...state,
+        user: action.payload,
       };
     default:
       return state;
@@ -291,51 +298,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       dispatch({ type: 'AUTH_START' });
       
-      // Mode démonstration - simulation de l'inscription
-      const isDemoMode = false; // Mode démo désactivé - utilise l'API réelle
-      
-      if (isDemoMode) {
-        // Simulation d'une inscription réussie
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simuler le délai réseau
-        
-        const mockResponse = {
-          accessToken: 'demo-access-token-' + Date.now(),
-          refreshToken: 'demo-refresh-token-' + Date.now(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          user: {
-            id: 'demo-user-' + Date.now(),
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            fullName: `${data.firstName} ${data.lastName}`,
-            jobTitle: 'Utilisateur démo',
-            roles: ['admin']
-          },
-          organization: {
-            id: 'demo-org-' + Date.now(),
-            name: data.organizationName,
-            domain: data.organizationDomain || 'demo-org',
-            description: data.organizationDescription || 'Organisation de démonstration'
-          }
-        };
-        
-        tokenUtils.saveTokens(mockResponse);
-        
-        dispatch({
-          type: 'AUTH_SUCCESS',
-          payload: {
-            user: mockResponse.user,
-            organization: mockResponse.organization,
-            accessToken: mockResponse.accessToken,
-            refreshToken: mockResponse.refreshToken,
-          },
-        });
-
-        console.log('Inscription en mode démo réussie !');
-        return;
-      }
-      
-      // Mode normal - appel API réel
       const response = await authApi.register(data);
       tokenUtils.saveTokens(response);
       
@@ -351,9 +313,62 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('Inscription réussie !');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Erreur d\'inscription';
+      // Extraire le message d'erreur du backend
+      let errorMessage = 'Erreur d\'inscription';
+      
+      if (error.response) {
+        // Erreur HTTP avec réponse
+        errorMessage = error.response.data?.message || 
+                      error.response.data?.error || 
+                      error.response.statusText || 
+                      'Erreur d\'inscription';
+      } else if (error.message) {
+        // Erreur réseau ou autre
+        errorMessage = error.message;
+      }
+      
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
-      console.error(errorMessage);
+      console.error('Registration error:', errorMessage, error);
+      throw error;
+    }
+  };
+
+  // Fonction d'inscription via invitation
+  const registerWithInvitation = async (data: RegisterWithInvitationRequest) => {
+    try {
+      dispatch({ type: 'AUTH_START' });
+      
+      const response = await authApi.registerWithInvitation(data);
+      tokenUtils.saveTokens(response);
+      
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: {
+          user: response.user,
+          organization: response.organization,
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+        },
+      });
+
+      console.log('Inscription via invitation réussie !');
+    } catch (error: any) {
+      // Extraire le message d'erreur du backend
+      let errorMessage = 'Erreur d\'inscription via invitation';
+      
+      if (error.response) {
+        // Erreur HTTP avec réponse
+        errorMessage = error.response.data?.message || 
+                      error.response.data?.error || 
+                      error.response.statusText || 
+                      'Erreur d\'inscription via invitation';
+      } else if (error.message) {
+        // Erreur réseau ou autre
+        errorMessage = error.message;
+      }
+      
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      console.error('Registration with invitation error:', errorMessage, error);
       throw error;
     }
   };
@@ -419,13 +434,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'AUTH_CLEAR_ERROR' });
   };
 
+  const updateUserInfo = (updatedUser: UserInfo) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+
+    dispatch({ type: 'AUTH_UPDATE_USER', payload: updatedUser });
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
     register,
+    registerWithInvitation,
     logout,
     refreshAuth,
     clearError,
+    updateUser: updateUserInfo,
   };
 
   return (

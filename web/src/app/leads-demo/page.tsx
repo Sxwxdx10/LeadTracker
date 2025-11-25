@@ -33,9 +33,9 @@ export default function LeadsDemoPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'CAD',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -112,7 +112,7 @@ export default function LeadsDemoPage() {
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                  <div className="w-8 h-8 bg-brand-500 rounded-md flex items-center justify-center">
                     <span className="text-white text-sm font-medium">T</span>
                   </div>
                 </div>
@@ -260,7 +260,7 @@ export default function LeadsDemoPage() {
           {viewMode === 'table' ? (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="text-center py-12">
-                <TableCellsIcon className="mx-auto h-12 w-12 text-blue-500 mb-4" />
+                <TableCellsIcon className="mx-auto h-12 w-12 text-brand-500 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Vue Tableau améliorée
                 </h3>
@@ -290,8 +290,8 @@ export default function LeadsDemoPage() {
                     <div className="w-4 h-4 bg-gray-400 rounded mx-auto mb-1"></div>
                     <p className="text-sm">Nouveau (12)</p>
                   </div>
-                  <div className="bg-blue-100 p-3 rounded text-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded mx-auto mb-1"></div>
+                  <div className="bg-brand-100 p-3 rounded text-center">
+                    <div className="w-4 h-4 bg-brand-500 rounded mx-auto mb-1"></div>
                     <p className="text-sm">Qualifié (8)</p>
                   </div>
                   <div className="bg-yellow-100 p-3 rounded text-center">

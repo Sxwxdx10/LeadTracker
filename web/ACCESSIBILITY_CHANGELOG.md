@@ -1,12 +1,14 @@
 # Changelog - Améliorations d'accessibilité
 
-## 📅 Date : 20 octobre 2025
+## Date
 
-## 🎯 Objectif
+20 octobre 2025
+
+## Objectif
 
 Améliorer l'accessibilité de l'application Lead Tracker pour atteindre la conformité WCAG 2.1 Level AA.
 
-## ✨ Nouveautés
+## Nouveautés
 
 ### 1. Utilitaires d'accessibilité
 
@@ -42,14 +44,14 @@ Collection de hooks React pour l'accessibilité :
 ### 3. Composants améliorés
 
 #### **`src/components/ui/button.tsx`**
-✅ Ajout de :
+Ajout de :
 - `aria-disabled` pour les boutons désactivés
 - `aria-busy` pour les états de chargement
 - Support de `ariaLabel` personnalisé
 - `aria-hidden="true"` sur les icônes décoratives
 
 #### **`src/components/ui/input.tsx`**
-✅ Améliorations majeures :
+Améliorations majeures :
 - Labels automatiques avec `htmlFor`
 - Support des messages d'erreur et d'aide
 - `aria-invalid` pour les erreurs
@@ -58,7 +60,7 @@ Collection de hooks React pour l'accessibilité :
 - Indicateur visuel pour les champs requis
 
 #### **`src/components/ui/modal.tsx`**
-✅ Conformité ARIA Dialog :
+Conformité ARIA Dialog :
 - `role="dialog"` et `aria-modal="true"`
 - `aria-labelledby` pour le titre
 - `aria-describedby` pour la description
@@ -68,7 +70,7 @@ Collection de hooks React pour l'accessibilité :
 - Overlay caché avec `aria-hidden="true"`
 
 #### **`src/components/ui/select.tsx`**
-✅ Conformité ARIA Combobox :
+Conformité ARIA Combobox :
 - `role="combobox"` sur le déclencheur
 - `role="listbox"` sur la liste
 - `role="option"` sur chaque option
@@ -78,7 +80,7 @@ Collection de hooks React pour l'accessibilité :
 - Focus visuel sur la navigation
 
 #### **`src/components/ui/tabs.tsx`**
-✅ Conformité ARIA Tabs :
+Conformité ARIA Tabs :
 - `role="tablist"` sur le container
 - `role="tab"` sur chaque onglet
 - `role="tabpanel"` sur le contenu
@@ -118,7 +120,7 @@ Guide complet d'accessibilité incluant :
 - Bonnes pratiques
 - Ressources et références
 
-## 🔧 Modifications techniques
+## Modifications techniques
 
 ### Composants
 
@@ -164,33 +166,33 @@ web/
 │           └── tabs.tsx             (modifié - ARIA roles)
 ```
 
-## 📊 Métriques d'amélioration
+## Métriques d'amélioration
 
 ### Avant
-- ❌ Navigation au clavier : Partielle
-- ❌ Labels ARIA : Manquants
-- ❌ Focus trap : Non implémenté
-- ❌ Annonces screen reader : Non implémentées
-- ⚠️ Contraste : Non vérifié
+- Navigation au clavier : Partielle
+- Labels ARIA : Manquants
+- Focus trap : Non implémenté
+- Annonces screen reader : Non implémentées
+- Contraste : Non vérifié
 
 ### Après
-- ✅ Navigation au clavier : **Complète**
-- ✅ Labels ARIA : **Tous présents**
-- ✅ Focus trap : **Implémenté dans modals**
-- ✅ Annonces screen reader : **Système complet**
-- ✅ Contraste : **Vérifié WCAG AA (4.5:1)**
+- Navigation au clavier : Complète
+- Labels ARIA : Tous présents
+- Focus trap : Implémenté dans modals
+- Annonces screen reader : Système complet
+- Contraste : Vérifié WCAG AA (4.5:1)
 
-## 🎨 Contraste des couleurs
+## Contraste des couleurs
 
 Tous les contrastes ont été vérifiés et respectent WCAG AA :
 
 | Élément | Ratio | Status |
 |---------|-------|--------|
-| Texte principal | 14.9:1 | ✅ AAA |
-| Texte secondaire | 5.1:1 | ✅ AA |
-| Boutons primaires | 4.6:1 | ✅ AA |
-| Messages d'erreur | 4.5:1 | ✅ AA |
-| Messages de succès | 4.5:1 | ✅ AA |
+| Texte principal | 14.9:1 | AAA |
+| Texte secondaire | 5.1:1 | AA |
+| Boutons primaires | 4.6:1 | AA |
+| Messages d'erreur | 4.5:1 | AA |
+| Messages de succès | 4.5:1 | AA |
 
 ## 🧪 Tests recommandés
 
@@ -219,7 +221,7 @@ import { logContrastResults } from '@/lib/contrast-checker';
 logContrastResults();
 ```
 
-## 📝 Exemples d'utilisation
+## Exemples d'utilisation
 
 ### Bouton avec loading
 ```tsx
@@ -271,7 +273,7 @@ logContrastResults();
 />
 ```
 
-## 🚀 Prochaines étapes
+## Prochaines étapes
 
 ### Court terme
 - [ ] Ajouter des skip links sur toutes les pages
@@ -288,20 +290,20 @@ logContrastResults();
 - [ ] Formation de l'équipe sur l'accessibilité
 - [ ] Audit externe WCAG complet
 
-## 🔗 Ressources
+## Ressources
 
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 - [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
 - [NVDA Screen Reader](https://www.nvaccess.org/download/)
 
-## 👥 Contributeurs
+## Contributeurs
 
-- Développeur : AI Assistant
+
 - Date : 20 octobre 2025
 - Branche : `feature/accessibility-improvements`
 
-## 📄 License
+## License
 
 Conforme aux standards du projet Lead Tracker.
 

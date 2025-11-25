@@ -8,7 +8,7 @@ import { Label } from './label';
 import { Lead } from '@/types/lead';
 import { 
   XMarkIcon,
-  CurrencyEuroIcon,
+  CurrencyDollarIcon,
   CalendarIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
@@ -90,9 +90,9 @@ export function QuickEditModal({ isOpen, onClose, lead, onSave }: QuickEditModal
           {/* Value and Probability */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="estimatedValue">Valeur estimée (€)</Label>
+              <Label htmlFor="estimatedValue">Valeur estimée ($)</Label>
               <div className="relative mt-1">
-                <CurrencyEuroIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
                   id="estimatedValue"
                   type="number"
@@ -144,7 +144,7 @@ export function QuickEditModal({ isOpen, onClose, lead, onSave }: QuickEditModal
               id="notes"
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
               rows={4}
               placeholder="Ajoutez des notes sur ce lead..."
             />

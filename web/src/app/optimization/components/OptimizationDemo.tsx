@@ -54,8 +54,8 @@ export default function OptimizationDemo() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">1.2</span>
+              <div className="h-8 w-8 bg-brand-100 rounded-full flex items-center justify-center">
+                <span className="text-brand-600 font-semibold text-sm">1.2</span>
               </div>
             </div>
             <div className="ml-3">
@@ -155,9 +155,9 @@ export default function OptimizationDemo() {
       </div>
 
       {/* Instructions d'utilisation */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-4">Comment utiliser les optimisations</h3>
-        <div className="space-y-3 text-sm text-blue-800">
+      <div className="bg-brand-50 border border-brand-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-brand-900 mb-4">Comment utiliser les optimisations</h3>
+        <div className="space-y-3 text-sm text-brand-800">
           <div className="flex items-start">
             <span className="font-semibold mr-2">1.</span>
             <span>Les pages lourdes (Analytics, Reports, Tasks) sont automatiquement lazy-loadées</span>
@@ -168,7 +168,7 @@ export default function OptimizationDemo() {
           </div>
           <div className="flex items-start">
             <span className="font-semibold mr-2">3.</span>
-            <span>Utilisez <code className="bg-blue-100 px-1 rounded">npm run analyze</code> pour analyser les bundles</span>
+            <span>Utilisez <code className="bg-brand-100 px-1 rounded">npm run analyze</code> pour analyser les bundles</span>
           </div>
           <div className="flex items-start">
             <span className="font-semibold mr-2">4.</span>

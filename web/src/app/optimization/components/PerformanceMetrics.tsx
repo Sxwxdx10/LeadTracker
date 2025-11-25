@@ -215,9 +215,9 @@ export default function PerformanceMetrics() {
       </div>
 
       {/* Recommandations */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-4">Recommandations d'Optimisation</h3>
-        <div className="space-y-3 text-sm text-blue-800">
+      <div className="bg-brand-50 border border-brand-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-brand-900 mb-4">Recommandations d'Optimisation</h3>
+        <div className="space-y-3 text-sm text-brand-800">
           <div className="flex items-start">
             <span className="font-semibold mr-2">1.</span>
             <span>Continuer à utiliser le lazy loading pour les nouvelles pages</span>

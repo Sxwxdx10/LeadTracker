@@ -28,8 +28,26 @@ function extractEmails(text: string): string[] {
  * Normalize phone number to backend format (+1XXXXXXXXXX)
  */
 export function normalizePhoneNumber(phone: string): string | null {
+  if (!phone) return null;
+  
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
+  
+  // If phone already starts with +1, extract the 10 digits after +1
+  if (phone.trim().startsWith('+1')) {
+    // For "+16138664194", digits = "16138664194" (11 digits)
+    // We want the 10 digits after the first 1
+    if (digits.startsWith('1') && digits.length >= 11) {
+      const phoneDigits = digits.substring(1); // Remove leading 1
+      if (phoneDigits.length === 10) {
+        return `+1${phoneDigits}`;
+      }
+    }
+    // If digits don't start with 1 but we have +1 prefix, use all digits
+    if (digits.length === 10) {
+      return `+1${digits}`;
+    }
+  }
   
   // Handle Canadian/US numbers
   if (digits.length === 10) {
@@ -37,14 +55,8 @@ export function normalizePhoneNumber(phone: string): string | null {
     return `+1${digits}`;
   } else if (digits.length === 11 && digits.startsWith('1')) {
     // 11 digits starting with 1 - already has country code
-    return `+${digits}`;
-  } else if (digits.length >= 10 && digits.length <= 11) {
-    // Other valid lengths
-    if (digits.startsWith('1')) {
-      return `+${digits}`;
-    } else {
-      return `+1${digits}`;
-    }
+    // Extract the 10 digits after the leading 1
+    return `+1${digits.substring(1)}`;
   }
   
   return null;
@@ -356,14 +368,15 @@ export function validateExtractedLead(lead: ExtractedLead): { isValid: boolean; 
   // Validate phone number if provided
   if (lead.phoneNumber) {
     // Backend expects format: +1XXXXXXXXXX (Canadian format)
-    const phoneRegex = /^\+?1\d{10}$/;
-    const digits = lead.phoneNumber.replace(/\D/g, '');
-    if (!phoneRegex.test(`+${digits}`) && !phoneRegex.test(lead.phoneNumber)) {
-      // Try to normalize it
-      const normalized = normalizePhoneNumber(lead.phoneNumber);
-      if (!normalized || !phoneRegex.test(normalized)) {
-        errors.push('Format de téléphone invalide. Format attendu: +1XXXXXXXXXX');
-      }
+    const phoneRegex = /^\+1\d{10}$/;
+    const normalized = normalizePhoneNumber(lead.phoneNumber);
+    
+    // If normalization succeeded, use normalized value, otherwise use original
+    const phoneToValidate = normalized || lead.phoneNumber;
+    
+    // Check if it matches the expected format
+    if (!phoneRegex.test(phoneToValidate)) {
+      errors.push('Format de téléphone invalide. Format attendu: +1XXXXXXXXXX');
     }
   }
   

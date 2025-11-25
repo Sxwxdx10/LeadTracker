@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
   ChartBarIcon, 
-  CurrencyEuroIcon, 
+  CurrencyDollarIcon, 
   ClockIcon, 
   UserGroupIcon 
 } from '@heroicons/react/24/outline';
@@ -25,10 +25,10 @@ const metrics = [
   },
   {
     name: 'Revenus Totaux',
-    value: '€45,678',
+    value: '$45,678',
     change: '+8.2%',
     changeType: 'positive',
-    icon: CurrencyEuroIcon,
+    icon: CurrencyDollarIcon,
   },
   {
     name: 'Cycle de Vente Moyen',
@@ -46,7 +46,7 @@ export default function ReportsMetrics() {
         <div key={metric.name} className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <metric.icon className="h-8 w-8 text-blue-600" />
+              <metric.icon className="h-8 w-8 text-brand-600" />
             </div>
             <div className="ml-4 flex-1">
               <p className="text-sm font-medium text-gray-500">{metric.name}</p>

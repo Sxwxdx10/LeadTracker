@@ -184,7 +184,7 @@ export function NotificationCenter({ className = '' }: NotificationCenterProps) 
                   <div
                     key={notification.id}
                     className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      !notification.isRead ? 'bg-blue-50' : ''
+                      !notification.isRead ? 'bg-brand-50' : ''
                     }`}
                     onClick={() => handleNotificationClick(notification)}
                   >

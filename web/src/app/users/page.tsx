@@ -34,7 +34,7 @@ export default function UsersPage() {
                   {stats.totalUsers}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-brand-500" />
             </div>
           </div>
 
@@ -77,7 +77,7 @@ export default function UsersPage() {
 
         {/* Message de statut */}
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-          <UserCheck className="mx-auto h-12 w-12 text-blue-500 mb-4" />
+          <UserCheck className="mx-auto h-12 w-12 text-brand-500 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             🎉 Page des utilisateurs fonctionnelle !
           </h3>
@@ -85,9 +85,9 @@ export default function UsersPage() {
             La page se charge maintenant correctement avec des données statiques.
           </p>
           
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <h4 className="font-medium text-blue-900 mb-2">Statut du développement :</h4>
-            <div className="text-sm text-blue-800 space-y-1">
+          <div className="bg-brand-50 rounded-lg p-4 mb-6">
+            <h4 className="font-medium text-brand-900 mb-2">Statut du développement :</h4>
+            <div className="text-sm text-brand-800 space-y-1">
               <p>✅ Page créée et accessible</p>
               <p>✅ Interface utilisateur fonctionnelle</p>
               <p>✅ Composants de base intégrés</p>
@@ -100,7 +100,7 @@ export default function UsersPage() {
               <strong>Prochaines étapes :</strong> Connecter l'API backend pour la gestion complète des utilisateurs.
             </p>
             
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            <button className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors">
               Inviter un utilisateur (Demo)
             </button>
           </div>

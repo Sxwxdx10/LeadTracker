@@ -4,21 +4,41 @@ import {
   User,
   CreateUserDto,
   UpdateUserDto,
+  UpdateProfileDto,
   InviteUserDto,
   UserQueryParams,
   PaginatedUsersResponse,
   UserStats,
-  Role
+  Role,
+  UserInvitation
 } from '@/types/user';
+import { UserInfo } from '@/types/auth';
 
 // Services API pour les utilisateurs
 export const usersApi = {
   // Récupérer la liste paginée des utilisateurs
   getUsers: async (params?: UserQueryParams): Promise<PaginatedUsersResponse> => {
-    const response: AxiosResponse<PaginatedUsersResponse> = await apiClient.get('/api/users', {
+    const response: AxiosResponse<any> = await apiClient.get('/api/users', {
       params,
     });
-    return response.data;
+
+    const payload = response.data || {};
+    const rawUsers = payload.data ?? payload.users ?? [];
+    const users = Array.isArray(rawUsers) ? rawUsers : [];
+    const totalCount = payload.totalCount ?? payload.count ?? users.length ?? 0;
+    const page = payload.page ?? params?.page ?? 1;
+    const pageSize = payload.pageSize ?? params?.pageSize ?? (users.length || 1);
+    const totalPages = payload.totalPages ?? Math.ceil(totalCount / (pageSize || 1));
+
+    return {
+      data: users,
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: payload.hasNextPage ?? page < totalPages,
+      hasPreviousPage: payload.hasPreviousPage ?? page > 1,
+    };
   },
 
   // Récupérer un utilisateur par ID
@@ -34,14 +54,51 @@ export const usersApi = {
   },
 
   // Inviter un nouvel utilisateur
-  inviteUser: async (data: InviteUserDto): Promise<{ message: string }> => {
-    const response: AxiosResponse<{ message: string }> = await apiClient.post('/api/users/invite', data);
+  inviteUser: async (data: InviteUserDto): Promise<{ success: boolean; message: string; invitationId?: string; invitationUrl?: string }> => {
+    try {
+      const response: AxiosResponse<{ success: boolean; message: string; invitationId?: string; invitationUrl?: string }> = await apiClient.post('/api/users/invite', data);
+      return response.data;
+    } catch (error: any) {
+      // If the backend returns an error response with a body, extract it
+      if (error.response?.data) {
+        // If the response has a success field, it's the InviteUserResponse format
+        if (error.response.data.success !== undefined) {
+          return error.response.data;
+        }
+        // Otherwise, throw with the error message
+        throw new Error(error.response.data.message || error.response.data.error || 'Erreur lors de l\'invitation');
+      }
+      throw error;
+    }
+  },
+
+  // Récupérer les invitations en attente
+  getPendingInvitations: async (): Promise<UserInvitation[]> => {
+    const response: AxiosResponse<UserInvitation[]> = await apiClient.get('/api/users/invitations');
+    return response.data;
+  },
+
+  // Annuler une invitation
+  cancelInvitation: async (invitationId: string): Promise<{ message: string }> => {
+    const response: AxiosResponse<{ message: string }> = await apiClient.delete(`/api/users/invitations/${invitationId}`);
+    return response.data;
+  },
+
+  // Renvoyer une invitation
+  resendInvitation: async (invitationId: string): Promise<{ message: string }> => {
+    const response: AxiosResponse<{ message: string }> = await apiClient.post(`/api/users/invitations/${invitationId}/resend`);
     return response.data;
   },
 
   // Mettre à jour un utilisateur
   updateUser: async (id: string, data: UpdateUserDto): Promise<User> => {
     const response: AxiosResponse<User> = await apiClient.put(`/api/users/${id}`, data);
+    return response.data;
+  },
+
+  // Mettre à jour le profil de l'utilisateur connecté
+  updateCurrentUser: async (data: UpdateProfileDto): Promise<UserInfo> => {
+    const response: AxiosResponse<UserInfo> = await apiClient.put('/api/users/me', data);
     return response.data;
   },
 
@@ -98,11 +155,6 @@ export const usersApi = {
     return response.data;
   },
 
-  // Renvoyer une invitation
-  resendInvitation: async (id: string): Promise<{ message: string }> => {
-    const response: AxiosResponse<{ message: string }> = await apiClient.post(`/api/users/${id}/resend-invitation`);
-    return response.data;
-  },
 };
 
 export default usersApi;

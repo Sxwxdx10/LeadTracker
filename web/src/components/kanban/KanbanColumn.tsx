@@ -22,6 +22,9 @@ interface KanbanColumnProps {
   isOver?: boolean;
   cardSize?: 'small' | 'medium' | 'large';
   cardLayout?: 'compact' | 'detailed';
+  colorScheme?: 'default' | 'colorful' | 'minimal';
+  columnWidth?: number;
+  maxLeadsPerColumn?: number;
   onResize?: (columnId: string, width: number) => void;
   showWipLimit?: boolean;
   onLeadClick?: (lead: KanbanLead) => void;
@@ -35,6 +38,9 @@ export function KanbanColumnComponent({
   isOver = false,
   cardSize = 'medium',
   cardLayout = 'detailed',
+  colorScheme = 'default',
+  columnWidth: propColumnWidth,
+  maxLeadsPerColumn: propMaxLeadsPerColumn,
   onResize,
   showWipLimit = true,
   onLeadClick,
@@ -42,15 +48,23 @@ export function KanbanColumnComponent({
   showSelectCheckboxes = false
 }: KanbanColumnProps) {
   const [isResizing, setIsResizing] = useState(false);
-  const [columnWidth, setColumnWidth] = useState(column.width || 320);
+  const [columnWidth, setColumnWidth] = useState(propColumnWidth || column.width || 320);
   const resizeRef = useRef<HTMLButtonElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
 
-  // Check WIP limit
-  const wipLimit = column.wipLimit || 50;
+  // Check WIP limit - use prop maxLeadsPerColumn if provided, otherwise column.wipLimit or default
+  const wipLimit = propMaxLeadsPerColumn || column.wipLimit || 50;
+  const displayedLeads = leads.slice(0, wipLimit);
   const isOverLimit = leads.length > wipLimit;
   const wipPercentage = wipLimit > 0 ? (leads.length / wipLimit) * 100 : 0;
+  
+  // Update column width when prop changes
+  useEffect(() => {
+    if (propColumnWidth !== undefined) {
+      setColumnWidth(propColumnWidth);
+    }
+  }, [propColumnWidth]);
 
   const { setNodeRef } = useDroppable({
     id: column.id,
@@ -60,7 +74,7 @@ export function KanbanColumnComponent({
     }
   });
 
-  const leadIds = leads.map(lead => lead.id);
+  const leadIds = displayedLeads.map(lead => lead.id);
 
   // Resize functionality
   useEffect(() => {
@@ -100,7 +114,7 @@ export function KanbanColumnComponent({
 
   return (
     <div 
-      className="flex flex-col flex-shrink-0 h-full"
+      className="flex flex-col flex-shrink-0"
       style={{ width: `${columnWidth}px` }}
     >
       {/* Column Header */}
@@ -250,7 +264,7 @@ export function KanbanColumnComponent({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 rounded-lg border-2 border-dashed transition-all duration-200 h-full relative",
+          "flex-1 min-h-0 rounded-lg border-2 border-dashed transition-all duration-200 relative",
           isOver 
             ? "border-brand-500 bg-brand-100 shadow-lg scale-[1.02]" 
             : "border-gray-200 bg-gray-50",
@@ -263,8 +277,8 @@ export function KanbanColumnComponent({
         }}
       >
         <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
-          <div className="p-4 space-y-3 h-full overflow-y-auto">
-            {leads.length === 0 ? (
+          <div className="p-4 space-y-3 h-full overflow-y-auto min-h-0">
+            {displayedLeads.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -278,17 +292,25 @@ export function KanbanColumnComponent({
               </motion.div>
             ) : (
               <div className="space-y-3">
-                {leads.map((lead) => (
+                {displayedLeads.map((lead) => (
                   <KanbanCard 
                     key={lead.id} 
                     lead={lead} 
                     cardSize={cardSize}
                     cardLayout={cardLayout}
+                    colorScheme={colorScheme}
+                    columnColor={column.color}
                     {...(onLeadClick && { onDoubleClick: onLeadClick })}
                     {...(onLeadSelect && { onSelect: onLeadSelect })}
                     showSelectCheckbox={showSelectCheckboxes}
                   />
                 ))}
+                {isOverLimit && (
+                  <div className="text-center py-2 text-xs text-orange-600 bg-orange-50 rounded border border-orange-200">
+                    <ExclamationTriangleIcon className="h-4 w-4 inline mr-1" />
+                    Limite atteinte ({leads.length - displayedLeads.length} lead{leads.length - displayedLeads.length > 1 ? 's' : ''} masqué{leads.length - displayedLeads.length > 1 ? 's' : ''})
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -296,9 +318,9 @@ export function KanbanColumnComponent({
 
         {/* Resizing overlay */}
         {isResizing && (
-          <div className="absolute inset-0 bg-blue-500/10 border-2 border-blue-500 rounded-lg pointer-events-none z-50">
+          <div className="absolute inset-0 bg-brand-500/10 border-2 border-brand-500 rounded-lg pointer-events-none z-50">
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-blue-500 text-white px-3 py-1 rounded shadow-lg text-sm font-medium">
+              <div className="bg-brand-500 text-white px-3 py-1 rounded shadow-lg text-sm font-medium">
                 {columnWidth}px
               </div>
             </div>

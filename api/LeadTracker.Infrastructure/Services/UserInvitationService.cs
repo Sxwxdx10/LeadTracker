@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using LeadTracker.Core.DTOs;
@@ -39,8 +40,12 @@ public class UserInvitationService : IUserInvitationService
 
     public async Task<InviteUserResponse> CreateInvitationAsync(InviteUserRequest request, Guid invitedByUserId, Guid organizationId)
     {
+        _logger.LogInformation("CreateInvitationAsync called for email: {Email}, role: {Role}, invitedBy: {InvitedBy}, orgId: {OrgId}", 
+            request.Email, request.Role, invitedByUserId, organizationId);
+        
         try
         {
+            _logger.LogInformation("Step 1: Checking if user already exists for {Email}", request.Email);
             // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
             if (existingUser != null)
@@ -53,11 +58,13 @@ public class UserInvitationService : IUserInvitationService
             }
 
             // Check if there's already a pending invitation for this email
+            // Note: IsExpired is a computed property, so we need to check ExpiresAt directly
+            var now = DateTime.UtcNow;
             var existingInvitation = await _context.UserInvitations
                 .FirstOrDefaultAsync(i => i.Email == request.Email && 
                                         i.OrganizationId == organizationId && 
                                         !i.IsAccepted && 
-                                        !i.IsExpired);
+                                        i.ExpiresAt > now);
 
             if (existingInvitation != null)
             {
@@ -68,10 +75,38 @@ public class UserInvitationService : IUserInvitationService
                 };
             }
 
-            // Get the inviter user
-            var inviterUser = await _userManager.FindByIdAsync(invitedByUserId.ToString());
+            _logger.LogInformation("Step 4: Resolving inviter user. DomainUserId={DomainUserId}", invitedByUserId);
+
+            // Resolve inviter's domain user (BusinessUser) to get the Identity (ApplicationUser) ID
+            var inviterDomainUser = await _context.BusinessUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == invitedByUserId && u.OrganizationId == organizationId);
+
+            if (inviterDomainUser == null)
+            {
+                _logger.LogWarning("Inviter domain user not found. DomainUserId={DomainUserId}", invitedByUserId);
+                return new InviteUserResponse
+                {
+                    Success = false,
+                    Message = "Invalid inviter user"
+                };
+            }
+
+            if (!inviterDomainUser.IdentityUserId.HasValue)
+            {
+                _logger.LogWarning("Inviter domain user does not have an associated IdentityUserId. DomainUserId={DomainUserId}", invitedByUserId);
+                return new InviteUserResponse
+                {
+                    Success = false,
+                    Message = "Invalid inviter user"
+                };
+            }
+
+            var inviterIdentityUserId = inviterDomainUser.IdentityUserId.Value;
+            var inviterUser = await _userManager.FindByIdAsync(inviterIdentityUserId.ToString());
             if (inviterUser == null)
             {
+                _logger.LogWarning("Inviter identity user not found. IdentityUserId={IdentityUserId}", inviterIdentityUserId);
                 return new InviteUserResponse
                 {
                     Success = false,
@@ -93,6 +128,34 @@ public class UserInvitationService : IUserInvitationService
             // Generate invitation token
             var invitationToken = GenerateInvitationToken();
 
+            _logger.LogInformation("Step 5: Normalizing role name from {OriginalRole}", request.Role);
+            // Normalize role name (map common variations to standard roles)
+            var normalizedRole = NormalizeRoleName(request.Role);
+            _logger.LogInformation("Normalized role: {NormalizedRole}", normalizedRole);
+            
+            _logger.LogInformation("Step 6: Verifying role exists");
+            // Verify role exists or create it
+            var roleExists = await _context.Roles.AnyAsync(r => r.NormalizedName == normalizedRole.ToUpper());
+            if (!roleExists)
+            {
+                _logger.LogInformation("Role {Role} does not exist, creating it", normalizedRole);
+                var role = new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+                {
+                    Id = Guid.NewGuid(),
+                    Name = normalizedRole,
+                    NormalizedName = normalizedRole.ToUpper(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString()
+                };
+                _context.Roles.Add(role);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Role {Role} created successfully", normalizedRole);
+            }
+            else
+            {
+                _logger.LogInformation("Role {Role} already exists", normalizedRole);
+            }
+
+            _logger.LogInformation("Step 7: Creating invitation entity");
             // Create invitation
             var invitation = new UserInvitation
             {
@@ -100,16 +163,20 @@ public class UserInvitationService : IUserInvitationService
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 JobTitle = request.JobTitle,
-                Role = request.Role,
+                Role = normalizedRole,
                 InvitationToken = invitationToken,
                 OrganizationId = organizationId,
-                InvitedByUserId = invitedByUserId,
+                InvitedByUserId = inviterIdentityUserId,
                 ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days expiry
                 Message = request.Message
             };
 
+            _logger.LogInformation("Step 8: Adding invitation to context");
             _context.UserInvitations.Add(invitation);
+            
+            _logger.LogInformation("Step 9: Saving changes to database");
             await _context.SaveChangesAsync();
+            _logger.LogInformation("Invitation saved successfully with ID: {InvitationId}", invitation.Id);
 
             // Send invitation email
             var invitationUrl = GenerateInvitationUrl(invitationToken);
@@ -136,16 +203,62 @@ public class UserInvitationService : IUserInvitationService
             {
                 Success = true,
                 Message = "Invitation sent successfully",
-                InvitationId = invitation.Id
+                InvitationId = invitation.Id,
+                InvitationUrl = invitationUrl
+            };
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Database error creating user invitation for {Email}", request.Email);
+            _logger.LogError(dbEx, "Inner exception: {InnerException}", dbEx.InnerException?.Message);
+            
+            // Check for specific database errors
+            var innerMessage = dbEx.InnerException?.Message ?? "";
+            if (innerMessage.Contains("duplicate key") || innerMessage.Contains("unique constraint"))
+            {
+                return new InviteUserResponse
+                {
+                    Success = false,
+                    Message = "A pending invitation already exists for this email address"
+                };
+            }
+            
+            if (innerMessage.Contains("foreign key") || innerMessage.Contains("violates foreign key constraint"))
+            {
+                return new InviteUserResponse
+                {
+                    Success = false,
+                    Message = "Invalid organization or user reference"
+                };
+            }
+            
+            return new InviteUserResponse
+            {
+                Success = false,
+                Message = $"Database error: {innerMessage}"
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user invitation for {Email}", request.Email);
+            _logger.LogError(ex, "Error creating user invitation for {Email}: {ExceptionMessage}", request.Email, ex.Message);
+            _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
+            _logger.LogError(ex, "Inner exception: {InnerException}", ex.InnerException?.Message);
+            
+            // Return more detailed error message for debugging
+            var errorMessage = $"An error occurred while creating the invitation";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $": {ex.InnerException.Message}";
+            }
+            else
+            {
+                errorMessage += $": {ex.Message}";
+            }
+            
             return new InviteUserResponse
             {
                 Success = false,
-                Message = "An error occurred while creating the invitation"
+                Message = errorMessage
             };
         }
     }
@@ -165,7 +278,8 @@ public class UserInvitationService : IUserInvitationService
             }
 
             // Check if invitation is expired or already accepted
-            if (invitation.IsExpired || invitation.IsAccepted)
+            // Note: IsExpired is a computed property, check ExpiresAt directly
+            if (invitation.ExpiresAt <= DateTime.UtcNow || invitation.IsAccepted)
             {
                 return null;
             }
@@ -209,7 +323,22 @@ public class UserInvitationService : IUserInvitationService
                 return false;
             }
 
-            // Add user to role
+            // Add user to role - ensure role exists first
+            var roleExists = await _context.Roles.AnyAsync(r => r.NormalizedName == invitation.Role.ToUpper());
+            if (!roleExists)
+            {
+                _logger.LogWarning("Role {Role} does not exist, creating it", invitation.Role);
+                var role = new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+                {
+                    Id = Guid.NewGuid(),
+                    Name = invitation.Role,
+                    NormalizedName = invitation.Role.ToUpper(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString()
+                };
+                _context.Roles.Add(role);
+                await _context.SaveChangesAsync();
+            }
+            
             await _userManager.AddToRoleAsync(user, invitation.Role);
 
             // Create domain User entity
@@ -251,9 +380,11 @@ public class UserInvitationService : IUserInvitationService
     {
         try
         {
+            // Note: IsExpired is a computed property, check ExpiresAt directly
+            var now = DateTime.UtcNow;
             return await _context.UserInvitations
                 .Include(i => i.InvitedByUser)
-                .Where(i => i.OrganizationId == organizationId && !i.IsAccepted && !i.IsExpired)
+                .Where(i => i.OrganizationId == organizationId && !i.IsAccepted && i.ExpiresAt > now)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
         }
@@ -310,7 +441,8 @@ public class UserInvitationService : IUserInvitationService
                 .Include(i => i.InvitedByUser)
                 .FirstOrDefaultAsync(i => i.Id == invitationId && i.OrganizationId == organizationId);
 
-            if (invitation == null || invitation.IsAccepted || invitation.IsExpired)
+            // Note: IsExpired is a computed property, check ExpiresAt directly
+            if (invitation == null || invitation.IsAccepted || invitation.ExpiresAt <= DateTime.UtcNow)
             {
                 return false;
             }
@@ -358,6 +490,31 @@ public class UserInvitationService : IUserInvitationService
     private string GenerateInvitationUrl(string token)
     {
         var baseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
-        return $"{baseUrl}/accept-invitation?token={token}";
+        return $"{baseUrl}/register?token={token}";
+    }
+
+    /// <summary>
+    /// Normalize role name from frontend format to backend format
+    /// Maps common role variations to standard role names
+    /// </summary>
+    private string NormalizeRoleName(string role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return "User";
+        }
+
+        // Normalize to lowercase for comparison
+        var normalized = role.Trim().ToLowerInvariant();
+
+        // Map frontend role names to backend role names
+        return normalized switch
+        {
+            "admin" or "administrateur" or "administrator" => "Admin",
+            "manager" => "Manager",
+            "sales_rep" or "salesrep" or "commercial" => "SalesRep",
+            "viewer" or "user" or "lecture seule" => "User",
+            _ => role.Trim() // Keep original if no mapping found
+        };
     }
 }

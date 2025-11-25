@@ -44,8 +44,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         };
       default:
         return {
-          iconColor: 'text-blue-600',
-          bgColor: 'bg-blue-50',
+          iconColor: 'text-brand-600',
+          bgColor: 'bg-brand-50',
           buttonVariant: 'default' as const
         };
     }

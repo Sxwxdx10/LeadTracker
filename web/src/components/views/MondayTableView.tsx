@@ -18,12 +18,26 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/ui/pagination';
 
 interface MondayTableViewProps {
   leads: Lead[];
   onLeadClick?: (lead: Lead) => void;
   onLeadUpdate?: (leadId: string, updates: Partial<Lead>) => Promise<void>;
   onLeadDelete?: (leadId: string) => Promise<void>;
+  // Pagination props
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSize?: number;
+  // Sort props for server-side sorting
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSortChange?: (sortBy: string, sortDirection: 'asc' | 'desc') => void;
 }
 
 // Default columns configuration
@@ -158,10 +172,28 @@ export function MondayTableView({
   leads,
   onLeadClick,
   onLeadUpdate,
-  onLeadDelete
+  onLeadDelete,
+  totalCount,
+  currentPage = 1,
+  totalPages = 1,
+  hasNextPage = false,
+  hasPreviousPage = false,
+  onPageChange,
+  onPageSizeChange,
+  pageSize = 25,
+  sortBy: serverSortBy,
+  sortDirection: serverSortDirection,
+  onSortChange
 }: MondayTableViewProps) {
   const [columns, setColumns] = useState<TableColumnConfig[]>(defaultColumns);
-  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  // Use server-side sort if provided, otherwise use local state
+  const sortConfig = serverSortBy && serverSortDirection 
+    ? { field: serverSortBy, direction: serverSortDirection }
+    : null;
+  const [localSortConfig, setLocalSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  
+  // Determine which sort config to use
+  const effectiveSortConfig = sortConfig || localSortConfig;
   const [groupingField, setGroupingField] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
@@ -192,32 +224,41 @@ export function MondayTableView({
 
   // Handle sorting
   const handleSort = (field: string) => {
-    setSortConfig(prev => {
-      if (prev?.field === field) {
-        return prev.direction === 'asc' 
-          ? { field, direction: 'desc' }
-          : null;
-      }
-      return { field, direction: 'asc' };
-    });
+    const currentField = effectiveSortConfig?.field;
+    const currentDirection = effectiveSortConfig?.direction;
+    const newDirection = currentField === field && currentDirection === 'asc' ? 'desc' : 'asc';
+    
+    // If we have server-side sorting (pagination), notify parent to update server-side
+    if (onSortChange && totalCount !== undefined) {
+      onSortChange(field, newDirection);
+    } else {
+      // Otherwise, use local client-side sorting
+      setLocalSortConfig({ field, direction: newDirection });
+    }
   };
 
-  // Sorted leads
+  // Sorted leads - only sort client-side if no pagination info provided (meaning data is already sorted server-side)
   const sortedLeads = useMemo(() => {
-    if (!sortConfig) return leads;
+    // If we have pagination info, data is already sorted server-side - don't sort again
+    if (totalCount !== undefined && currentPage !== undefined && sortConfig) {
+      return leads;
+    }
+    
+    // Otherwise, sort client-side using local sort config
+    if (!effectiveSortConfig) return leads;
     
     return [...leads].sort((a, b) => {
-      const aValue = (a as any)[sortConfig.field];
-      const bValue = (b as any)[sortConfig.field];
+      const aValue = (a as any)[effectiveSortConfig.field];
+      const bValue = (b as any)[effectiveSortConfig.field];
       
       if (aValue === bValue) return 0;
       if (aValue == null) return 1;
       if (bValue == null) return -1;
       
       const comparison = aValue < bValue ? -1 : 1;
-      return sortConfig.direction === 'asc' ? comparison : -comparison;
+      return effectiveSortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [leads, sortConfig]);
+  }, [leads, effectiveSortConfig, totalCount, currentPage, sortConfig]);
 
   // Filtered leads
   const filteredLeads = useMemo(() => {
@@ -316,7 +357,7 @@ export function MondayTableView({
   const columnIds = visibleColumns.map(col => col.id);
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center space-x-2">
@@ -339,7 +380,7 @@ export function MondayTableView({
           <select
             value={groupingField || ''}
             onChange={(e) => setGroupingField(e.target.value || null)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Pas de regroupement</option>
             {columns
@@ -364,7 +405,7 @@ export function MondayTableView({
       </div>
 
       {/* Table Container */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <div className="min-w-full">
             <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
@@ -377,7 +418,7 @@ export function MondayTableView({
                         type="checkbox"
                         checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
                         onChange={selectAll}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                       />
                     </th>
 
@@ -386,7 +427,7 @@ export function MondayTableView({
                       <TableColumnHeader
                         key={column.id}
                         column={column}
-                        sortConfig={sortConfig}
+                        sortConfig={effectiveSortConfig}
                         onSort={handleSort}
                         filterValue={columnFilters[column.id]}
                         onFilter={handleColumnFilter}
@@ -433,7 +474,7 @@ export function MondayTableView({
                         animate={{ opacity: 1 }}
                         className={cn(
                           "hover:bg-gray-50 border-b border-gray-100",
-                          selectedLeads.has(lead.id) && "bg-blue-50"
+                          selectedLeads.has(lead.id) && "bg-brand-50"
                         )}
                       >
                         {/* Checkbox */}
@@ -442,7 +483,7 @@ export function MondayTableView({
                             type="checkbox"
                             checked={selectedLeads.has(lead.id)}
                             onChange={() => toggleLeadSelection(lead.id)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                           />
                         </td>
 
@@ -474,7 +515,7 @@ export function MondayTableView({
                             {onLeadClick && (
                               <button
                                 onClick={() => onLeadClick(lead)}
-                                className="text-blue-600 hover:text-blue-700 text-sm"
+                                className="text-brand-600 hover:text-brand-700 text-sm"
                               >
                                 Voir
                               </button>
@@ -507,11 +548,25 @@ export function MondayTableView({
         </DndContext>
       </div>
 
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 text-sm text-gray-600">
-        {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} 
-        {filteredLeads.length !== leads.length && ` (${leads.length} au total)`}
-      </div>
+      {/* Footer with pagination */}
+      {totalCount !== undefined && onPageChange && totalPages > 1 ? (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+        />
+      ) : (
+        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''}
+              {totalCount !== undefined && filteredLeads.length !== totalCount && ` sur ${totalCount} total`}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

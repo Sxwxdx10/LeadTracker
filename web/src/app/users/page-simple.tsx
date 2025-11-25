@@ -51,7 +51,7 @@ export default function UsersSimplePage() {
                     {stats.totalUsers}
                   </p>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <Users className="h-8 w-8 text-brand-500" />
               </div>
             </div>
 

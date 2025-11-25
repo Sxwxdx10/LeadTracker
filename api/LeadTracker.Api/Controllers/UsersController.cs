@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using LeadTracker.Core.Entities;
 using LeadTracker.Core.DTOs;
 using LeadTracker.Core.Services;
+using LeadTracker.Core.Models;
 using LeadTracker.Infrastructure;
 using LeadTracker.Api.Attributes;
 using System.Security.Claims;
@@ -40,6 +41,162 @@ public class UsersController : ControllerBase
         _userManager = userManager;
         _currentUserService = currentUserService;
         _tenantContext = tenantContext;
+    }
+
+    /// <summary>
+    /// Update the currently authenticated user's profile
+    /// </summary>
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCurrentUser([FromBody] UpdateProfileRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var currentUserId = _currentUserService.GetCurrentUserId();
+            if (currentUserId == null)
+            {
+                return Unauthorized();
+            }
+
+            var organizationId = _tenantContext.OrganizationId;
+            if (organizationId == null)
+            {
+                return BadRequest(new { message = "Organization not found" });
+            }
+
+            var user = await _context.BusinessUsers
+                .FirstOrDefaultAsync(u => u.Id == currentUserId.Value && u.OrganizationId == organizationId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            ApplicationUser? applicationUser = null;
+            if (user.IdentityUserId.HasValue)
+            {
+                applicationUser = await _userManager.FindByIdAsync(user.IdentityUserId.Value.ToString());
+                if (applicationUser == null)
+                {
+                    _logger.LogWarning("Identity user not found for domain user {UserId}", user.Id);
+                }
+            }
+
+            var hasChanges = false;
+
+            if (!string.IsNullOrWhiteSpace(request.FirstName) && request.FirstName.Trim() != user.FirstName)
+            {
+                user.FirstName = request.FirstName.Trim();
+                hasChanges = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.LastName) && request.LastName.Trim() != user.LastName)
+            {
+                user.LastName = request.LastName.Trim();
+                hasChanges = true;
+            }
+
+            if (request.JobTitle != null && request.JobTitle != user.JobTitle)
+            {
+                user.JobTitle = string.IsNullOrWhiteSpace(request.JobTitle) ? null : request.JobTitle.Trim();
+                hasChanges = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Email) && !string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                var normalizedEmail = request.Email.Trim();
+
+                var emailExists = await _userManager.Users
+                    .AnyAsync(u => u.Email == normalizedEmail && u.OrganizationId == user.OrganizationId && u.Id != user.IdentityUserId);
+
+                if (emailExists)
+                {
+                    return BadRequest(new { message = "Cette adresse email est déjà utilisée." });
+                }
+
+                user.Email = normalizedEmail;
+                hasChanges = true;
+
+                if (applicationUser != null)
+                {
+                    var emailResult = await _userManager.SetEmailAsync(applicationUser, normalizedEmail);
+                    if (!emailResult.Succeeded)
+                    {
+                        return BadRequest(new { message = "Impossible de mettre à jour l'email.", errors = emailResult.Errors });
+                    }
+
+                    var usernameResult = await _userManager.SetUserNameAsync(applicationUser, normalizedEmail);
+                    if (!usernameResult.Succeeded)
+                    {
+                        return BadRequest(new { message = "Impossible de mettre à jour l'identifiant.", errors = usernameResult.Errors });
+                    }
+                }
+            }
+
+            if (!hasChanges)
+            {
+                var existingRoles = applicationUser != null
+                    ? await _userManager.GetRolesAsync(applicationUser)
+                    : new List<string>();
+
+                return Ok(new UserInfo
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    JobTitle = user.JobTitle,
+                    Roles = existingRoles.ToList()
+                });
+            }
+
+            if (applicationUser != null)
+            {
+                applicationUser.FirstName = user.FirstName;
+                applicationUser.LastName = user.LastName;
+                applicationUser.JobTitle = user.JobTitle;
+
+                var identityUpdateResult = await _userManager.UpdateAsync(applicationUser);
+                if (!identityUpdateResult.Succeeded)
+                {
+                    return BadRequest(new { message = "Impossible de mettre à jour le profil utilisateur.", errors = identityUpdateResult.Errors });
+                }
+            }
+
+            _context.BusinessUsers.Update(user);
+            await _context.SaveChangesAsync();
+
+            var roles = applicationUser != null
+                ? await _userManager.GetRolesAsync(applicationUser)
+                : new List<string>();
+
+            _logger.LogInformation("Current user {UserId} updated their profile", user.Id);
+
+            return Ok(new UserInfo
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                FullName = user.FullName,
+                JobTitle = user.JobTitle,
+                Roles = roles.ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating current user profile");
+            return StatusCode(500, new { message = "An error occurred while updating the profile" });
+        }
     }
 
     /// <summary>
@@ -248,7 +405,30 @@ public class UsersController : ControllerBase
                 return Unauthorized();
             }
 
+            _logger.LogInformation("Inviting user {Email} with role {Role} to organization {OrgId}", 
+                request.Email, request.Role, organizationId.Value);
+            
             var result = await _invitationService.CreateInvitationAsync(request, currentUserId.Value, organizationId.Value);
+            
+            _logger.LogInformation("Invitation result: Success={Success}, Message={Message}", 
+                result.Success, result.Message);
+            
+            // Return appropriate HTTP status code based on result
+            if (!result.Success)
+            {
+                _logger.LogWarning("Invitation failed: {Message}", result.Message);
+                // Check if it's a client error (validation, duplicate, etc.) or server error
+                if (result.Message.Contains("already exists") || 
+                    result.Message.Contains("Invalid inviter") || 
+                    result.Message.Contains("Organization not found"))
+                {
+                    return BadRequest(result);
+                }
+                // Server error
+                return StatusCode(500, result);
+            }
+            
+            _logger.LogInformation("Invitation created successfully for {Email}", request.Email);
             return Ok(result);
         }
         catch (Exception ex)
@@ -420,7 +600,7 @@ public class UsersController : ControllerBase
     /// <param name="id">User ID</param>
     /// <param name="request">Update user request</param>
     /// <returns>Success response</returns>
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [RequireAdmin]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -496,6 +496,45 @@ public class LeadTrackerDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.HasIndex(e => e.CreatedAt);
         });
 
+        // Configure UserInvitation
+        builder.Entity<UserInvitation>(entity =>
+        {
+            entity.ToTable("UserInvitations");
+            entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.FirstName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.JobTitle).HasMaxLength(100);
+            entity.Property(e => e.Role).HasMaxLength(50).IsRequired().HasDefaultValue("User");
+            entity.Property(e => e.InvitationToken).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Relationships
+            entity.HasOne(e => e.Organization)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.InvitedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.InvitedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+                  
+            entity.HasOne(e => e.AcceptedUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.AcceptedUserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            
+            // Indexes
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.InvitedByUserId);
+            entity.HasIndex(e => e.Email);
+            entity.HasIndex(e => e.InvitationToken).IsUnique();
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasIndex(e => new { e.OrganizationId, e.Email, e.IsAccepted });
+        });
+
         // Apply global query filters for multi-tenant entities
         // Note: Tenant filtering is disabled in testing mode to allow test data access
         if (!IsTestingMode())

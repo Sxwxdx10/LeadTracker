@@ -3,6 +3,7 @@ using System;
 using LeadTracker.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LeadTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(LeadTrackerDbContext))]
-    partial class LeadTrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251120171436_AddWebsiteToLeads")]
+    partial class AddWebsiteToLeads
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1132,9 +1135,7 @@ namespace LeadTracker.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1181,15 +1182,11 @@ namespace LeadTracker.Infrastructure.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("User");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1198,20 +1195,11 @@ namespace LeadTracker.Infrastructure.Migrations
 
                     b.HasIndex("AcceptedUserId");
 
-                    b.HasIndex("Email");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("InvitationToken")
-                        .IsUnique();
-
                     b.HasIndex("InvitedByUserId");
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("OrganizationId", "Email", "IsAccepted");
-
-                    b.ToTable("UserInvitations", (string)null);
+                    b.ToTable("UserInvitations");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -1638,19 +1626,18 @@ namespace LeadTracker.Infrastructure.Migrations
                 {
                     b.HasOne("LeadTracker.Core.Entities.ApplicationUser", "AcceptedUser")
                         .WithMany()
-                        .HasForeignKey("AcceptedUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("AcceptedUserId");
 
                     b.HasOne("LeadTracker.Core.Entities.ApplicationUser", "InvitedByUser")
                         .WithMany()
                         .HasForeignKey("InvitedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("LeadTracker.Core.Entities.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("AcceptedUser");

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using LeadTracker.Core.Models;
 using LeadTracker.Core.Services;
+using LeadTracker.Core.DTOs;
 using FluentValidation;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,11 +17,16 @@ namespace LeadTracker.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IUserInvitationService _invitationService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService, 
+        IUserInvitationService invitationService,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
+        _invitationService = invitationService;
         _logger = logger;
     }
 
@@ -109,6 +115,41 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error during registration for email {Email}: {Message}. StackTrace: {StackTrace}", 
                 request?.Email, ex.Message, ex.StackTrace);
+            return StatusCode(500, new { message = "An unexpected error occurred during registration", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Register a new user via invitation token
+    /// </summary>
+    /// <param name="request">Registration with invitation request</param>
+    /// <returns>Authentication response with tokens</returns>
+    [HttpPost("register-with-invitation")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RegisterWithInvitation([FromBody] LeadTracker.Core.DTOs.AcceptInvitationRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Register with invitation endpoint called for token {Token}", request?.InvitationToken);
+            var response = await _authService.RegisterWithInvitationAsync(request!);
+            _logger.LogInformation("Registration with invitation successful");
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Registration with invitation failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during registration with invitation: {Message}", ex.Message);
             return StatusCode(500, new { message = "An unexpected error occurred during registration", details = ex.Message });
         }
     }
@@ -263,6 +304,59 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error during logout");
             return StatusCode(500, new { message = "An unexpected error occurred during logout" });
+        }
+    }
+
+    /// <summary>
+    /// Validate an invitation token
+    /// </summary>
+    /// <param name="token">Invitation token</param>
+    /// <returns>Invitation validation response</returns>
+    [HttpGet("validate-invitation")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ValidateInvitation([FromQuery] string token)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest(new { valid = false, message = "Token is required" });
+            }
+
+            var invitation = await _invitationService.ValidateInvitationTokenAsync(token);
+            if (invitation == null)
+            {
+                return Ok(new { 
+                    valid = false, 
+                    message = "Ce lien d'invitation est invalide ou a expiré." 
+                });
+            }
+
+            return Ok(new
+            {
+                valid = true,
+                invitation = new
+                {
+                    email = invitation.Email,
+                    firstName = invitation.FirstName,
+                    lastName = invitation.LastName,
+                    jobTitle = invitation.JobTitle,
+                    role = invitation.Role,
+                    organization = new
+                    {
+                        id = invitation.OrganizationId.ToString(),
+                        name = invitation.Organization.Name,
+                        domain = invitation.Organization.Domain
+                    }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating invitation token");
+            return StatusCode(500, new { valid = false, message = "An error occurred while validating the invitation" });
         }
     }
 

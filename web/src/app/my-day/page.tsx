@@ -178,9 +178,9 @@ export default function MyDayPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Cette semaine</p>
-              <p className="text-3xl font-bold text-blue-600">{totalThisWeekCount}</p>
+              <p className="text-3xl font-bold text-brand-600">{totalThisWeekCount}</p>
             </div>
-            <Clock className="w-12 h-12 text-blue-200" />
+            <Clock className="w-12 h-12 text-brand-200" />
           </div>
         </div>
 
@@ -231,7 +231,7 @@ export default function MyDayPage() {
       {thisWeekTasks.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Clock className="w-6 h-6 text-blue-600" />
+            <Clock className="w-6 h-6 text-brand-600" />
             Cette semaine ({totalThisWeekCount})
           </h2>
           <div className="space-y-3">

@@ -40,6 +40,7 @@ public class InviteUserResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public Guid? InvitationId { get; set; }
+    public string? InvitationUrl { get; set; }
 }
 
 /// <summary>
@@ -93,6 +94,25 @@ public class UpdateUserRequest
 
     [MaxLength(20)]
     public string? PhoneNumber { get; set; }
+}
+
+/// <summary>
+/// Request to update the currently authenticated user's profile
+/// </summary>
+public class UpdateProfileRequest
+{
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    public string? LastName { get; set; }
+
+    [MaxLength(100)]
+    public string? JobTitle { get; set; }
+
+    [MaxLength(255)]
+    [EmailAddress]
+    public string? Email { get; set; }
 }
 
 /// <summary>

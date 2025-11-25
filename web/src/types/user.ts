@@ -36,12 +36,41 @@ export interface UpdateUserDto {
   roles?: string[];
 }
 
+export interface UpdateProfileDto {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  jobTitle?: string;
+}
+
 export interface InviteUserDto {
   firstName: string;
   lastName: string;
   email: string;
   jobTitle?: string;
-  roles: string[];
+  role: string;
+  message?: string;
+}
+
+export interface UserInvitation {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  jobTitle?: string;
+  role: string;
+  invitationToken: string;
+  invitedByUserId: string;
+  expiresAt: string;
+  isAccepted: boolean;
+  acceptedAt?: string;
+  acceptedUserId?: string;
+  message?: string;
+  isExpired: boolean;
+  fullName: string;
+  organizationId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserQueryParams {

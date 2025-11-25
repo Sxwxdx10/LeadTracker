@@ -25,6 +25,7 @@ public class BruteForceSecurityTests : TestBase
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
+    private readonly Mock<IUserInvitationService> _invitationServiceMock;
     private readonly AuthService _authService;
     private readonly Mock<Func<string, System.Threading.Tasks.Task<Organization?>>> _getOrganizationByDomainMock;
 
@@ -42,6 +43,7 @@ public class BruteForceSecurityTests : TestBase
 
         _jwtServiceMock = new Mock<IJwtService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
+        _invitationServiceMock = new Mock<IUserInvitationService>();
         _getOrganizationByDomainMock = new Mock<Func<string, System.Threading.Tasks.Task<Organization?>>>();
 
         _authService = new AuthService(
@@ -50,6 +52,7 @@ public class BruteForceSecurityTests : TestBase
             _jwtServiceMock.Object,
             Context,
             _loggerMock.Object,
+            _invitationServiceMock.Object,
             _getOrganizationByDomainMock.Object);
     }
 

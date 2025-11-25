@@ -184,24 +184,26 @@ public class KanbanService : IKanbanService
         
         // CRITICAL FIX: Automatically update Status based on stage type
         // This ensures consistency between StageId and Status
-        if (stage.IsWonStage)
+        // Mapping: Nouveau -> Open, Qualifié -> Qualified, Proposition/Négociation -> InProgress, Fermé - Gagné -> Won, Fermé - Perdu -> Lost
+        if (stage.IsWonStage || stage.Name == "Fermé - Gagné" || stage.Name == "Won")
         {
             lead.Status = "Won";
         }
-        else if (stage.IsLostStage)
+        else if (stage.IsLostStage || stage.Name == "Fermé - Perdu" || stage.Name == "Lost")
         {
             lead.Status = "Lost";
         }
         else
         {
-            // For normal stages (Nouveau, Qualifié, Proposition, Négociation)
-            // Only set to Open if the lead is currently Won or Lost
-            // This allows leads that are Open/Qualified to remain Open/Qualified
-            if (lead.Status == "Won" || lead.Status == "Lost")
+            // For normal stages, map stage name to status
+            lead.Status = stage.Name switch
             {
-                lead.Status = "Open";
-            }
-            // Otherwise, keep the current status (Open, Qualified, etc.)
+                "Nouveau" => "Open",
+                "Qualifié" => "Qualified",
+                "Proposition" => "InProgress",
+                "Négociation" => "InProgress",
+                _ => lead.Status == "Won" || lead.Status == "Lost" ? "Open" : lead.Status // Fallback: if coming from Won/Lost, set to Open, otherwise keep current
+            };
         }
         
         lead.UpdatedAt = DateTime.UtcNow;

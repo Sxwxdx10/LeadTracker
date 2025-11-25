@@ -87,14 +87,14 @@ export function TableColumnHeader({
           {column.sortable ? (
             <button
               onClick={() => onSort(column.field)}
-              className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+              className="flex items-center gap-1 hover:text-brand-600 transition-colors"
             >
               <span className="font-semibold text-gray-700">{column.label}</span>
               {isSorted && (
                 sortDirection === 'asc' ? (
-                  <ChevronUpIcon className="h-4 w-4 text-blue-600" />
+                  <ChevronUpIcon className="h-4 w-4 text-brand-600" />
                 ) : (
-                  <ChevronDownIcon className="h-4 w-4 text-blue-600" />
+                  <ChevronDownIcon className="h-4 w-4 text-brand-600" />
                 )
               )}
             </button>
@@ -110,7 +110,7 @@ export function TableColumnHeader({
               onClick={() => setShowFilter(!showFilter)}
               className={cn(
                 "p-1 rounded hover:bg-gray-200 transition-colors",
-                filterValue && "text-blue-600 bg-blue-50"
+                filterValue && "text-brand-600 bg-brand-50"
               )}
               aria-label={`Filtrer par ${column.label}`}
             >
@@ -125,7 +125,7 @@ export function TableColumnHeader({
                   placeholder={`Filtrer ${column.label.toLowerCase()}...`}
                   value={localFilterValue}
                   onChange={(e) => handleFilterChange(e.target.value)}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   autoFocus
                 />
                 {filterValue && (
@@ -147,7 +147,7 @@ export function TableColumnHeader({
         {/* Resize Handle */}
         {column.resizable && (
           <div
-            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500"
+            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-500"
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.clientX;

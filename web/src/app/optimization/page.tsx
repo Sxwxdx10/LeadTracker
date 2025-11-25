@@ -61,7 +61,7 @@ export default function OptimizationPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-white text-brand-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >

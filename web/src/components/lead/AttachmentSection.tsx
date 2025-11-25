@@ -57,7 +57,7 @@ const getFileTypeColor = (mimeType: string) => {
   } else if (mimeType.includes('pdf')) {
     return 'bg-red-100 text-red-700';
   } else if (mimeType.includes('word') || mimeType.includes('document')) {
-    return 'bg-blue-100 text-blue-700';
+    return 'bg-brand-100 text-brand-700';
   } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
     return 'bg-green-100 text-green-700';
   } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {

@@ -258,7 +258,7 @@ export function ManualCreateForm({ onSuccess, onCancel }: ManualCreateFormProps)
 
         {/* Estimated Value */}
         <div>
-          <Label htmlFor="estimatedValue">Valeur estimée (€)</Label>
+          <Label htmlFor="estimatedValue">Valeur estimée ($)</Label>
           <Input
             id="estimatedValue"
             type="number"

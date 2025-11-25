@@ -77,9 +77,9 @@ export const formatPercentage = (value: number): string => {
  * Format currency
  */
 export const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'USD',
   }).format(value);
 };
 

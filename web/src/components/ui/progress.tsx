@@ -30,7 +30,7 @@ export function Progress({
   };
 
   const variantClasses = {
-    default: 'bg-blue-600',
+    default: 'bg-brand-600',
     success: 'bg-green-600',
     warning: 'bg-yellow-600',
     error: 'bg-red-600',
@@ -75,7 +75,7 @@ export function LinearProgress({
   variant = 'default' 
 }: LinearProgressProps) {
   const variantClasses = {
-    default: 'bg-blue-600',
+    default: 'bg-brand-600',
     success: 'bg-green-600',
     warning: 'bg-yellow-600',
     error: 'bg-red-600',

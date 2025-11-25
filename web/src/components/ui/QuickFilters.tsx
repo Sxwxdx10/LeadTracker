@@ -40,8 +40,8 @@ export function QuickFilters({
             "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
             "border-2 hover:shadow-sm",
             filter.active
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-              : "bg-white text-gray-700 border-gray-300 hover:border-blue-300 hover:bg-blue-50"
+              ? "bg-brand-600 text-white border-brand-600 shadow-sm"
+              : "bg-white text-gray-700 border-gray-300 hover:border-brand-300 hover:bg-brand-50"
           )}
           style={filter.color && filter.active ? { borderColor: filter.color } : undefined}
         >

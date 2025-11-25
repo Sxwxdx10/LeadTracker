@@ -12,6 +12,32 @@ import {
   Invoice
 } from '@/types/organization';
 
+const mapOrganizationAddress = (org: Organization): Organization['address'] => {
+  if (org.address) {
+    return org.address;
+  }
+
+  const address: NonNullable<Organization['address']> = {};
+
+  if (org.addressStreet) {
+    address.street = org.addressStreet;
+  }
+  if (org.addressCity) {
+    address.city = org.addressCity;
+  }
+  if (org.addressState) {
+    address.state = org.addressState;
+  }
+  if (org.addressPostalCode) {
+    address.postalCode = org.addressPostalCode;
+  }
+  if (org.addressCountry) {
+    address.country = org.addressCountry;
+  }
+
+  return Object.keys(address).length ? address : undefined;
+};
+
 // Services API pour la gestion de l'organisation
 export const organizationApi = {
   // Récupérer les informations de l'organisation
@@ -20,16 +46,11 @@ export const organizationApi = {
     
     // Map backend response to frontend format
     const org = response.data;
+    const mappedAddress = mapOrganizationAddress(org);
     return {
       ...org,
       // Map flat address fields to nested object if needed
-      address: org.address || (org.addressStreet || org.addressCity ? {
-        street: org.addressStreet,
-        city: org.addressCity,
-        state: org.addressState,
-        postalCode: org.addressPostalCode,
-        country: org.addressCountry
-      } : undefined),
+      ...(mappedAddress ? { address: mappedAddress } : {}),
       logoUrl: org.logoUrl || (org as any).logo
     };
   },
@@ -70,15 +91,10 @@ export const organizationApi = {
       
       // Map response back to frontend format
       const org = response.data;
+      const mappedAddress = mapOrganizationAddress(org);
       return {
         ...org,
-        address: org.address || (org.addressStreet || org.addressCity ? {
-          street: org.addressStreet,
-          city: org.addressCity,
-          state: org.addressState,
-          postalCode: org.addressPostalCode,
-          country: org.addressCountry
-        } : undefined),
+        ...(mappedAddress ? { address: mappedAddress } : {}),
         logoUrl: org.logoUrl || (org as any).logo
       };
     } catch (error) {
@@ -237,8 +253,12 @@ export const organizationApi = {
     try {
       const response: AxiosResponse<Integration[]> = await apiClient.get('/api/organization/integrations');
       return response.data;
-    } catch (error) {
-      // Fallback avec données de test
+    } catch (error: any) {
+      // Endpoint n'existe pas encore (404), retourner un tableau vide
+      if (error.response?.status === 404) {
+        return [];
+      }
+      // Fallback avec données de test pour autres erreurs
       return [
         {
           id: 'int-1',

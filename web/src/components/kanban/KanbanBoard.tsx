@@ -21,6 +21,7 @@ import {
 import { KanbanColumn } from '@/types/kanban';
 import { useKanbanBoard, useMoveLead, transformLeadToKanbanLead, createVirtualColumns, transformStatsToKanbanMetrics } from '@/hooks/useKanban';
 import { useSignalR } from '@/hooks/useSignalR';
+import { useLeadStats } from '@/hooks/useLeads';
 import { Lead, Stage } from '@/types/lead';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
@@ -50,12 +51,45 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeIds, setActiveIds] = useState<string[]>([]); // Multiple selected cards
   const [overId, setOverId] = useState<string | null>(null);
-  const [showMetrics, setShowMetrics] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [hasAutoCalculatedLimit, setHasAutoCalculatedLimit] = useState(false);
+
+  // Debug: Log when leads or stages change
+  useEffect(() => {
+    if (leads && leads.length > 0) {
+      console.log('🔄 KanbanBoard: Leads updated', {
+        count: leads.length,
+        statuses: leads.reduce((acc: Record<string, number>, lead) => {
+          acc[lead.status] = (acc[lead.status] || 0) + 1;
+          return acc;
+        }, {}),
+        stages: leads.reduce((acc: Record<string, number>, lead) => {
+          acc[lead.stageId] = (acc[lead.stageId] || 0) + 1;
+          return acc;
+        }, {})
+      });
+    }
+  }, [leads]);
 
   // Undo/Redo and selection management
   const { canUndo, canRedo, undo, redo, addAction, getUndoDescription, getRedoDescription } = useUndoRedo();
-  const { selectedLeads, toggleLeadSelection, clearSelections, setMultiSelectMode, isMultiSelectMode } = useKanbanStore();
+  const { selectedLeads, toggleLeadSelection, clearSelections, setMultiSelectMode, isMultiSelectMode, customization, setCustomization } = useKanbanStore();
+  
+  // Get lead stats from API for metrics (all leads, not just paginated)
+  const { data: leadStats } = useLeadStats();
+  
+  // Get customization settings with defaults
+  const showMetrics = customization.showMetrics ?? true;
+  const cardSize = customization.cardSize ?? 'medium';
+  const columnWidth = customization.columnWidth ?? 320;
+  const colorScheme = customization.colorScheme ?? 'default';
+  const cardLayout = customization.cardLayout ?? 'detailed';
+  
+  // Function to round up to next ten
+  const roundUpToNextTen = (n: number): number => {
+    if (n <= 0) return 10;
+    return Math.ceil(n / 10) * 10;
+  };
   
   // Utiliser les données passées en props au lieu de l'API
   const board = leads && stages ? (() => {
@@ -94,46 +128,45 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
       return lead;
     });
 
-    const totalLeads = correctedLeads.length;
-    const totalValue = correctedLeads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0);
-    // Calcul des statuts - aligné avec le backend et le pie chart
-    // Le pie chart montre: Ouverts, Qualifiés, Gagnés, Perdus séparément
-    const openLeads = correctedLeads.filter(lead => lead.status === 'Open').length;
-    const qualifiedLeads = correctedLeads.filter(lead => lead.status === 'Qualified').length;
-    const wonLeads = correctedLeads.filter(lead => lead.status === 'Won').length;
-    const lostLeads = correctedLeads.filter(lead => lead.status === 'Lost').length;
-    const averageValue = totalLeads > 0 ? totalValue / totalLeads : 0;
-    const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
+    // Create columns first to calculate max leads per column
+    const columns = createVirtualColumns(correctedLeads, stages);
     
-    // Debug logs
-    console.log('📊 Kanban Metrics Calculation:', {
-      totalLeads,
-      wonLeads,
-      openLeads,
-      qualifiedLeads,
-      lostLeads,
-      conversionRate: `${conversionRate.toFixed(1)}%`
-    });
-
-    const metrics = transformStatsToKanbanMetrics({
-      totalLeads,
-      openLeads,
-      qualifiedLeads,
-      wonLeads,
-      lostLeads,
-      totalValue,
-      averageValue,
-      conversionRate
-    });
-    
-    console.log('📈 Transformed Metrics:', {
-      overallConversionRate: metrics.overallConversionRate,
-      totalLeads: metrics.totalLeads,
-      wonLeads: metrics.wonLeads
-    });
+    // Use API stats for metrics (all leads, not just the ones passed)
+    // If stats are not available yet, calculate from current leads as fallback
+    const metrics = leadStats ? transformStatsToKanbanMetrics({
+      totalLeads: leadStats.totalLeads,
+      openLeads: leadStats.openLeads,
+      qualifiedLeads: leadStats.qualifiedLeads,
+      wonLeads: leadStats.wonLeads,
+      lostLeads: leadStats.lostLeads || 0,
+      totalValue: leadStats.totalValue,
+      averageValue: leadStats.averageValue || 0,
+      conversionRate: leadStats.conversionRate
+    }) : (() => {
+      // Fallback: calculate from current leads if stats not available
+      const totalLeads = correctedLeads.length;
+      const totalValue = correctedLeads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0);
+      const openLeads = correctedLeads.filter(lead => lead.status === 'Open').length;
+      const qualifiedLeads = correctedLeads.filter(lead => lead.status === 'Qualified').length;
+      const wonLeads = correctedLeads.filter(lead => lead.status === 'Won').length;
+      const lostLeads = correctedLeads.filter(lead => lead.status === 'Lost').length;
+      const averageValue = totalLeads > 0 ? totalValue / totalLeads : 0;
+      const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
+      
+      return transformStatsToKanbanMetrics({
+        totalLeads,
+        openLeads,
+        qualifiedLeads,
+        wonLeads,
+        lostLeads,
+        totalValue,
+        averageValue,
+        conversionRate
+      });
+    })();
 
     return {
-      columns: createVirtualColumns(correctedLeads, stages),
+      columns,
       leads: correctedLeads.map(lead => transformLeadToKanbanLead(lead)),
       metrics
     };
@@ -143,6 +176,39 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
   
   const moveLeadMutation = useMoveLead();
   const { isConnected } = useSignalR();
+  
+  // Calculate and set maxLeadsPerColumn automatically on first load
+  // Only calculate if we haven't already done so and if the value is still the default (50)
+  useEffect(() => {
+    if (board && board.columns.length > 0 && !hasAutoCalculatedLimit) {
+      // Check if maxLeadsPerColumn is still at default value (50) or undefined
+      const currentMax = customization.maxLeadsPerColumn ?? 50;
+      const isDefaultValue = currentMax === 50;
+      
+      if (isDefaultValue) {
+        // Use leadCount directly from columns (already calculated in createVirtualColumns)
+        const leadsPerColumn = board.columns.map(column => column.leadCount || 0);
+        
+        // Find the maximum
+        const maxCount = Math.max(...leadsPerColumn, 0);
+        
+        // Round up to next ten and set as default
+        if (maxCount > 0) {
+          const autoMax = roundUpToNextTen(maxCount);
+          setCustomization({ maxLeadsPerColumn: autoMax });
+          setHasAutoCalculatedLimit(true);
+        } else {
+          setHasAutoCalculatedLimit(true);
+        }
+      } else {
+        // User has already customized the value, mark as calculated
+        setHasAutoCalculatedLimit(true);
+      }
+    }
+  }, [board, customization.maxLeadsPerColumn, hasAutoCalculatedLimit, setCustomization]);
+  
+  // Get maxLeadsPerColumn from customization or use default
+  const maxLeadsPerColumn = customization.maxLeadsPerColumn ?? 50;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -390,9 +456,9 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
     : activeLead ? [activeLead] : [];
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col w-full ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex-shrink-0 flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">
             Pipeline de Vente
@@ -461,7 +527,7 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
           <Button
             variant={showMetrics ? "default" : "outline"}
             size="sm"
-            onClick={() => setShowMetrics(!showMetrics)}
+            onClick={() => setCustomization({ showMetrics: !showMetrics })}
           >
             <ChartBarIcon className="h-4 w-4 mr-2" />
             Métriques
@@ -480,25 +546,20 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
 
       {/* Metrics */}
       {showMetrics && (
-        <div className="mb-6">
+        <div className="flex-shrink-0 mb-6">
           <KanbanMetrics metrics={board.metrics} />
         </div>
       )}
 
       {/* Customization */}
       {showCustomization && (
-        <div className="mb-6">
-          <KanbanCustomization 
-            onCustomizationChange={(customization) => {
-              // This would be implemented with local state or a context
-              console.log('Customization changed:', customization);
-            }}
-          />
+        <div className="flex-shrink-0 mb-6">
+          <KanbanCustomization />
         </div>
       )}
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-hidden">
+      <div className="w-full overflow-x-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -507,12 +568,21 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <div className="flex space-x-6 h-full overflow-x-auto pb-4 items-stretch">
+          <div 
+            className="flex space-x-6 pb-4 items-stretch"
+            style={{ 
+              gap: '1.5rem',
+              ...(colorScheme === 'minimal' && { 
+                '--kanban-bg': '#f9fafb',
+                '--kanban-border': '#e5e7eb'
+              } as React.CSSProperties)
+            }}
+          >
             {board.columns
               .sort((a, b) => a.order - b.order)
               .map((column) => {
                 // Filter leads for this column with strict validation
-                const columnLeads = board.leads
+                let columnLeads = board.leads
                   .filter(lead => {
                     if (column.isWonStage) {
                       // For Won columns: must have Won status AND be in this specific Won stage
@@ -528,16 +598,28 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
                       if (lead.status === 'Won' || lead.status === 'Lost') {
                         return false;
                       }
-                      // Show leads that are in this specific stage AND have Open/Qualified status
+                      
+                      // CRITICAL: Un lead ne peut apparaître que dans UNE seule colonne
+                      // On utilise uniquement le stageId pour déterminer dans quelle colonne afficher le lead
                       const isInThisStage = lead.stageId === column.id;
-                      const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified';
-                      return isInThisStage && hasOpenStatus;
+                      if (!isInThisStage) {
+                        return false;
+                      }
+                      
+                      // Vérifier que le statut est compatible avec cette étape
+                      const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified' || lead.status === 'InProgress';
+                      return hasOpenStatus;
                     }
                   })
                   .map(lead => ({
                     ...lead,
                     isSelected: selectedLeads.includes(lead.id)
                   }));
+                
+                // Apply max leads per column limit
+                if (columnLeads.length > maxLeadsPerColumn) {
+                  columnLeads = columnLeads.slice(0, maxLeadsPerColumn);
+                }
               
                 return (
                   <KanbanColumnComponent
@@ -547,6 +629,11 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
                     isOver={overId === column.id}
                     onLeadSelect={toggleLeadSelection}
                     showSelectCheckboxes={isMultiSelectMode}
+                    cardSize={cardSize}
+                    cardLayout={cardLayout}
+                    colorScheme={colorScheme}
+                    columnWidth={columnWidth}
+                    maxLeadsPerColumn={maxLeadsPerColumn}
                   />
                 );
               })}
@@ -562,31 +649,43 @@ export function KanbanBoard({ className = '', leads, stages }: KanbanBoardProps)
                   transition={{ duration: 0.2 }}
                   className="flex flex-col gap-2"
                 >
-                  {activeLeads.length === 1 && activeLeads[0] ? (
-                    <div className="transform rotate-3 shadow-2xl">
-                      <KanbanCard lead={activeLeads[0]} isDragging />
-                    </div>
-                  ) : (
+                  {activeLeads.length === 1 && activeLeads[0] ? (() => {
+                    const activeLead = activeLeads[0];
+                    const activeColumn = board.columns.find(c => c.id === activeLead.stageId);
+                    return (
+                      <div className="transform rotate-3 shadow-2xl">
+                        <KanbanCard 
+                          lead={activeLead} 
+                          isDragging 
+                          {...(activeColumn?.color && { columnColor: activeColumn.color })}
+                        />
+                      </div>
+                    );
+                  })() : (
                     <div className="relative">
-                      <div className="bg-blue-500 text-white px-3 py-1 rounded-t-lg text-sm font-semibold mb-2 shadow-lg">
+                      <div className="bg-brand-500 text-white px-3 py-1 rounded-t-lg text-sm font-semibold mb-2 shadow-lg">
                         {activeLeads.length} lead{activeLeads.length > 1 ? 's' : ''} sélectionné{activeLeads.length > 1 ? 's' : ''}
                       </div>
                       <div className="flex flex-col gap-2 max-h-[400px] overflow-auto bg-white rounded-lg shadow-2xl p-2 transform rotate-2">
-                        {activeLeads.slice(0, 5).map((lead, index) => (
-                          <motion.div
-                            key={lead.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                          >
-                            <KanbanCard 
-                              lead={lead} 
-                              isDragging 
-                              cardSize="small"
-                              cardLayout="compact"
-                            />
-                          </motion.div>
-                        ))}
+                        {activeLeads.slice(0, 5).map((lead, index) => {
+                          const leadColumn = board.columns.find(c => c.id === lead.stageId);
+                          return (
+                            <motion.div
+                              key={lead.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                            >
+                              <KanbanCard 
+                                lead={lead} 
+                                isDragging 
+                                cardSize="small"
+                                cardLayout="compact"
+                                {...(leadColumn?.color && { columnColor: leadColumn.color })}
+                              />
+                            </motion.div>
+                          );
+                        })}
                         {activeLeads.length > 5 && (
                           <div className="text-center text-sm text-gray-500 py-2">
                             + {activeLeads.length - 5} autre{activeLeads.length - 5 > 1 ? 's' : ''}

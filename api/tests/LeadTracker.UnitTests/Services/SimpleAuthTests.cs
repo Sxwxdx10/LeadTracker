@@ -22,6 +22,7 @@ public class SimpleAuthTests : TestBase
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
+    private readonly Mock<IUserInvitationService> _invitationServiceMock;
     private readonly AuthService _authService;
 
     public SimpleAuthTests()
@@ -38,13 +39,15 @@ public class SimpleAuthTests : TestBase
 
         _jwtServiceMock = new Mock<IJwtService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
+        _invitationServiceMock = new Mock<IUserInvitationService>();
 
         _authService = new AuthService(
             _userManagerMock.Object,
             _signInManagerMock.Object,
             _jwtServiceMock.Object,
             Context,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _invitationServiceMock.Object);
     }
 
     [Fact]

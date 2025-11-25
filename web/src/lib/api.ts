@@ -44,11 +44,19 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Flag pour éviter les redirections multiples
+let isRedirecting = false;
+
 // Intercepteur pour gérer les erreurs
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    
+    // Ne pas traiter les erreurs si on est déjà en train de rediriger
+    if (isRedirecting) {
+      return Promise.reject(error);
+    }
     
     // Si erreur 401 et pas déjà en cours de rafraîchissement (uniquement côté client)
     if (typeof window !== 'undefined' && error.response?.status === 401 && !originalRequest._retry) {
@@ -73,10 +81,25 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Token de rafraîchissement invalide, rediriger vers login
-        localStorage.clear();
-        window.location.href = '/login';
+        // Token de rafraîchissement invalide, rediriger vers login seulement si on n'est pas déjà sur /login
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          isRedirecting = true;
+          localStorage.clear();
+          // Utiliser replace au lieu de href pour éviter l'historique
+          window.location.replace('/login');
+        }
         return Promise.reject(refreshError);
+      }
+    }
+    
+    // Pour les erreurs réseau (404, timeout, etc.), ne pas rediriger automatiquement
+    // Seulement logger l'erreur
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.response?.status === 404) {
+      console.error('API Error (Network/404):', error.message || error.response?.statusText);
+      // Ne pas rejeter pour les erreurs 404 sur certaines routes (comme les endpoints optionnels)
+      if (originalRequest?.url?.includes('/organization/')) {
+        // Ces endpoints sont optionnels, retourner une erreur silencieuse
+        return Promise.reject(error);
       }
     }
     

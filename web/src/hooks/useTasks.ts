@@ -52,6 +52,8 @@ interface UseTasksReturn {
 /**
  * Hook for managing all tasks with API integration
  */
+const MAX_TASK_PAGE_SIZE = 1000;
+
 export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
   const { autoLoad = true, initialFilters = {} } = options;
   const { user } = useAuth();
@@ -113,27 +115,60 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
       setLoading(true);
       setError(null);
 
-      const queryParams = {
+      const mergedFilters = {
         ...filters,
         ...params,
-        page: params?.page || pagination.page,
-        pageSize: params?.pageSize || pagination.pageSize,
       };
 
-      const response: PaginatedTasksResponse = await tasksApi.getTasks(queryParams);
-      
-      setTasks(response.data);
-      setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        totalCount: response.totalCount,
-        totalPages: response.totalPages,
-        hasNextPage: response.hasNextPage,
-        hasPreviousPage: response.hasPreviousPage,
-      });
+      const { page: _ignoredPage, pageSize: _ignoredPageSize, ...queryFilters } = mergedFilters;
+      const requestedPageSize = params?.pageSize ?? pagination.pageSize ?? 100;
+      const safePageSize = Math.min(requestedPageSize, MAX_TASK_PAGE_SIZE);
 
-      // Calculate stats from fetched tasks
-      setStats(calculateStats(response.data));
+      let currentPage = 1;
+      let hasMorePages = true;
+      const aggregatedTasks: Task[] = [];
+      let lastResponse: PaginatedTasksResponse | null = null;
+
+      while (hasMorePages) {
+        const response: PaginatedTasksResponse = await tasksApi.getTasks({
+          ...queryFilters,
+          page: currentPage,
+          pageSize: safePageSize,
+        });
+
+        aggregatedTasks.push(...response.data);
+        lastResponse = response;
+        hasMorePages = response.hasNextPage;
+        currentPage += 1;
+      }
+
+      setTasks(aggregatedTasks);
+
+      if (lastResponse) {
+        setPagination({
+          page: 1,
+          pageSize: lastResponse.pageSize,
+          totalCount: lastResponse.totalCount,
+          totalPages: lastResponse.totalPages,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        });
+
+        // Calculate stats from aggregated tasks
+        setStats(calculateStats(aggregatedTasks));
+      } else {
+        // No response means no tasks; reset stats and pagination
+        setPagination(prev => ({
+          ...prev,
+          page: 1,
+          pageSize: safePageSize,
+          totalCount: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        }));
+        setStats(calculateStats([]));
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch tasks';
       setError(errorMessage);
@@ -141,7 +176,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.pageSize, calculateStats]);
+  }, [filters, pagination.pageSize, calculateStats]);
 
   /**
    * Create a new task
@@ -282,7 +317,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     if (autoLoad && user) {
       fetchTasks();
     }
-  }, [autoLoad, user, filters, pagination.page]);
+  }, [autoLoad, user, fetchTasks]);
 
   return {
     tasks,

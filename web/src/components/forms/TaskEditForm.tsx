@@ -49,7 +49,7 @@ const taskTypeOptions = [
 
 const priorityOptions = [
   { value: 'Low', label: 'Faible', color: 'bg-gray-100 text-gray-800', description: 'Peut attendre' },
-  { value: 'Medium', label: 'Moyenne', color: 'bg-blue-100 text-blue-800', description: 'Priorité normale' },
+  { value: 'Medium', label: 'Moyenne', color: 'bg-brand-100 text-brand-800', description: 'Priorité normale' },
   { value: 'High', label: 'Élevée', color: 'bg-orange-100 text-orange-800', description: 'Important à faire' },
   { value: 'Urgent', label: 'Urgente', color: 'bg-red-100 text-red-800', description: 'Très urgent, à faire immédiatement' }
 ];
@@ -221,7 +221,7 @@ export function TaskEditForm({
                   className={cn(
                     'p-3 rounded-lg border text-left transition-all',
                     selectedType === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-brand-500 bg-brand-50 text-brand-700'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -249,7 +249,7 @@ export function TaskEditForm({
                   className={cn(
                     'w-full p-3 rounded-lg border text-left transition-all',
                     selectedPriority === option.value
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-brand-500 bg-brand-50'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >

@@ -25,7 +25,7 @@ const getActivityIcon = (type: Activity['type']) => {
     case 'task_completed':
       return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
     case 'task_created':
-      return <CalendarIcon className="h-5 w-5 text-blue-500" />;
+      return <CalendarIcon className="h-5 w-5 text-brand-500" />;
     case 'lead_status_changed':
       return <PencilIcon className="h-5 w-5 text-purple-500" />;
     case 'lead_updated':
@@ -35,7 +35,7 @@ const getActivityIcon = (type: Activity['type']) => {
     case 'call_made':
       return <PhoneIcon className="h-5 w-5 text-green-600" />;
     case 'email_sent':
-      return <EnvelopeIcon className="h-5 w-5 text-blue-600" />;
+      return <EnvelopeIcon className="h-5 w-5 text-brand-600" />;
     case 'meeting_scheduled':
       return <CalendarIcon className="h-5 w-5 text-indigo-500" />;
     default:
@@ -49,7 +49,7 @@ const getActivityColor = (type: Activity['type']) => {
     case 'task_completed':
       return 'bg-green-100 border-green-200';
     case 'task_created':
-      return 'bg-blue-100 border-blue-200';
+      return 'bg-brand-100 border-brand-200';
     case 'lead_status_changed':
       return 'bg-purple-100 border-purple-200';
     case 'lead_updated':
@@ -59,7 +59,7 @@ const getActivityColor = (type: Activity['type']) => {
     case 'call_made':
       return 'bg-green-100 border-green-200';
     case 'email_sent':
-      return 'bg-blue-100 border-blue-200';
+      return 'bg-brand-100 border-brand-200';
     case 'meeting_scheduled':
       return 'bg-indigo-100 border-indigo-200';
     default:

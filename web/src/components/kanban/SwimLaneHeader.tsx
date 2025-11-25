@@ -9,7 +9,7 @@ import {
   ChevronDownIcon, 
   ChevronRightIcon,
   UserGroupIcon,
-  CurrencyEuroIcon,
+  CurrencyDollarIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
@@ -86,8 +86,8 @@ export function SwimLaneHeader({
       <div className="flex items-center space-x-6 flex-shrink-0">
         {/* Count */}
         <div className="flex items-center space-x-1">
-          <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-600">
+          <div className="h-6 w-6 rounded-full bg-brand-100 flex items-center justify-center">
+            <span className="text-xs font-semibold text-brand-600">
               {group.count}
             </span>
           </div>
@@ -96,7 +96,7 @@ export function SwimLaneHeader({
         {/* Total Value */}
         {metrics.totalValue > 0 && (
           <div className="flex items-center space-x-1 text-gray-700">
-            <CurrencyEuroIcon className="h-4 w-4 text-gray-500" />
+            <CurrencyDollarIcon className="h-4 w-4 text-gray-500" />
             <span className="text-sm font-medium">
               {formatCurrency(metrics.totalValue)}
             </span>

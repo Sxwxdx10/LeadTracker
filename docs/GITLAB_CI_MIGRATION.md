@@ -1,40 +1,41 @@
 # Migration CI/CD vers GitLab
 
-## 🎯 Objectif
-Migrer la configuration CI/CD de GitHub Actions vers GitLab CI/CD pour la tâche **"CI GitHub Actions: build/lint/test + image"**.
+## Objectif
 
-## ✅ Critères d'acceptation réalisés
+Migrer la configuration CI/CD de GitHub Actions vers GitLab CI/CD pour la tâche "CI GitHub Actions: build/lint/test + image".
 
-### ✅ Workflow déclenché sur push/PR vers main
+## Critères d'acceptation réalisés
+
+### Workflow déclenché sur push/PR vers main
 - Configuration GitLab CI avec `only: [main, develop]`
 - Déclenchement automatique sur push et merge requests
 
-### ✅ Étapes : restore, build, lint, test
-- **Restore** : `dotnet restore` et `npm ci`
-- **Build** : `dotnet build` et `npm run build`
-- **Lint** : Intégré dans les étapes de build
-- **Test** : Tests unitaires, d'intégration et E2E
+### Étapes : restore, build, lint, test
+- Restore : `dotnet restore` et `npm ci`
+- Build : `dotnet build` et `npm run build`
+- Lint : Intégré dans les étapes de build
+- Test : Tests unitaires, d'intégration et E2E
 
-### ✅ Build d'image Docker multi-stage
+### Build d'image Docker multi-stage
 - Configuration Docker avec buildx
 - Images multi-architecture (linux/amd64, linux/arm64)
 - Cache Docker optimisé
 
-### ✅ Push vers registry avec tags sémantiques
+### Push vers registry avec tags sémantiques
 - Tags basés sur la branche et le commit SHA
 - Tags `latest` pour la branche principale
 - Push vers Azure Container Registry
 
-### ✅ Notifications sur échecs
+### Notifications sur échecs
 - Jobs de notification `notify-success` et `notify-failure`
 - Support pour Slack/Teams (configurable)
 
-### ✅ Cache des dépendances pour performance
+### Cache des dépendances pour performance
 - Cache NuGet pour .NET
 - Cache npm pour Node.js
 - Cache Docker BuildKit
 
-## 📁 Fichiers créés
+## Fichiers créés
 
 ### 1. `.gitlab-ci.yml`
 Configuration principale GitLab CI/CD avec :
@@ -64,7 +65,7 @@ Script de validation de la configuration :
 - Contrôle des variables et services
 - Rapport de validation détaillé
 
-## 🚀 Instructions de déploiement
+## Instructions de déploiement
 
 ### 1. Configuration des variables GitLab
 ```bash
@@ -87,14 +88,14 @@ git push origin feature/test-gitlab-ci
 - Configurer les URLs et variables
 - Tester les déploiements
 
-## 🔄 Différences avec GitHub Actions
+## Différences avec GitHub Actions
 
 ### Avantages GitLab CI
-- **Intégration native** : Pas besoin d'actions externes
-- **Services intégrés** : PostgreSQL et Redis en natif
-- **Cache intelligent** : Cache automatique des dépendances
-- **Environnements** : Gestion native des environnements
-- **Artifacts** : Stockage et partage d'artifacts intégré
+- Intégration native : Pas besoin d'actions externes
+- Services intégrés : PostgreSQL et Redis en natif
+- Cache intelligent : Cache automatique des dépendances
+- Environnements : Gestion native des environnements
+- Artifacts : Stockage et partage d'artifacts intégré
 
 ### Équivalences
 | GitHub Actions | GitLab CI |
@@ -106,29 +107,29 @@ git push origin feature/test-gitlab-ci
 | `artifacts:` | `artifacts:` |
 | `environment:` | `environment:` |
 
-## 🧪 Tests de validation
+## Tests de validation
 
 ### Tests unitaires
-- ✅ Tests .NET avec couverture de code
-- ✅ Tests React/Next.js
-- ✅ Rapports de couverture intégrés
+- Tests .NET avec couverture de code
+- Tests React/Next.js
+- Rapports de couverture intégrés
 
 ### Tests d'intégration
-- ✅ Tests avec base de données PostgreSQL
-- ✅ Tests avec cache Redis
-- ✅ Tests de connectivité
+- Tests avec base de données PostgreSQL
+- Tests avec cache Redis
+- Tests de connectivité
 
 ### Tests E2E
-- ✅ Tests Cypress configurés
-- ✅ Screenshots et vidéos en cas d'échec
-- ✅ Tests optionnels (allow_failure: true)
+- Tests Cypress configurés
+- Screenshots et vidéos en cas d'échec
+- Tests optionnels (allow_failure: true)
 
 ### Tests de sécurité
-- ✅ Scan de sécurité .NET
-- ✅ Vérification des dépendances
-- ✅ Rapports de sécurité
+- Scan de sécurité .NET
+- Vérification des dépendances
+- Rapports de sécurité
 
-## 📊 Monitoring et observabilité
+## Monitoring et observabilité
 
 ### Métriques de pipeline
 - Durée des jobs
@@ -141,7 +142,7 @@ git push origin feature/test-gitlab-ci
 - Intégration Slack/Teams
 - Notifications par environnement
 
-## 🔧 Maintenance
+## Maintenance
 
 ### Mise à jour des images
 - Images .NET et Node.js régulièrement mises à jour
@@ -152,7 +153,7 @@ git push origin feature/test-gitlab-ci
 - Builds parallèles
 - Artifacts compressés
 
-## 📈 Prochaines étapes
+## Prochaines étapes
 
 1. **Migration complète** : Migrer tous les workflows GitHub Actions
 2. **Optimisation** : Ajuster les caches et performances
@@ -160,7 +161,7 @@ git push origin feature/test-gitlab-ci
 4. **Sécurité** : Renforcer les scans de sécurité
 5. **Documentation** : Mettre à jour la documentation technique
 
-## 🆘 Dépannage
+## Dépannage
 
 ### Problèmes courants
 - **Variables manquantes** : Vérifier `.gitlab-ci-variables.md`

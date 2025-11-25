@@ -30,8 +30,8 @@ export function formatDateTime(dateString?: string) {
 
 export function formatCurrency(value?: number) {
   if (!value) return '-';
-  return new Intl.NumberFormat('fr-CA', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'CAD',
+    currency: 'USD',
   }).format(value);
 }

@@ -254,11 +254,11 @@ User Agent: ${navigator.userAgent}
             </div>
 
             {/* Conseils utilisateur */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">
+            <div className="bg-brand-50 border border-brand-200 rounded-md p-4">
+              <h3 className="text-sm font-medium text-brand-800 mb-2">
                 Que pouvez-vous faire ?
               </h3>
-              <ul className="text-xs text-blue-700 space-y-1 text-left">
+              <ul className="text-xs text-brand-700 space-y-1 text-left">
                 <li>• Cliquez sur "Réessayer" pour tenter de continuer</li>
                 <li>• Rechargez la page si le problème persiste</li>
                 <li>• Vérifiez votre connexion internet</li>

@@ -124,7 +124,7 @@ export default function NavigationDemo() {
           </Button>
         </div>
         <Navbar
-          logo={<span className="text-xl font-bold text-blue-600">LeadTracker</span>}
+          logo={<span className="text-xl font-bold text-brand-600">LeadTracker</span>}
           items={showMobileMenu ? navbarItems : []}
           showSearch={true}
           onSearch={(query) => console.log('Recherche:', query)}
@@ -327,7 +327,7 @@ export default function NavigationDemo() {
                     {item.icon}
                     {item.label}
                     {item.badge && (
-                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+                      <span className="px-2 py-1 text-xs bg-brand-100 text-brand-700 rounded-full">
                         {item.badge}
                       </span>
                     )}

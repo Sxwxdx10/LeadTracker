@@ -62,7 +62,7 @@ const taskTypeOptions = [
 // Priority options with colors
 const priorityOptions = [
   { value: 'Low' as const, label: 'Faible', color: 'bg-gray-100 text-gray-800', description: 'Peut être fait plus tard' },
-  { value: 'Medium' as const, label: 'Moyenne', color: 'bg-blue-100 text-blue-800', description: 'Priorité normale' },
+  { value: 'Medium' as const, label: 'Moyenne', color: 'bg-brand-100 text-brand-800', description: 'Priorité normale' },
   { value: 'High' as const, label: 'Élevée', color: 'bg-orange-100 text-orange-800', description: 'Important à faire rapidement' },
   { value: 'Urgent' as const, label: 'Urgente', color: 'bg-red-100 text-red-800', description: 'Très urgent, à faire immédiatement' },
 ];

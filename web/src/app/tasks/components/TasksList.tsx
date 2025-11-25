@@ -257,7 +257,7 @@ export default function TasksList({ tasks, loading = false, onEdit, onDelete, on
             />
           ) : (
             <div className="space-y-4">
-              {filteredTasks.map((task) => renderTaskCard(task, 'border-blue-500'))}
+              {filteredTasks.map((task) => renderTaskCard(task, 'border-brand-500'))}
             </div>
           )}
         </TabsContent>

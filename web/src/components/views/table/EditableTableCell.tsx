@@ -81,7 +81,7 @@ export function EditableTableCell({
       
       case 'status':
         const statusColors: Record<string, string> = {
-          'Open': 'bg-blue-100 text-blue-800',
+          'Open': 'bg-brand-100 text-brand-800',
           'InProgress': 'bg-yellow-100 text-yellow-800',
           'Qualified': 'bg-green-100 text-green-800',
           'Won': 'bg-green-200 text-green-900',
@@ -117,7 +117,7 @@ export function EditableTableCell({
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-2 py-1 border border-blue-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 border border-brand-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         ) : column.type === 'date' ? (
           <input
@@ -126,7 +126,7 @@ export function EditableTableCell({
             value={editValue || ''}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-2 py-1 border border-blue-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 border border-brand-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         ) : column.type === 'status' ? (
           <select
@@ -134,7 +134,7 @@ export function EditableTableCell({
             value={editValue || ''}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-2 py-1 border border-blue-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 border border-brand-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="Open">Ouvert</option>
             <option value="InProgress">En cours</option>
@@ -149,7 +149,7 @@ export function EditableTableCell({
             value={editValue || ''}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="px-2 py-1 border border-blue-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 border border-brand-500 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         )}
         
@@ -175,7 +175,7 @@ export function EditableTableCell({
   return (
     <div
       onClick={onStartEdit}
-      className="min-h-[24px] flex items-center cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 group"
+      className="min-h-[24px] flex items-center cursor-pointer hover:bg-brand-50 rounded px-1 -mx-1 group"
     >
       <span className="flex-1">{renderValue()}</span>
       <PencilIcon className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 ml-2" />

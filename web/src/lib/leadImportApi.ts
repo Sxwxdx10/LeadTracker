@@ -93,13 +93,17 @@ export const leadImportApi = {
   /**
    * Preview CSV import
    */
-  previewCsv: async (file: File, delimiter: string = ',', skipFirstRow: boolean = true): Promise<ImportPreview> => {
+  previewCsv: async (file: File, mapping?: CsvMapping, delimiter: string = ',', skipFirstRow: boolean = true): Promise<ImportPreview> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('delimiter', delimiter);
     formData.append('skipFirstRow', skipFirstRow.toString());
+    
+    if (mapping) {
+      formData.append('mappingJson', JSON.stringify(mapping));
+    }
 
-    const response = await api.post<ImportPreview>('/lead-import/csv/preview', formData, {
+    const response = await api.post<ImportPreview>('/api/lead-import/csv/preview', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -118,7 +122,7 @@ export const leadImportApi = {
       formData.append('mappingJson', JSON.stringify(mapping));
     }
 
-    const response = await api.post<ImportResult>('/lead-import/csv', formData, {
+    const response = await api.post<ImportResult>('/api/lead-import/csv', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -130,7 +134,7 @@ export const leadImportApi = {
    * Preview Google Sheets import
    */
   previewGoogleSheets: async (sheetUrl: string, mapping: SheetMapping): Promise<ImportPreview> => {
-    const response = await api.post<ImportPreview>('/lead-import/google-sheets/preview', {
+    const response = await api.post<ImportPreview>('/api/lead-import/google-sheets/preview', {
       sheetUrl,
       mapping,
     });
@@ -141,7 +145,7 @@ export const leadImportApi = {
    * Import from Google Sheets
    */
   importGoogleSheets: async (sheetUrl: string, mapping: SheetMapping): Promise<ImportResult> => {
-    const response = await api.post<ImportResult>('/lead-import/google-sheets', {
+    const response = await api.post<ImportResult>('/api/lead-import/google-sheets', {
       sheetUrl,
       mapping,
       previewOnly: false,
@@ -156,7 +160,7 @@ export const leadImportApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await api.post<ExtractedLead>('/lead-import/screenshot/extract', formData, {
+    const response = await api.post<ExtractedLead>('/api/lead-import/screenshot/extract', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -168,7 +172,7 @@ export const leadImportApi = {
    * Batch create leads
    */
   batchCreateLeads: async (leads: any[], skipDuplicates: boolean = true, defaultStageId?: string): Promise<ImportResult> => {
-    const response = await api.post<ImportResult>('/lead-import/batch', {
+    const response = await api.post<ImportResult>('/api/lead-import/batch', {
       leads,
       skipDuplicates,
       defaultStageId,
@@ -180,7 +184,7 @@ export const leadImportApi = {
    * Get import history
    */
   getImportHistory: async (page: number = 1, pageSize: number = 20): Promise<ImportHistory[]> => {
-    const response = await api.get<ImportHistory[]>('/lead-import/history', {
+    const response = await api.get<ImportHistory[]>('/api/lead-import/history', {
       params: { page, pageSize },
     });
     return response.data;
@@ -190,7 +194,7 @@ export const leadImportApi = {
    * Get import history by ID
    */
   getImportHistoryById: async (id: string): Promise<ImportHistory> => {
-    const response = await api.get<ImportHistory>(`/lead-import/history/${id}`);
+    const response = await api.get<ImportHistory>(`/api/lead-import/history/${id}`);
     return response.data;
   },
 };

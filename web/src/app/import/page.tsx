@@ -227,7 +227,7 @@ export default function ImportPage() {
                 <div key={step.key} className="flex items-center">
                   <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                     isActive 
-                      ? 'border-blue-500 bg-blue-50 text-blue-600' 
+                      ? 'border-brand-500 bg-brand-50 text-brand-600' 
                       : isCompleted 
                         ? 'border-green-500 bg-green-50 text-green-600'
                         : 'border-gray-300 bg-white text-gray-400'
@@ -235,7 +235,7 @@ export default function ImportPage() {
                     <StepIcon className="h-5 w-5" />
                   </div>
                   <span className={`ml-2 text-sm font-medium ${
-                    isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
+                    isActive ? 'text-brand-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
                   }`}>
                     {step.label}
                   </span>
@@ -287,9 +287,9 @@ export default function ImportPage() {
               </div>
 
               {/* Instructions */}
-              <div className="mt-8 bg-blue-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">Format CSV attendu :</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
+              <div className="mt-8 bg-brand-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-brand-800 mb-2">Format CSV attendu :</h4>
+                <ul className="text-sm text-brand-700 space-y-1">
                   <li>• Première ligne : en-têtes des colonnes</li>
                   <li>• Champs requis : Prénom, Nom, Email</li>
                   <li>• Encodage : UTF-8</li>
@@ -455,7 +455,7 @@ export default function ImportPage() {
                 <div className="bg-white border rounded-lg p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <DocumentTextIcon className="h-8 w-8 text-blue-500" />
+                      <DocumentTextIcon className="h-8 w-8 text-brand-500" />
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-500">Total des lignes</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
@@ -19,7 +20,7 @@ import {
 import { 
   UserIcon,
   CalendarIcon,
-  CurrencyEuroIcon,
+  CurrencyDollarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ClockIcon,
@@ -35,6 +36,8 @@ interface KanbanCardProps {
   isDragging?: boolean;
   cardSize?: 'small' | 'medium' | 'large';
   cardLayout?: 'compact' | 'detailed';
+  colorScheme?: 'default' | 'colorful' | 'minimal';
+  columnColor?: string;
   onDoubleClick?: (lead: KanbanLead) => void;
   onSelect?: (leadId: string, selected: boolean) => void;
   showSelectCheckbox?: boolean;
@@ -45,10 +48,13 @@ export function KanbanCard({
   isDragging = false, 
   cardSize = 'medium',
   cardLayout = 'detailed',
+  colorScheme = 'default',
+  columnColor,
   onDoubleClick,
   onSelect,
   showSelectCheckbox = false
 }: KanbanCardProps) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
@@ -92,7 +98,8 @@ export function KanbanCard({
     if (onDoubleClick) {
       onDoubleClick(lead);
     } else {
-      setIsExpanded(!isExpanded);
+      // Navigate to lead detail page by default
+      router.push(`/leads/${lead.id}`);
     }
   };
 
@@ -130,15 +137,21 @@ export function KanbanCard({
           ? "shadow-xl scale-105 rotate-1 opacity-90 z-50" 
           : "hover:shadow-lg",
         isOverdue && "border-red-300 bg-red-50",
-        lead.isSelected && "ring-2 ring-blue-500 ring-offset-2",
-        cardSizeClasses[cardSize]
+        lead.isSelected && "ring-2 ring-brand-500 ring-offset-2",
+        cardSizeClasses[cardSize],
+        colorScheme === 'minimal' && "border-gray-200",
+        colorScheme === 'colorful' && "border-2"
       )}
     >
       {/* Monday.com Style: Color Bar on Left */}
-      <div 
-        className="absolute left-0 top-0 bottom-0 w-1"
-        style={{ backgroundColor: cardColor }}
-      />
+      {colorScheme !== 'minimal' && (
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ 
+            backgroundColor: columnColor || (colorScheme === 'colorful' ? cardColor : (colorScheme === 'minimal' ? 'transparent' : cardColor))
+          }}
+        />
+      )}
 
       {/* Selection Checkbox */}
       {showSelectCheckbox && (
@@ -150,7 +163,7 @@ export function KanbanCard({
             type="checkbox"
             checked={lead.isSelected || false}
             onChange={() => {}}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -190,7 +203,7 @@ export function KanbanCard({
           <div className="flex items-center justify-between">
             {lead.estimatedValue && (
               <div className="flex items-center font-medium text-gray-900">
-                <CurrencyEuroIcon className="h-4 w-4 text-gray-400 mr-1" />
+                <CurrencyDollarIcon className="h-4 w-4 text-gray-400 mr-1" />
                 {formatCurrency(lead.estimatedValue)}
               </div>
             )}
@@ -207,7 +220,7 @@ export function KanbanCard({
             {lead.assignedUserName && (
               <div className="flex items-center">
                 {lead.avatar || initials ? (
-                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-xs mr-1">
+                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-xs mr-1">
                     {initials}
                   </div>
                 ) : (
@@ -265,7 +278,7 @@ export function KanbanCard({
           <div className="flex items-center justify-between">
           {lead.estimatedValue && (
               <div className="flex items-center font-medium text-gray-900">
-              <CurrencyEuroIcon className="h-4 w-4 text-gray-400 mr-1" />
+              <CurrencyDollarIcon className="h-4 w-4 text-gray-400 mr-1" />
                 {formatCurrency(lead.estimatedValue)}
             </div>
           )}
@@ -287,7 +300,7 @@ export function KanbanCard({
             </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <motion.div 
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-brand-500 to-brand-600 h-2 rounded-full transition-all duration-300"
                   initial={{ width: 0 }}
                   animate={{ width: `${taskProgress}%` }}
               />
@@ -329,7 +342,7 @@ export function KanbanCard({
         {lead.assignedUserName && (
             <div className="flex items-center text-xs text-gray-600">
               {lead.avatar || initials ? (
-                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-xs mr-2">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-xs mr-2">
                   {initials}
                 </div>
               ) : (

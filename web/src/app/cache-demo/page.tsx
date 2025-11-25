@@ -122,7 +122,7 @@ export default function CacheDemoPage() {
                 onClick={() => setSelectedDemo(demo.id)}
                 className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${
                   selectedDemo === demo.id
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-white text-brand-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -140,8 +140,8 @@ export default function CacheDemoPage() {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">{stats.hits}</span>
+                    <div className="h-8 w-8 bg-brand-100 rounded-full flex items-center justify-center">
+                      <span className="text-brand-600 font-semibold text-sm">{stats.hits}</span>
                     </div>
                   </div>
                   <div className="ml-3">
@@ -234,7 +234,7 @@ export default function CacheDemoPage() {
               
               {leadsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <ClockIcon className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+                  <ClockIcon className="h-6 w-6 animate-spin text-brand-600 mr-2" />
                   <span className="text-gray-600">Chargement...</span>
                 </div>
               ) : (
@@ -268,7 +268,7 @@ export default function CacheDemoPage() {
               
               {analyticsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <ClockIcon className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+                  <ClockIcon className="h-6 w-6 animate-spin text-brand-600 mr-2" />
                   <span className="text-gray-600">Chargement...</span>
                 </div>
               ) : (
@@ -282,7 +282,7 @@ export default function CacheDemoPage() {
                     <p className="text-sm text-gray-500">Taux Conversion</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{(analyticsData as any)?.revenue || 0}€</p>
+                    <p className="text-2xl font-bold text-gray-900">${(analyticsData as any)?.revenue || 0}</p>
                     <p className="text-sm text-gray-500">Revenus</p>
                   </div>
                   <div className="text-center">
@@ -318,7 +318,7 @@ export default function CacheDemoPage() {
               
               {tasksLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <ClockIcon className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+                  <ClockIcon className="h-6 w-6 animate-spin text-brand-600 mr-2" />
                   <span className="text-gray-600">Chargement...</span>
                 </div>
               ) : (
@@ -411,7 +411,7 @@ export default function CacheDemoPage() {
                 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <ArrowPathIcon className={`h-5 w-5 ${syncStatus === 'syncing' ? 'animate-spin text-blue-600' : 'text-gray-400'}`} />
+                    <ArrowPathIcon className={`h-5 w-5 ${syncStatus === 'syncing' ? 'animate-spin text-brand-600' : 'text-gray-400'}`} />
                     <span className="font-medium">Synchronisation</span>
                   </div>
                   <Badge variant="outline">

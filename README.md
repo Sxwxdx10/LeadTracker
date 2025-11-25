@@ -1,8 +1,10 @@
-# Lead Tracker 🚀
+# Lead Tracker
 
 Système de gestion de leads multi-tenant avec tableaux Kanban, gestion des tâches et analyses.
 
-## 🏃‍♂️ Démarrage Rapide (< 5 minutes)
+## Démarrage Rapide
+
+Temps estimé : moins de 5 minutes
 
 ### Prérequis
 - [Docker](https://www.docker.com/get-started) et Docker Compose
@@ -33,19 +35,19 @@ Système de gestion de leads multi-tenant avec tableaux Kanban, gestion des tâc
    # Tous les services doivent être "Up" ou "healthy"
    ```
 
-### 🌐 Accès aux Services
+### Accès aux Services
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Web App** | http://localhost:3000 | Application principale |
-| **API** | http://localhost:8080 | API REST |
-| **Swagger** | http://localhost:8080/swagger | Documentation API |
-| **Hangfire** | http://localhost:8080/hangfire | Jobs en arrière-plan |
-| **MailHog** | http://localhost:8025 | Interface email de développement |
-| **PostgreSQL** | localhost:5433 | Base de données |
-| **Redis** | localhost:6379 | Cache et sessions |
+| Web App | http://localhost:3000 | Application principale |
+| API | http://localhost:8080 | API REST |
+| Swagger | http://localhost:8080/swagger | Documentation API |
+| Hangfire | http://localhost:8080/hangfire | Jobs en arrière-plan |
+| MailHog | http://localhost:8025 | Interface email de développement |
+| PostgreSQL | localhost:5433 | Base de données |
+| Redis | localhost:6379 | Cache et sessions |
 
-### 🔧 Commandes Utiles
+### Commandes Utiles
 
 ```bash
 # Voir les logs
@@ -64,7 +66,7 @@ docker-compose build
 docker-compose down -v --remove-orphans
 ```
 
-### 🧪 Tests de Santé
+### Tests de Santé
 
 ```bash
 # Tester l'API
@@ -80,7 +82,7 @@ docker exec leadtracker-db psql -U postgres -d leadtracker -c "SELECT 1;"
 # Réponse attendue: (1 row)
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 - **Backend**: .NET 8 + EF Core + PostgreSQL
 - **Frontend**: Next.js 14 + TypeScript + Tailwind CSS
@@ -89,13 +91,12 @@ docker exec leadtracker-db psql -U postgres -d leadtracker -c "SELECT 1;"
 - **Proxy**: Nginx
 - **Email**: MailHog (développement)
 
-## 📚 Documentation
+## Documentation
 
 - [Issues détaillées](docs/issues/detailed-backlog.md) - Backlog complet avec critères d'acceptation
 - [ADRs](docs/adr/) - Décisions d'architecture
-- [Prochaines étapes](NEXT_STEPS.md) - Guide de développement
 
-## 🐛 Dépannage
+## Dépannage
 
 ### Services qui ne démarrent pas
 ```bash
@@ -122,14 +123,14 @@ ports:
 sudo chown -R $USER:$USER .
 ```
 
-## 🤝 Contribution
+## Contribution
 
 1. Suivre les [ADRs](docs/adr/) pour les décisions techniques
 2. Utiliser les [issues détaillées](docs/issues/detailed-backlog.md) comme référence
 3. Tester avec `docker-compose up -d` avant de commit
 
----
+## Objectif MVP
 
-**🎯 Objectif MVP**: Auth multi-tenant + CRUD leads + Kanban + Tâches/Rappels + Recherche/Filtres + Rapports + Import/Export CSV + CI/CD
+Fonctionnalités principales : Authentification multi-tenant, CRUD leads, Kanban, Tâches et rappels, Recherche et filtres, Rapports, Import/Export CSV, CI/CD.
 
-**⚡ Temps de démarrage**: < 5 minutes avec Docker Compose
+Temps de démarrage : moins de 5 minutes avec Docker Compose.
