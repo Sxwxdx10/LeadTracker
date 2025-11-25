@@ -33,7 +33,7 @@ export function SearchBar({
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             "pl-10 pr-10 h-12 text-base rounded-xl border-gray-200",
-            "focus:border-blue-500 focus:ring-blue-500 focus:ring-2",
+            "focus:border-brand-500 focus:ring-brand-500 focus:ring-2",
             "transition-all duration-200 ease-out",
             "shadow-sm hover:shadow-md focus:shadow-lg"
           )}

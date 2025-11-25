@@ -1,12 +1,14 @@
 # Changelog - Support multilingue (i18n)
 
-## 📅 Date : 20 octobre 2025
+## Date
 
-## 🎯 Objectif
+20 octobre 2025
+
+## Objectif
 
 Implémenter le support multilingue (internationalisation) pour l'application Lead Tracker avec support initial pour le français et l'anglais.
 
-## ✨ Nouveautés
+## Nouveautés
 
 ### 1. Contexte de langue
 
@@ -77,7 +79,7 @@ Guide complet d'internationalisation :
 #### **`docs/I18N_QUICK_START.md`**
 Guide de démarrage rapide pour commencer en 5 minutes.
 
-## 🔧 Fichiers créés
+## Fichiers créés
 
 ```
 web/
@@ -97,7 +99,7 @@ web/
 └── I18N_CHANGELOG.md                 (nouveau)
 ```
 
-## 📊 Statistiques
+## Statistiques
 
 - **7 fichiers créés**
 - **~2500+ lignes de code**
@@ -106,7 +108,7 @@ web/
 - **4 variantes** du sélecteur de langue
 - **100% de couverture** des clés entre les langues
 
-## 🎨 Fonctionnalités
+## Fonctionnalités
 
 ### Traductions simples
 ```tsx
@@ -144,7 +146,7 @@ setLanguage('en');  // Change vers anglais
 - Labels ARIA appropriés
 - Annonces aux lecteurs d'écran
 
-## 🔧 Modifications techniques
+## Modifications techniques
 
 ### Context API
 Utilisation du Context API de React pour :
@@ -166,8 +168,8 @@ Utilisation du Context API de React pour :
 
 | Langue | Code | Drapeau | Statut |
 |--------|------|---------|--------|
-| Français | `fr` | 🇫🇷 | ✅ Complet |
-| Anglais | `en` | 🇬🇧 | ✅ Complet |
+| Français | `fr` | Complet |
+| Anglais | `en` | Complet |
 
 ## 📚 Catégories de traductions
 
@@ -185,7 +187,7 @@ Utilisation du Context API de React pour :
 | `errors` | 10+ | Messages d'erreur |
 | `date` & `time` | 20+ | Dates et temps relatif |
 
-## 🎯 Exemples d'utilisation
+## Exemples d'utilisation
 
 ### Formulaire de connexion
 ```tsx
@@ -249,12 +251,12 @@ function Navbar() {
 ## ♿ Accessibilité
 
 Conforme WCAG 2.1 Level AA :
-- ✅ Attribut `lang` sur `<html>`
-- ✅ Navigation au clavier (Tab, Enter, Escape)
-- ✅ Labels ARIA (`aria-label`, `aria-expanded`, `aria-current`)
-- ✅ Rôles ARIA (`role="menu"`, `role="menuitem"`)
-- ✅ Focus visible
-- ✅ Contraste conforme
+- Attribut `lang` sur `<html>`
+- Navigation au clavier (Tab, Enter, Escape)
+- Labels ARIA (`aria-label`, `aria-expanded`, `aria-current`)
+- Rôles ARIA (`role="menu"`, `role="menuitem"`)
+- Focus visible
+- Contraste conforme
 
 ## 🧪 Tests
 
@@ -280,7 +282,7 @@ act(() => {
 expect(result.current.language).toBe('en');
 ```
 
-## 🚀 Prochaines étapes
+## Prochaines étapes
 
 ### Court terme
 - [ ] Intégrer dans tous les composants existants
@@ -297,23 +299,23 @@ expect(result.current.language).toBe('en');
 - [ ] Traduction automatique avec IA
 - [ ] Support RTL (arabe, hébreu)
 
-## 💡 Bonnes pratiques
+## Bonnes pratiques
 
-### ✅ À faire
+### À faire
 1. Toujours utiliser le hook `useTranslation()`
 2. Grouper les clés par feature
 3. Utiliser des clés descriptives
 4. Maintenir la même structure dans toutes les langues
 5. Tester dans les deux langues
 
-### ❌ À éviter
+### À éviter
 1. Hardcoder du texte
 2. Concaténer des traductions
 3. Oublier de traduire en anglais
 4. Utiliser des clés trop génériques
 5. Dupliquer des traductions
 
-## 🔗 Ressources
+## Ressources
 
 ### Documentation
 - [Guide complet](./docs/I18N.md)
@@ -323,13 +325,13 @@ expect(result.current.language).toBe('en');
 - [W3C Internationalization](https://www.w3.org/International/)
 - [MDN Intl API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl)
 
-## 👥 Contributeurs
+## Contributeurs
 
-- Développeur : AI Assistant
+- Développeur : Kattie Li
 - Date : 20 octobre 2025
 - Branche : `feature/11.2-support-multilingue`
 
-## 📄 License
+## License
 
 Conforme aux standards du projet Lead Tracker.
 

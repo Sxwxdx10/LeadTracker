@@ -128,7 +128,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
                   onResendInvitation(user);
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                className="flex w-full items-center px-3 py-2 text-sm text-brand-600 hover:bg-gray-100"
               >
                 <Mail className="mr-2 h-4 w-4" />
                 Renvoyer l'invitation
@@ -300,8 +300,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <TableRow key={user.id}>
               <TableCell>
                 <div className="flex items-center space-x-3">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-600">
+                  <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-brand-600">
                       {getUserInitials(user)}
                     </span>
                   </div>

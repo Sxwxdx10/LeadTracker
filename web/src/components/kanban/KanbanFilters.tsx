@@ -123,7 +123,7 @@ export function KanbanFilters({ leads, onFilterChange }: KanbanFiltersProps) {
             Filtres
           </h3>
           {hasActiveFilters && (
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+            <span className="bg-brand-100 text-brand-800 text-xs px-2 py-1 rounded-full">
               {filteredLeads.length} / {leads.length}
             </span>
           )}
@@ -177,7 +177,7 @@ export function KanbanFilters({ leads, onFilterChange }: KanbanFiltersProps) {
               ...prev, 
               assignedUserId: e.target.value 
             }))}
-            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Tous les utilisateurs</option>
             {assignedUsers.map(user => (
@@ -198,7 +198,7 @@ export function KanbanFilters({ leads, onFilterChange }: KanbanFiltersProps) {
                 ...prev, 
                 showOverdueOnly: e.target.checked 
               }))}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-gray-600">
               En retard uniquement

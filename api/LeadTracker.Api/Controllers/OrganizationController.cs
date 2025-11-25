@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using LeadTracker.Core.DTOs;
 using LeadTracker.Core.Services;
+using LeadTracker.Api.Attributes;
 
 namespace LeadTracker.Api.Controllers;
 
@@ -54,6 +55,7 @@ public class OrganizationController : ControllerBase
     /// Update organization
     /// </summary>
     [HttpPut]
+    [RequireAdmin]
     [ProducesResponseType(typeof(OrganizationResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -85,6 +87,7 @@ public class OrganizationController : ControllerBase
     /// Upload organization logo
     /// </summary>
     [HttpPost("logo")]
+    [RequireAdmin]
     [ProducesResponseType(typeof(OrganizationLogoResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

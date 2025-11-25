@@ -23,8 +23,8 @@ export default function UsersTestPage() {
             </ul>
           </div>
           
-          <div className="mt-6 p-4 bg-blue-50 rounded-md">
-            <p className="text-blue-800">
+          <div className="mt-6 p-4 bg-brand-50 rounded-md">
+            <p className="text-brand-800">
               Si vous voyez cette page, cela signifie que Next.js fonctionne correctement.
               Le problème de la page /users vient probablement des appels API ou de l'authentification.
             </p>

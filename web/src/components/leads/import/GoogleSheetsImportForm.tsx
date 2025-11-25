@@ -27,7 +27,7 @@ interface GoogleSheetsImportFormProps {
 
 export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImportFormProps) {
   const router = useRouter();
-  const { showToast } = useToast();
+  const toast = useToast();
   const [sheetUrl, setSheetUrl] = useState('');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,13 @@ export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImpo
       setStep('preview');
     } catch (error: any) {
       console.error('Error previewing Google Sheets:', error);
-      showToast.error('Erreur', error?.message || 'Erreur lors de la prévisualisation de la feuille');
+      toast.error(
+        'Erreur',
+        error?.response?.data?.title ||
+          error?.response?.data?.message ||
+          error?.message ||
+          'Erreur lors de la prévisualisation de la feuille'
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +102,7 @@ export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImpo
 
       const result = await leadImportApi.importGoogleSheets(sheetUrl, sheetMapping);
 
-      showToast.success(
+      toast.success(
         'Import réussi',
         `${result.successCount} leads créés avec succès${
           result.duplicateCount > 0 ? ` (${result.duplicateCount} doublons ignorés)` : ''
@@ -107,7 +113,13 @@ export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImpo
       router.refresh();
     } catch (error: any) {
       console.error('Error importing Google Sheets:', error);
-      showToast.error('Erreur', error?.message || "Erreur lors de l'import");
+      toast.error(
+        'Erreur',
+        error?.response?.data?.title ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Erreur lors de l'import"
+      );
       setStep('preview');
     } finally {
       setLoading(false);
@@ -151,12 +163,12 @@ export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImpo
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
+          <h4 className="font-medium text-brand-900 mb-2 flex items-center gap-2">
             <TableCellsIcon className="w-5 h-5" />
             Comment obtenir l'URL ?
           </h4>
-          <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+          <ol className="text-sm text-brand-800 space-y-2 list-decimal list-inside">
             <li>Ouvrez votre feuille Google Sheets</li>
             <li>Cliquez sur "Partager" en haut à droite</li>
             <li>Choisissez "Toute personne disposant du lien"</li>
@@ -326,7 +338,7 @@ export function GoogleSheetsImportForm({ onSuccess, onCancel }: GoogleSheetsImpo
   if (step === 'importing') {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4" />
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4" />
         <p className="text-lg font-medium text-gray-900">Import en cours...</p>
         <p className="text-sm text-gray-500">Veuillez patienter</p>
       </div>

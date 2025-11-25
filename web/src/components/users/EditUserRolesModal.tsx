@@ -89,8 +89,8 @@ export const EditUserRolesModal: React.FC<EditUserRolesModalProps> = ({
         {/* Informations utilisateur */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-blue-600">
+            <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
+              <span className="text-sm font-medium text-brand-600">
                 {`${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()}
               </span>
             </div>

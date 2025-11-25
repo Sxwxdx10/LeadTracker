@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/useToast';
 import { useStages } from '@/hooks/useLeads';
 import { extractLeadFromImage, validateExtractedLead, normalizePhoneNumber } from '@/lib/ocrService';
 import type { ExtractedLead } from '@/lib/leadImportApi';
-import api from '@/lib/api';
+import { leadsApi } from '@/lib/api';
+import type { CreateLeadDto } from '@/types/lead';
 import {
   CameraIcon,
   CheckCircleIcon,
@@ -27,7 +28,7 @@ interface ScreenshotImportFormProps {
 
 export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFormProps) {
   const router = useRouter();
-  const { showToast } = useToast();
+  const showToast = useToast();
   const { data: stages } = useStages();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
@@ -36,6 +37,17 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
   const [ocrProgress, setOcrProgress] = useState(0);
   const [step, setStep] = useState<'upload' | 'review' | 'creating'>('upload');
   const [editedData, setEditedData] = useState<Partial<ExtractedLead>>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset form
+  const handleReset = useCallback(() => {
+    setFile(null);
+    setPreview('');
+    setExtractedData(null);
+    setEditedData({});
+    setStep('upload');
+    setOcrProgress(0);
+  }, []);
 
   // Determine a sensible default stage for new leads
   const defaultStageId = useMemo(() => {
@@ -46,12 +58,11 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
         s.name.toLowerCase().includes('nouveau') ||
         s.name.toLowerCase().includes('new')
     );
-    return (preferred || stages[0]).id;
+    return (preferred || stages[0])?.id;
   }, [stages]);
 
-  // Handle file drop
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const imageFile = acceptedFiles[0];
+  // Process image file (shared logic for drop and paste)
+  const processImageFile = useCallback(async (imageFile: File) => {
     if (!imageFile) return;
 
     setFile(imageFile);
@@ -76,7 +87,14 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
       setLoading(false);
       setOcrProgress(0);
     }
-  }, [showToast]);
+  }, [showToast, handleReset]);
+
+  // Handle file drop
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const imageFile = acceptedFiles[0];
+    if (!imageFile) return;
+    await processImageFile(imageFile);
+  }, [processImageFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -84,6 +102,52 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
     maxFiles: 1,
     disabled: loading || step !== 'upload',
   });
+
+  // Handle paste from clipboard (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Only handle paste when in upload step and not loading
+      if (step !== 'upload' || loading) return;
+
+      // Don't interfere if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      // Look for image in clipboard
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item) continue;
+        
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault();
+          
+          const blob = item.getAsFile();
+          if (!blob) return;
+
+          // Convert blob to File
+          const file = new File([blob], `pasted-image-${Date.now()}.png`, {
+            type: blob.type || 'image/png',
+          });
+
+          await processImageFile(file);
+          showToast.success('Image collée', "L'image a été collée depuis le presse-papiers");
+          break;
+        }
+      }
+    };
+
+    // Add paste event listener
+    window.addEventListener('paste', handlePaste);
+
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [step, loading, processImageFile, showToast]);
 
   // Handle field edit
   const handleFieldChange = (field: keyof ExtractedLead, value: string) => {
@@ -106,6 +170,8 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
     const normalizedData = { ...editedData };
     if (normalizedData.phoneNumber) {
       const normalized = normalizePhoneNumber(normalizedData.phoneNumber);
+      // Always use normalized value if available, otherwise keep original
+      // (validation will handle format checking)
       if (normalized) {
         normalizedData.phoneNumber = normalized;
       }
@@ -114,7 +180,11 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
     // Validate
     const validation = validateExtractedLead(normalizedData as ExtractedLead);
     if (!validation.isValid) {
-      showToast.error('Validation échouée', validation.errors[0]);
+      const errorMessage = validation.errors.length > 0 
+        ? validation.errors.join('. ') 
+        : 'Erreur de validation inconnue';
+      console.error('Validation errors:', validation.errors, 'Data:', normalizedData);
+      showToast.error('Validation échouée', errorMessage);
       return;
     }
 
@@ -127,20 +197,37 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
         ? `${normalizedData.firstName} ${normalizedData.lastName}`
         : normalizedData.company || normalizedData.firstName || normalizedData.lastName || 'Lead sans nom';
 
-      const leadData = {
+      // Build lead data object, only including fields that have values
+      const leadData: CreateLeadDto = {
         title,
-        firstName: normalizedData.firstName || undefined,
-        lastName: normalizedData.lastName || undefined,
-        email: normalizedData.email || undefined,
-        phoneNumber: normalizedData.phoneNumber || undefined,
-        website: normalizedData.website || undefined,
-        company: normalizedData.company || undefined,
-        jobTitle: normalizedData.jobTitle || undefined,
         source: 'Screenshot OCR',
         stageId: defaultStageId,
       };
 
-      await api.post('/leads', leadData);
+      // Add optional fields only if they have values
+      if (normalizedData.firstName) {
+        leadData.firstName = normalizedData.firstName;
+      }
+      if (normalizedData.lastName) {
+        leadData.lastName = normalizedData.lastName;
+      }
+      if (normalizedData.email) {
+        leadData.email = normalizedData.email;
+      }
+      if (normalizedData.phoneNumber) {
+        leadData.phoneNumber = normalizedData.phoneNumber;
+      }
+      if (normalizedData.website) {
+        leadData.website = normalizedData.website;
+      }
+      if (normalizedData.company) {
+        leadData.company = normalizedData.company;
+      }
+      if (normalizedData.jobTitle) {
+        leadData.jobTitle = normalizedData.jobTitle;
+      }
+
+      await leadsApi.createLead(leadData);
 
       showToast.success('Succès', 'Le lead a été créé avec succès');
 
@@ -155,32 +242,22 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
     }
   };
 
-  // Reset form
-  const handleReset = () => {
-    setFile(null);
-    setPreview('');
-    setExtractedData(null);
-    setEditedData({});
-    setStep('upload');
-    setOcrProgress(0);
-  };
-
   if (step === 'upload') {
     return (
-      <div className="space-y-6">
+      <div ref={containerRef} className="space-y-6">
         <div
           {...getRootProps()}
           className={`
             border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
             transition-colors duration-200
-            ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+            ${isDragActive ? 'border-brand-500 bg-brand-50' : 'border-gray-300 hover:border-gray-400'}
             ${loading ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
           <input {...getInputProps()} />
           <PhotoIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
           {isDragActive ? (
-            <p className="text-lg font-medium text-blue-600">
+            <p className="text-lg font-medium text-brand-600">
               Déposez l'image ici...
             </p>
           ) : (
@@ -190,6 +267,9 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
               </p>
               <p className="text-sm text-gray-500 mb-4">
                 ou cliquez pour sélectionner une image
+              </p>
+              <p className="text-xs text-gray-400 mb-3">
+                Vous pouvez aussi coller une image avec Ctrl+V (ou Cmd+V sur Mac)
               </p>
               <Button type="button" variant="outline" size="sm">
                 Sélectionner une image
@@ -206,19 +286,19 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-blue-600 h-2 transition-all duration-300"
+                className="bg-brand-600 h-2 transition-all duration-300"
                 style={{ width: `${ocrProgress}%` }}
               />
             </div>
           </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
+          <h4 className="font-medium text-brand-900 mb-2 flex items-center gap-2">
             <CameraIcon className="w-5 h-5" />
             Comment ça marche ?
           </h4>
-          <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+          <ol className="text-sm text-brand-800 space-y-2 list-decimal list-inside">
             <li>Prenez une capture d'écran ou photo d'une carte de visite</li>
             <li>Téléchargez l'image ci-dessus</li>
             <li>L'OCR extrait automatiquement les informations</li>
@@ -307,8 +387,8 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
         <div className="space-y-4">
           <h4 className="font-medium text-gray-900">Données extraites - Vérifiez et corrigez si nécessaire</h4>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-brand-800">
               <span className="font-medium">⚠️ Requis:</span> Au moins un email <span className="font-medium">ou</span> un numéro de téléphone doit être fourni.
             </p>
           </div>
@@ -469,7 +549,7 @@ export function ScreenshotImportForm({ onSuccess, onCancel }: ScreenshotImportFo
   if (step === 'creating') {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4" />
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4" />
         <p className="text-lg font-medium text-gray-900">Création en cours...</p>
         <p className="text-sm text-gray-500">Veuillez patienter</p>
       </div>

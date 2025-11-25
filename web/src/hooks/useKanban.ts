@@ -75,12 +75,25 @@ export const createVirtualColumns = (leads: Lead[], stages: any[]): KanbanColumn
     // RÈGLE IMPORTANTE : Un lead fermé ne peut PAS conserver son stage d'origine
     // Seuls les leads avec des statuts "ouverts" peuvent rester dans leur stage d'origine
     
-    // For ALL stages (including "Nouveau"), show leads that are in this specific stage AND have Open status
+    // CRITICAL: Un lead ne peut apparaître que dans UNE seule colonne
+    // On utilise uniquement le stageId pour déterminer dans quelle colonne afficher le lead
+    // Le statut est utilisé uniquement pour valider que le lead peut être dans cette colonne
     const stageLeads = leads.filter(lead => {
+      // Exclude Won/Lost leads from normal stages
+      if (lead.status === 'Won' || lead.status === 'Lost') {
+        return false;
+      }
+      
+      // Un lead apparaît dans une colonne UNIQUEMENT s'il est dans cette étape (stageId)
       const isInThisStage = lead.stageId === stage.id;
+      if (!isInThisStage) {
+        return false;
+      }
+      
+      // Vérifier que le statut est compatible avec cette étape
       // Statuts ouverts: Open et Qualified (aligné avec le backend)
-      const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified';
-      return isInThisStage && hasOpenStatus;
+      const hasOpenStatus = lead.status === 'Open' || lead.status === 'Qualified' || lead.status === 'InProgress';
+      return hasOpenStatus;
     });
     
     
@@ -273,32 +286,63 @@ const kanbanApi = {
       }
     }
     
-    // Update the lead's status and stage, including all required fields
+    // Build update data - only include valid fields to avoid 400 errors
     const updateData: any = {
-      title: currentLead.title, // Required field
-      firstName: currentLead.firstName,
-      lastName: currentLead.lastName,
-      email: currentLead.email,
-      // Only include phoneNumber if it's valid or null/empty
-      phoneNumber: currentLead.phoneNumber && currentLead.phoneNumber.match(/^\+?1\d{10}$/) 
-        ? currentLead.phoneNumber 
-        : null,
-      company: currentLead.company,
-      jobTitle: currentLead.jobTitle,
-      estimatedValue: currentLead.estimatedValue,
-      probability: currentLead.probability,
-      expectedCloseDate: currentLead.expectedCloseDate,
-      notes: currentLead.notes,
-      source: currentLead.source,
-      status: newStatus,
-      stageId: newStageId
+      title: currentLead.title || 'Untitled Lead', // Required, ensure it's never empty
+      stageId: newStageId, // Required
+      status: newStatus, // Include status explicitly
     };
+    
+    // Only include optional fields if they have valid values
+    if (currentLead.firstName) updateData.firstName = currentLead.firstName;
+    if (currentLead.lastName) updateData.lastName = currentLead.lastName;
+    
+    // Email: only include if it's a valid email format
+    if (currentLead.email && currentLead.email.includes('@')) {
+      updateData.email = currentLead.email;
+    }
+    
+    // PhoneNumber: only include if it matches Canadian format
+    if (currentLead.phoneNumber) {
+      const phoneRegex = /^\+?1\d{10}$/;
+      if (phoneRegex.test(currentLead.phoneNumber)) {
+        updateData.phoneNumber = currentLead.phoneNumber;
+      }
+      // If it doesn't match, don't include it (backend will keep existing value)
+    }
+    
+    // Website: only include if it's a valid URL
+    if (currentLead.website) {
+      try {
+        new URL(currentLead.website);
+        updateData.website = currentLead.website;
+      } catch {
+        // Invalid URL, don't include it
+      }
+    }
+    
+    if (currentLead.company) updateData.company = currentLead.company;
+    if (currentLead.jobTitle) updateData.jobTitle = currentLead.jobTitle;
+    if (currentLead.estimatedValue !== undefined && currentLead.estimatedValue !== null) {
+      updateData.estimatedValue = currentLead.estimatedValue;
+    }
+    if (currentLead.probability !== undefined && currentLead.probability !== null) {
+      // Ensure probability is between 0 and 100
+      updateData.probability = Math.max(0, Math.min(100, currentLead.probability));
+    }
+    if (currentLead.expectedCloseDate) updateData.expectedCloseDate = currentLead.expectedCloseDate;
+    if (currentLead.notes) updateData.notes = currentLead.notes;
+    if (currentLead.source) updateData.source = currentLead.source;
     
     try {
       const updatedLead = await leadsApi.updateLead(request.leadId, updateData);
       return transformLeadToKanbanLead(updatedLead);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [MOVE LEAD] Update failed:', error);
+      // Log the actual error response for debugging
+      if (error.response?.data) {
+        console.error('❌ [MOVE LEAD] Error details:', error.response.data);
+      }
       throw error;
     }
   },
@@ -367,11 +411,41 @@ export const useMoveLead = () => {
 
   return useMutation({
     mutationFn: kanbanApi.moveLead,
-    onSuccess: () => {
-      // Simple invalidation - no optimistic update to avoid duplication
-      queryClient.invalidateQueries({ queryKey: kanbanKeys.board() });
-      queryClient.invalidateQueries({ queryKey: kanbanKeys.metrics() });
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    onSuccess: async (updatedKanbanLead) => {
+      // Récupérer le lead complet depuis l'API pour avoir toutes les données
+      try {
+        const updatedLead = await leadsApi.getLead(updatedKanbanLead.id);
+        
+        // Mise à jour optimiste dans toutes les listes de leads
+        queryClient.setQueriesData(
+          { queryKey: ['leads', 'list'] },
+          (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data.map((lead: Lead) => 
+                lead.id === updatedLead.id ? updatedLead : lead
+              ),
+            };
+          }
+        );
+        
+        // Mettre à jour aussi le cache du lead individuel
+        queryClient.setQueryData(['leads', 'detail', updatedLead.id], updatedLead);
+      } catch (error) {
+        console.error('Error fetching updated lead:', error);
+      }
+      
+      // Invalidate and immediately refetch all related queries to refresh UI in real-time
+      queryClient.invalidateQueries({ queryKey: kanbanKeys.board(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: kanbanKeys.metrics(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['leads'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['leads', 'list'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['leads', 'stats'], refetchType: 'active' });
+      
+      // Force immediate refetch of active queries
+      queryClient.refetchQueries({ queryKey: ['leads', 'list'] });
+      queryClient.refetchQueries({ queryKey: ['leads', 'stats'] });
     },
     onError: (error) => {
       console.error('Error moving lead:', error);
@@ -471,9 +545,9 @@ export const getStageById = (stages: KanbanColumn[], stageId: string): KanbanCol
 };
 
 export const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'USD',
   }).format(value);
 };
 

@@ -156,8 +156,8 @@ export default function ExportPreview() {
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">3</span>
+              <div className="h-8 w-8 bg-brand-100 rounded-full flex items-center justify-center">
+                <span className="text-brand-600 font-semibold text-sm">3</span>
               </div>
             </div>
             <div className="ml-3">

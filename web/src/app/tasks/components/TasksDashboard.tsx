@@ -35,8 +35,8 @@ export default function TasksDashboard({ stats, loading = false }: TasksDashboar
       name: 'En cours',
       value: stats.inProgress,
       icon: ClockIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: 'text-brand-600',
+      bgColor: 'bg-brand-100'
     },
     {
       name: 'En retard',

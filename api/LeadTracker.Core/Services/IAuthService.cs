@@ -1,5 +1,6 @@
 using LeadTracker.Core.Models;
 using LeadTracker.Core.Entities;
+using LeadTracker.Core.DTOs;
 
 namespace LeadTracker.Core.Services;
 
@@ -12,6 +13,11 @@ public interface IAuthService
     /// Registers a new user and organization
     /// </summary>
     Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    
+    /// <summary>
+    /// Registers a new user via invitation token
+    /// </summary>
+    Task<AuthResponse> RegisterWithInvitationAsync(AcceptInvitationRequest request);
     
     /// <summary>
     /// Authenticates a user and returns tokens

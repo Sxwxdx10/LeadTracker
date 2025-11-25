@@ -63,9 +63,9 @@ export default function AnalyticsPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'CAD',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
         {loading && (
           <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
               <span className="ml-4 text-gray-600">Chargement des données analytics...</span>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                  <div className="w-8 h-8 bg-brand-500 rounded-md flex items-center justify-center">
                     <ChartBarIcon className="h-4 w-4 text-white" />
                   </div>
                 </div>
@@ -465,9 +465,13 @@ export default function AnalyticsPage() {
                             data={sourceAnalysisData}
                             cx="50%"
                             cy="50%"
-                            labelLine={false}
-                            label={({ source, conversionRate }) => `${source}: ${conversionRate}%`}
-                            outerRadius={80}
+                            labelLine={true}
+                            label={({ source, conversionRate, percent }) => {
+                              // Only hide labels for very small segments (< 0.5%) to avoid clutter
+                              if (percent < 0.005) return null;
+                              return `${source}: ${conversionRate}%`;
+                            }}
+                            outerRadius={70}
                             fill="#8884d8"
                             dataKey="revenue"
                           >
@@ -768,7 +772,7 @@ export default function AnalyticsPage() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">
+                        <div className="text-2xl font-bold text-brand-600">
                           {temporalTrendData.reduce((sum, item) => sum + item.leads, 0)}
                         </div>
                         <div className="text-sm text-gray-600">Leads totaux</div>

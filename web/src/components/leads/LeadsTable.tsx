@@ -43,9 +43,9 @@ interface LeadsTableProps {
 // Fonction utilitaire pour formater la devise
 const formatCurrency = (value?: number) => {
   if (!value) return '-';
-  return new Intl.NumberFormat('fr-CA', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'CAD',
+    currency: 'USD',
   }).format(value);
 };
 

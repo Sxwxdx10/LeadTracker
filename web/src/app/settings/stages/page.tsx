@@ -224,7 +224,7 @@ export default function StagesManagementPage() {
                   {stats.totalStages}
                 </p>
               </div>
-              <Settings className="h-8 w-8 text-blue-500" />
+              <Settings className="h-8 w-8 text-brand-500" />
             </div>
           </div>
 
@@ -244,11 +244,11 @@ export default function StagesManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Leads moyens/étape</p>
-                <p className="text-2xl font-semibold text-blue-600">
+                <p className="text-2xl font-semibold text-brand-600">
                   {stats.averageLeadsPerStage}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-brand-500" />
             </div>
           </div>
         </div>

@@ -85,7 +85,7 @@ export function TimelineView({ leads, onLeadClick }: TimelineViewProps) {
                 className={cn(
                   "px-3 py-1 rounded-md text-sm transition-colors",
                   timeScale === option.value
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 )}
               >
@@ -107,7 +107,7 @@ export function TimelineView({ leads, onLeadClick }: TimelineViewProps) {
           
           <button
             onClick={goToToday}
-            className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors"
+            className="px-3 py-1 rounded-md bg-brand-600 text-white text-sm hover:bg-brand-700 transition-colors"
           >
             Aujourd'hui
           </button>
@@ -173,7 +173,7 @@ export function TimelineView({ leads, onLeadClick }: TimelineViewProps) {
                     </span>
                     {lead.estimatedValue && (
                       <span className="text-sm font-semibold text-gray-900">
-                        {lead.estimatedValue.toLocaleString('fr-FR')} €
+                        ${lead.estimatedValue.toLocaleString('en-US')}
                       </span>
                     )}
                   </div>

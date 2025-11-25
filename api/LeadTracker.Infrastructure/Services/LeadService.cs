@@ -32,14 +32,19 @@ public class LeadService : ILeadService
     {
         _logger.LogInformation("GetLeadsAsync called with query: {Query}", System.Text.Json.JsonSerializer.Serialize(query));
         
+        var organizationId = _tenantContext.OrganizationId;
+        if (!organizationId.HasValue)
+        {
+            throw new InvalidOperationException("Organization context is not available");
+        }
+        
+        _logger.LogInformation("LeadsQuery created, checking tenant context...");
+        _logger.LogInformation("Current organization ID: {OrgId}", organizationId);
+        
         var leadsQuery = _context.GetLeadsForCurrentTenant()
             .Include(l => l.Stage)
             .Include(l => l.AssignedUser)
             .AsQueryable();
-            
-        _logger.LogInformation("LeadsQuery created, checking tenant context...");
-        var orgId = _tenantContext.OrganizationId;
-        _logger.LogInformation("Current organization ID: {OrgId}", orgId);
 
         // Apply search filter
         if (!string.IsNullOrEmpty(query.SearchTerm))
@@ -94,8 +99,8 @@ public class LeadService : ILeadService
             "company" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.Company) : leadsQuery.OrderByDescending(l => l.Company),
             "estimatedvalue" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.EstimatedValue) : leadsQuery.OrderByDescending(l => l.EstimatedValue),
             "probability" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.Probability) : leadsQuery.OrderByDescending(l => l.Probability),
-            "stage" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.Stage.Name) : leadsQuery.OrderByDescending(l => l.Stage.Name),
-            "assigneduser" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.AssignedUser!.FirstName) : leadsQuery.OrderByDescending(l => l.AssignedUser!.FirstName),
+            "stage" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.Stage != null ? l.Stage.Name : string.Empty) : leadsQuery.OrderByDescending(l => l.Stage != null ? l.Stage.Name : string.Empty),
+            "assigneduser" => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.AssignedUser != null ? l.AssignedUser.FirstName : string.Empty) : leadsQuery.OrderByDescending(l => l.AssignedUser != null ? l.AssignedUser.FirstName : string.Empty),
             _ => query.SortDirection == "asc" ? leadsQuery.OrderBy(l => l.CreatedAt) : leadsQuery.OrderByDescending(l => l.CreatedAt)
         };
 
@@ -183,35 +188,110 @@ public class LeadService : ILeadService
     public async Task<LeadResponseDto?> UpdateLeadAsync(Guid id, UpdateLeadDto updateDto)
     {
         var lead = await _context.GetLeadsForCurrentTenant()
+            .Include(l => l.Stage)
             .FirstOrDefaultAsync(l => l.Id == id);
 
         if (lead == null)
             return null;
 
-        // Update properties
-        lead.Title = updateDto.Title;
-        lead.FirstName = updateDto.FirstName;
-        lead.LastName = updateDto.LastName;
-        lead.Email = updateDto.Email;
-        lead.PhoneNumber = updateDto.PhoneNumber;
-        lead.Website = updateDto.Website;
-        lead.Company = updateDto.Company;
-        lead.JobTitle = updateDto.JobTitle;
-        lead.EstimatedValue = updateDto.EstimatedValue;
-        lead.Probability = updateDto.Probability;
+        // Get all stages for the organization to enable status-stage synchronization
+        var organizationId = _tenantContext.OrganizationId;
+        var stages = await _context.GetStagesForCurrentTenant().ToListAsync();
+
+        // Determine if status or stage was explicitly changed
+        bool statusChanged = !string.IsNullOrEmpty(updateDto.Status) && updateDto.Status != lead.Status;
+        bool stageChanged = updateDto.StageId != Guid.Empty && updateDto.StageId != lead.StageId;
+
+        _logger.LogInformation("🔄 [SYNC] Lead {LeadId} update - Status changed: {StatusChanged}, Stage changed: {StageChanged}", 
+            id, statusChanged, stageChanged);
+        _logger.LogInformation("🔄 [SYNC] Current - Status: {CurrentStatus}, StageId: {CurrentStageId}", 
+            lead.Status, lead.StageId);
+        _logger.LogInformation("🔄 [SYNC] Update DTO - Status: {UpdateStatus}, StageId: {UpdateStageId}", 
+            updateDto.Status, updateDto.StageId);
+
+        // SYNC LOGIC: Priority to explicit changes
+        // If stage is explicitly changed, always sync status from stage (this handles Kanban moves)
+        if (stageChanged)
+        {
+            var newStage = stages.FirstOrDefault(s => s.Id == updateDto.StageId);
+            if (newStage != null)
+            {
+                var matchingStatus = FindStatusByStage(newStage, stages);
+                if (!string.IsNullOrEmpty(matchingStatus))
+                {
+                    _logger.LogInformation("🔄 [SYNC] Stage changed to {StageName}, syncing status to {NewStatus}", 
+                        newStage.Name, matchingStatus);
+                    updateDto.Status = matchingStatus;
+                    statusChanged = true; // Mark as changed so we don't override it below
+                }
+            }
+        }
+        
+        // If status is explicitly changed (and stage wasn't explicitly changed), update the stage to match
+        // Also check if the current stageId doesn't match the new status
+        if (statusChanged && !stageChanged)
+        {
+            var matchingStage = FindStageByStatus(updateDto.Status, stages);
+            if (matchingStage != null)
+            {
+                // Check if the current stageId matches the expected stage for this status
+                var currentStage = stages.FirstOrDefault(s => s.Id == lead.StageId);
+                var shouldUpdateStage = currentStage == null || 
+                                       (updateDto.Status == "Qualified" && currentStage.Name != "Qualifié") ||
+                                       (updateDto.Status == "Open" && currentStage.Name != "Nouveau") ||
+                                       (updateDto.Status == "InProgress" && currentStage.Name != "Proposition" && currentStage.Name != "Négociation");
+                
+                if (shouldUpdateStage)
+                {
+                    _logger.LogInformation("🔄 [SYNC] Status changed to {NewStatus}, syncing stage to {StageName}", 
+                        updateDto.Status, matchingStage.Name);
+                    updateDto.StageId = matchingStage.Id;
+                    stageChanged = true; // Mark as changed so it gets updated
+                }
+            }
+        }
+        
+        _logger.LogInformation("🔄 [SYNC] Final values - Status: {FinalStatus}, StageId: {FinalStageId}", 
+            updateDto.Status, updateDto.StageId);
+
+        // Update properties - always update Status and StageId if they were set in sync logic
+        if (!string.IsNullOrEmpty(updateDto.Title))
+            lead.Title = updateDto.Title;
+        if (updateDto.FirstName != null)
+            lead.FirstName = updateDto.FirstName;
+        if (updateDto.LastName != null)
+            lead.LastName = updateDto.LastName;
+        if (updateDto.Email != null)
+            lead.Email = updateDto.Email;
+        if (updateDto.PhoneNumber != null)
+            lead.PhoneNumber = updateDto.PhoneNumber;
+        if (updateDto.Website != null)
+            lead.Website = updateDto.Website;
+        if (updateDto.Company != null)
+            lead.Company = updateDto.Company;
+        if (updateDto.JobTitle != null)
+            lead.JobTitle = updateDto.JobTitle;
+        if (updateDto.EstimatedValue.HasValue)
+            lead.EstimatedValue = updateDto.EstimatedValue;
+        if (updateDto.Probability >= 0)
+            lead.Probability = updateDto.Probability;
         // Convert DateTime to UTC if it has a value
-        lead.ExpectedCloseDate = updateDto.ExpectedCloseDate.HasValue 
-            ? DateTime.SpecifyKind(updateDto.ExpectedCloseDate.Value, DateTimeKind.Utc) 
-            : null;
-        lead.Notes = updateDto.Notes;
-        lead.Source = updateDto.Source;
-        lead.Status = updateDto.Status;
+        if (updateDto.ExpectedCloseDate.HasValue)
+            lead.ExpectedCloseDate = DateTime.SpecifyKind(updateDto.ExpectedCloseDate.Value, DateTimeKind.Utc);
+        if (updateDto.Notes != null)
+            lead.Notes = updateDto.Notes;
+        if (updateDto.Source != null)
+            lead.Source = updateDto.Source;
+        // Always update Status and StageId (they may have been synchronized above)
+        if (!string.IsNullOrEmpty(updateDto.Status))
+            lead.Status = updateDto.Status;
         // Convert DateTime to UTC if it has a value
-        lead.LastContactedAt = updateDto.LastContactedAt.HasValue 
-            ? DateTime.SpecifyKind(updateDto.LastContactedAt.Value, DateTimeKind.Utc) 
-            : null;
-        lead.StageId = updateDto.StageId;
-        lead.AssignedUserId = updateDto.AssignedUserId;
+        if (updateDto.LastContactedAt.HasValue)
+            lead.LastContactedAt = DateTime.SpecifyKind(updateDto.LastContactedAt.Value, DateTimeKind.Utc);
+        if (updateDto.StageId != Guid.Empty)
+            lead.StageId = updateDto.StageId;
+        if (updateDto.AssignedUserId.HasValue)
+            lead.AssignedUserId = updateDto.AssignedUserId;
         lead.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -241,6 +321,12 @@ public class LeadService : ILeadService
 
     public async Task<LeadStatsDto> GetLeadStatsAsync()
     {
+        var organizationId = _tenantContext.OrganizationId;
+        if (!organizationId.HasValue)
+        {
+            throw new InvalidOperationException("Organization context is not available");
+        }
+
         var leads = await _context.GetLeadsForCurrentTenant().ToListAsync();
 
         var totalLeads = leads.Count;
@@ -490,6 +576,7 @@ public class LeadService : ILeadService
 
             var stages = await baseQuery
                 .Include(l => l.Stage)
+                .Where(l => l.Stage != null)
                 .GroupBy(l => new { l.StageId, l.Stage!.Name, l.Stage.Color })
                 .Select(g => new FilterOption
                 {
@@ -747,8 +834,8 @@ public class LeadService : ILeadService
             "name" => request.SortDirection == "asc" ? query.OrderBy(l => l.FullName) : query.OrderByDescending(l => l.FullName),
             "email" => request.SortDirection == "asc" ? query.OrderBy(l => l.Email) : query.OrderByDescending(l => l.Email),
             "company" => request.SortDirection == "asc" ? query.OrderBy(l => l.Company) : query.OrderByDescending(l => l.Company),
-            "stage" => request.SortDirection == "asc" ? query.OrderBy(l => l.Stage!.Name) : query.OrderByDescending(l => l.Stage!.Name),
-            "owner" => request.SortDirection == "asc" ? query.OrderBy(l => l.AssignedUser!.FirstName) : query.OrderByDescending(l => l.AssignedUser!.FirstName),
+            "stage" => request.SortDirection == "asc" ? query.OrderBy(l => l.Stage != null ? l.Stage.Name : string.Empty) : query.OrderByDescending(l => l.Stage != null ? l.Stage.Name : string.Empty),
+            "owner" => request.SortDirection == "asc" ? query.OrderBy(l => l.AssignedUser != null ? l.AssignedUser.FirstName : string.Empty) : query.OrderByDescending(l => l.AssignedUser != null ? l.AssignedUser.FirstName : string.Empty),
             "lastactivity" => request.SortDirection == "asc" ? query.OrderBy(l => l.LastContactedAt) : query.OrderByDescending(l => l.LastContactedAt),
             _ => request.SortDirection == "asc" ? query.OrderBy(l => l.CreatedAt) : query.OrderByDescending(l => l.CreatedAt)
         };
@@ -822,6 +909,46 @@ public class LeadService : ILeadService
             })
             .Take(limit)
             .ToList();
+    }
+
+    /// <summary>
+    /// Find the appropriate stage based on the lead status
+    /// Mapping: Open -> Nouveau, Qualified -> Qualifié, InProgress -> Proposition, Won -> Fermé - Gagné, Lost -> Fermé - Perdu
+    /// </summary>
+    private static Stage? FindStageByStatus(string status, List<Stage> stages)
+    {
+        return status.ToLower() switch
+        {
+            "open" => stages.FirstOrDefault(s => s.Name == "Nouveau"),
+            "qualified" => stages.FirstOrDefault(s => s.Name == "Qualifié"),
+            "inprogress" => stages.FirstOrDefault(s => s.Name == "Proposition" || s.Name == "Négociation") 
+                            ?? stages.FirstOrDefault(s => s.Name == "Proposition"), // Default to Proposition if both exist
+            "won" => stages.FirstOrDefault(s => s.IsWonStage || s.Name == "Fermé - Gagné" || s.Name == "Won"),
+            "lost" => stages.FirstOrDefault(s => s.IsLostStage || s.Name == "Fermé - Perdu" || s.Name == "Lost"),
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Find the appropriate status based on the stage
+    /// Mapping: Nouveau -> Open, Qualifié -> Qualified, Proposition/Négociation -> InProgress, Fermé - Gagné -> Won, Fermé - Perdu -> Lost
+    /// </summary>
+    private static string? FindStatusByStage(Stage stage, List<Stage> stages)
+    {
+        if (stage.IsWonStage || stage.Name == "Fermé - Gagné" || stage.Name == "Won")
+            return "Won";
+        
+        if (stage.IsLostStage || stage.Name == "Fermé - Perdu" || stage.Name == "Lost")
+            return "Lost";
+        
+        return stage.Name switch
+        {
+            "Nouveau" => "Open",
+            "Qualifié" => "Qualified",
+            "Proposition" => "InProgress",
+            "Négociation" => "InProgress",
+            _ => null
+        };
     }
 
     private static LeadSearchResult MapToSearchResult(Lead lead)

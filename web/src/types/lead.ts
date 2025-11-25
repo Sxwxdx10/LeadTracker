@@ -42,9 +42,9 @@ export interface Stage {
 
 export interface CreateLeadDto {
   title: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phoneNumber?: string;
   website?: string;
   company?: string;

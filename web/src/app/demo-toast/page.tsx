@@ -79,7 +79,7 @@ export default function ToastDemoPage() {
                 </Button>
                 <Button
                   onClick={() => toast.info('Information importante')}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                 >
                   Information
                 </Button>

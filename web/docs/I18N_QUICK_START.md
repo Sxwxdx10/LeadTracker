@@ -1,4 +1,6 @@
-# 🚀 i18n Quick Start - En 5 minutes
+# Guide de démarrage rapide - Internationalisation (i18n)
+
+Temps estimé : 5 minutes
 
 ## 1. Configuration initiale
 
@@ -123,5 +125,4 @@ t('forms.validation.invalidEmail') // Email invalide
 
 ## Prochaines étapes
 
-📖 [Documentation complète](./I18N.md) pour plus de détails et d'exemples !
-
+Consultez la [documentation complète](./I18N.md) pour plus de détails et d'exemples.

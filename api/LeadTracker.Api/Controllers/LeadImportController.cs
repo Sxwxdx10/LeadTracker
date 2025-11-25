@@ -38,7 +38,8 @@ public class LeadImportController : ControllerBase
     public async Task<IActionResult> PreviewCsvImport(
         [FromForm] IFormFile file,
         [FromForm] string? delimiter = ",",
-        [FromForm] bool skipFirstRow = true)
+        [FromForm] bool skipFirstRow = true,
+        [FromForm] string? mappingJson = null)
     {
         try
         {
@@ -52,12 +53,30 @@ public class LeadImportController : ControllerBase
                 return BadRequest(new { message = "File size exceeds 50MB limit" });
             }
 
-            var mapping = new CsvMappingDto
+            CsvMappingDto mapping;
+            if (!string.IsNullOrWhiteSpace(mappingJson))
             {
-                Delimiter = delimiter ?? ",",
-                SkipFirstRow = skipFirstRow,
-                ColumnMapping = new Dictionary<string, string>() // Will be detected from headers
-            };
+                mapping = System.Text.Json.JsonSerializer.Deserialize<CsvMappingDto>(mappingJson) 
+                          ?? new CsvMappingDto
+                          {
+                              Delimiter = delimiter ?? ",",
+                              SkipFirstRow = skipFirstRow,
+                              ColumnMapping = new Dictionary<string, string>()
+                          };
+                
+                // Ensure delimiter and skipFirstRow are set
+                if (string.IsNullOrEmpty(mapping.Delimiter))
+                    mapping.Delimiter = delimiter ?? ",";
+            }
+            else
+            {
+                mapping = new CsvMappingDto
+                {
+                    Delimiter = delimiter ?? ",",
+                    SkipFirstRow = skipFirstRow,
+                    ColumnMapping = new Dictionary<string, string>() // Will be auto-detected
+                };
+            }
 
             using var stream = file.OpenReadStream();
             var preview = await _importService.PreviewCsvImportAsync(stream, file.FileName, mapping);
@@ -130,7 +149,21 @@ public class LeadImportController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error importing from CSV");
-            return StatusCode(500, new { message = "An error occurred while importing leads", error = ex.Message });
+            
+            // Extract detailed error information
+            var errorMessage = ex.Message;
+            if (ex.InnerException != null)
+            {
+                errorMessage += $" | Inner: {ex.InnerException.Message}";
+            }
+            
+            // Check for DbUpdateException
+            if (ex is Microsoft.EntityFrameworkCore.DbUpdateException dbEx && dbEx.InnerException != null)
+            {
+                errorMessage = $"Erreur de base de données: {dbEx.InnerException.Message}";
+            }
+            
+            return StatusCode(500, new { message = "An error occurred while importing leads", error = errorMessage });
         }
     }
 

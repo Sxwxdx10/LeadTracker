@@ -230,6 +230,7 @@ export function useFilterPanel() {
   }, [filters]);
 
   // Apply client-side filtering with Kanban logic
+  // Only applies filters that are NOT already handled by the API server-side
   const applyClientSideFilters = useCallback((
     leads: Lead[], 
     stages: Stage[], 
@@ -237,41 +238,67 @@ export function useFilterPanel() {
   ): Lead[] => {
     let filteredLeads = leads;
     
-    // Apply stage filtering with Kanban logic
-    if (filterState.stageIds.length > 0) {
+    // Apply stage filtering with Kanban logic (only if multiple stages or complex logic)
+    // If only one stage is selected, it's already filtered server-side
+    if (filterState.stageIds.length > 1) {
+      filteredLeads = mapStageFilterToKanbanLogic(filterState.stageIds, stages, filteredLeads);
+    } else if (filterState.stageIds.length === 1) {
+      // Single stage - already filtered server-side, but apply Kanban logic for edge cases
       filteredLeads = mapStageFilterToKanbanLogic(filterState.stageIds, stages, filteredLeads);
     }
     
-    // Apply other filters
-    if (filterState.searchTerm) {
-      const searchLower = filterState.searchTerm.toLowerCase();
-      filteredLeads = filteredLeads.filter(lead =>
-        lead.title.toLowerCase().includes(searchLower) ||
-        lead.firstName?.toLowerCase().includes(searchLower) ||
-        lead.lastName?.toLowerCase().includes(searchLower) ||
-        lead.email?.toLowerCase().includes(searchLower) ||
-        lead.company?.toLowerCase().includes(searchLower) ||
-        lead.notes?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    if (filterState.ownerIds.length > 0) {
+    // Apply filters that are NOT supported by the API:
+    // - Multiple owners (API only supports one)
+    if (filterState.ownerIds.length > 1) {
       filteredLeads = filteredLeads.filter(lead => 
         lead.assignedUserId && filterState.ownerIds.includes(lead.assignedUserId)
       );
     }
     
-    if (filterState.statuses.length > 0) {
+    // - Multiple statuses (API only supports one)
+    if (filterState.statuses.length > 1) {
       filteredLeads = filteredLeads.filter(lead => 
         filterState.statuses.includes(lead.status)
       );
     }
     
+    // - Companies filter (not supported by API)
     if (filterState.companies.length > 0) {
       filteredLeads = filteredLeads.filter(lead => 
         lead.company && filterState.companies.includes(lead.company)
       );
     }
+    
+    // - Value range (not supported by API)
+    if (filterState.valueRange.min !== undefined || filterState.valueRange.max !== undefined) {
+      filteredLeads = filteredLeads.filter(lead => {
+        const value = lead.estimatedValue || 0;
+        if (filterState.valueRange.min !== undefined && value < filterState.valueRange.min) {
+          return false;
+        }
+        if (filterState.valueRange.max !== undefined && value > filterState.valueRange.max) {
+          return false;
+        }
+        return true;
+      });
+    }
+    
+    // - Probability range (not supported by API)
+    if (filterState.probabilityRange.min !== undefined || filterState.probabilityRange.max !== undefined) {
+      filteredLeads = filteredLeads.filter(lead => {
+        const prob = lead.probability || 0;
+        if (filterState.probabilityRange.min !== undefined && prob < filterState.probabilityRange.min) {
+          return false;
+        }
+        if (filterState.probabilityRange.max !== undefined && prob > filterState.probabilityRange.max) {
+          return false;
+        }
+        return true;
+      });
+    }
+    
+    // Note: searchTerm, single stageId, single assignedUserId, single status, and dates
+    // are already filtered server-side, so we don't re-filter them here
     
     return filteredLeads;
   }, []);

@@ -37,7 +37,26 @@ public class LeadImportService : ILeadImportService
         
         try
         {
-            var rows = await ParseCsvFileAsync(fileStream, mapping);
+            // Auto-detect mapping if empty
+            Stream streamToUse = fileStream;
+            if (mapping.ColumnMapping == null || mapping.ColumnMapping.Count == 0)
+            {
+                // If stream is not seekable, copy to MemoryStream
+                if (!fileStream.CanSeek)
+                {
+                    var memoryStream = new MemoryStream();
+                    await fileStream.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
+                    streamToUse = memoryStream;
+                }
+                
+                var (_, headers) = await ParseCsvFileWithHeadersAsync(streamToUse, mapping);
+                mapping.ColumnMapping = AutoDetectColumnMapping(headers);
+                // Reset stream position for actual parsing
+                streamToUse.Position = 0;
+            }
+            
+            var rows = await ParseCsvFileAsync(streamToUse, mapping);
             preview.TotalRows = rows.Count;
             
             // Validate and convert rows
@@ -117,7 +136,26 @@ public class LeadImportService : ILeadImportService
         
         try
         {
-            var rows = await ParseCsvFileAsync(fileStream, mapping);
+            // Auto-detect mapping if empty
+            Stream streamToUse = fileStream;
+            if (mapping.ColumnMapping == null || mapping.ColumnMapping.Count == 0)
+            {
+                // If stream is not seekable, copy to MemoryStream
+                if (!fileStream.CanSeek)
+                {
+                    var memoryStream = new MemoryStream();
+                    await fileStream.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
+                    streamToUse = memoryStream;
+                }
+                
+                var (_, headers) = await ParseCsvFileWithHeadersAsync(streamToUse, mapping);
+                mapping.ColumnMapping = AutoDetectColumnMapping(headers);
+                // Reset stream position for actual parsing
+                streamToUse.Position = 0;
+            }
+            
+            var rows = await ParseCsvFileAsync(streamToUse, mapping);
             result.TotalProcessed = rows.Count;
             importHistory.TotalRows = rows.Count;
             
@@ -172,19 +210,40 @@ public class LeadImportService : ILeadImportService
                     }
                     
                     // Create lead
+                    // Generate title, ensuring it doesn't exceed 200 characters
+                    var generatedTitle = importRow.Title ?? $"{importRow.FirstName} {importRow.LastName} - {importRow.Company}".Trim();
+                    if (string.IsNullOrWhiteSpace(generatedTitle))
+                    {
+                        generatedTitle = importRow.Company ?? "Lead sans nom";
+                    }
+                    if (generatedTitle.Length > 200)
+                    {
+                        generatedTitle = generatedTitle.Substring(0, 197) + "...";
+                    }
+                    
+                    // Truncate fields to respect max lengths
+                    var firstName = importRow.FirstName?.Length > 100 ? importRow.FirstName.Substring(0, 100) : importRow.FirstName;
+                    var lastName = importRow.LastName?.Length > 100 ? importRow.LastName.Substring(0, 100) : importRow.LastName;
+                    var email = importRow.Email?.Length > 255 ? importRow.Email.Substring(0, 255) : importRow.Email;
+                    var phoneNumber = importRow.PhoneNumber?.Length > 20 ? importRow.PhoneNumber.Substring(0, 20) : importRow.PhoneNumber;
+                    var company = importRow.Company?.Length > 200 ? importRow.Company.Substring(0, 200) : importRow.Company;
+                    var jobTitle = importRow.JobTitle?.Length > 100 ? importRow.JobTitle.Substring(0, 100) : importRow.JobTitle;
+                    var source = importRow.Source?.Length > 50 ? importRow.Source.Substring(0, 50) : importRow.Source;
+                    var notes = importRow.Notes?.Length > 2000 ? importRow.Notes.Substring(0, 2000) : importRow.Notes;
+                    
                     var createDto = new CreateLeadDto
                     {
-                        Title = importRow.Title ?? $"{importRow.FirstName} {importRow.LastName} - {importRow.Company}",
-                        FirstName = importRow.FirstName!,
-                        LastName = importRow.LastName!,
-                        Email = importRow.Email!,
-                        PhoneNumber = importRow.PhoneNumber,
-                        Company = importRow.Company,
-                        JobTitle = importRow.JobTitle,
+                        Title = generatedTitle,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Email = email,
+                        PhoneNumber = phoneNumber,
+                        Company = company,
+                        JobTitle = jobTitle,
                         EstimatedValue = importRow.EstimatedValue,
                         Probability = importRow.Probability ?? 50,
-                        Source = importRow.Source ?? "CSV Import",
-                        Notes = importRow.Notes,
+                        Source = source ?? "CSV Import",
+                        Notes = notes,
                         StageId = defaultStageId.Value
                     };
                     
@@ -196,10 +255,24 @@ public class LeadImportService : ILeadImportService
                 {
                     _logger.LogError(ex, "Error importing row {RowNumber}", rowNumber);
                     result.ErrorCount++;
+                    
+                    // Extract inner exception details for better error messages
+                    var errorMessage = ex.Message;
+                    if (ex.InnerException != null)
+                    {
+                        errorMessage += $" | Détails: {ex.InnerException.Message}";
+                    }
+                    
+                    // Check for DbUpdateException which indicates database constraint violations
+                    if (ex is Microsoft.EntityFrameworkCore.DbUpdateException dbEx && dbEx.InnerException != null)
+                    {
+                        errorMessage = $"Ligne {rowNumber}: Erreur de base de données - {dbEx.InnerException.Message}";
+                    }
+                    
                     result.Errors.Add(new ImportErrorDto
                     {
                         RowNumber = rowNumber,
-                        Error = ex.Message,
+                        Error = errorMessage,
                         RowData = row
                     });
                 }
@@ -468,6 +541,49 @@ public class LeadImportService : ILeadImportService
 
     // Helper methods
     
+    /// <summary>
+    /// Parse CSV file and return rows with headers
+    /// </summary>
+    private async Task<(List<Dictionary<string, string>> rows, string[] headers)> ParseCsvFileWithHeadersAsync(Stream fileStream, CsvMappingDto mapping)
+    {
+        var rows = new List<Dictionary<string, string>>();
+        string[] headers = Array.Empty<string>();
+        
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = mapping.Delimiter,
+            HasHeaderRecord = mapping.SkipFirstRow,
+            MissingFieldFound = null,
+            BadDataFound = null
+        };
+        
+        using var reader = new StreamReader(fileStream, Encoding.UTF8, leaveOpen: true);
+        using var csv = new CsvReader(reader, config);
+        
+        if (mapping.SkipFirstRow)
+        {
+            await csv.ReadAsync();
+            csv.ReadHeader();
+            headers = csv.HeaderRecord?.ToArray() ?? Array.Empty<string>();
+        }
+        
+        while (await csv.ReadAsync())
+        {
+            var row = new Dictionary<string, string>();
+            
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var header = headers[i];
+                var value = csv.GetField(i) ?? string.Empty;
+                row[header] = value;
+            }
+            
+            rows.Add(row);
+        }
+        
+        return (rows, headers);
+    }
+    
     private async Task<List<Dictionary<string, string>>> ParseCsvFileAsync(Stream fileStream, CsvMappingDto mapping)
     {
         var rows = new List<Dictionary<string, string>>();
@@ -567,27 +683,95 @@ public class LeadImportService : ILeadImportService
             }
         }
         
+        // Helper function to get column name from mapping
+        string GetColumnName(string fieldName)
+        {
+            var mappingEntry = mapping.ColumnMapping.FirstOrDefault(m => 
+                m.Value.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+            return mappingEntry.Key ?? fieldName;
+        }
+        
         // Validate required fields
-        if (string.IsNullOrWhiteSpace(importRow.FirstName))
+        // Rule:
+        // - Lead must have at least one contact info: Email OR PhoneNumber
+        // - FirstName/LastName are required only if Company is missing
+        var hasEmail = !string.IsNullOrWhiteSpace(importRow.Email);
+        var hasPhone = !string.IsNullOrWhiteSpace(importRow.PhoneNumber);
+
+        if (!hasEmail && !hasPhone)
         {
-            importRow.ValidationErrors.Add("FirstName is required");
+            // FR messages for UI, comments remain in EN
+            var emailColumn = GetColumnName("email");
+            var phoneColumn = mapping.ColumnMapping.FirstOrDefault(m => 
+                m.Value.Equals("phonenumber", StringComparison.OrdinalIgnoreCase) || 
+                m.Value.Equals("phone", StringComparison.OrdinalIgnoreCase)).Key ?? "Phone";
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}: Au moins un moyen de contact (Email '{emailColumn}' ou Téléphone '{phoneColumn}') est requis");
             importRow.IsValid = false;
         }
         
-        if (string.IsNullOrWhiteSpace(importRow.LastName))
+        // Validate email format only when provided
+        if (hasEmail && !IsValidEmail(importRow.Email!))
         {
-            importRow.ValidationErrors.Add("LastName is required");
+            var emailColumn = GetColumnName("email");
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{emailColumn}': Le format de l'email est invalide ({importRow.Email})");
+            importRow.IsValid = false;
+        }
+
+        // Name requirement depends on company
+        var hasCompany = !string.IsNullOrWhiteSpace(importRow.Company);
+        
+        if (!hasCompany)
+        {
+            if (string.IsNullOrWhiteSpace(importRow.FirstName))
+            {
+                var firstNameColumn = GetColumnName("firstname");
+                importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{firstNameColumn}': FirstName est requis lorsque Company est vide");
+                importRow.IsValid = false;
+            }
+            
+            if (string.IsNullOrWhiteSpace(importRow.LastName))
+            {
+                var lastNameColumn = GetColumnName("lastname");
+                importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{lastNameColumn}': LastName est requis lorsque Company est vide");
+                importRow.IsValid = false;
+            }
+        }
+        
+        // Validate field lengths
+        if (!string.IsNullOrWhiteSpace(importRow.Email) && importRow.Email.Length > 255)
+        {
+            var emailColumn = GetColumnName("email");
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{emailColumn}': L'email dépasse 255 caractères");
             importRow.IsValid = false;
         }
         
-        if (string.IsNullOrWhiteSpace(importRow.Email))
+        if (!string.IsNullOrWhiteSpace(importRow.FirstName) && importRow.FirstName.Length > 100)
         {
-            importRow.ValidationErrors.Add("Email is required");
+            var firstNameColumn = GetColumnName("firstname");
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{firstNameColumn}': Le prénom dépasse 100 caractères");
             importRow.IsValid = false;
         }
-        else if (!IsValidEmail(importRow.Email))
+        
+        if (!string.IsNullOrWhiteSpace(importRow.LastName) && importRow.LastName.Length > 100)
         {
-            importRow.ValidationErrors.Add("Email format is invalid");
+            var lastNameColumn = GetColumnName("lastname");
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{lastNameColumn}': Le nom dépasse 100 caractères");
+            importRow.IsValid = false;
+        }
+        
+        if (!string.IsNullOrWhiteSpace(importRow.PhoneNumber) && importRow.PhoneNumber.Length > 20)
+        {
+            var phoneColumn = mapping.ColumnMapping.FirstOrDefault(m => 
+                m.Value.Equals("phonenumber", StringComparison.OrdinalIgnoreCase) || 
+                m.Value.Equals("phone", StringComparison.OrdinalIgnoreCase)).Key ?? "Phone";
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{phoneColumn}': Le téléphone dépasse 20 caractères");
+            importRow.IsValid = false;
+        }
+        
+        if (!string.IsNullOrWhiteSpace(importRow.Company) && importRow.Company.Length > 200)
+        {
+            var companyColumn = GetColumnName("company");
+            importRow.ValidationErrors.Add($"Ligne {rowNumber}, colonne '{companyColumn}': L'entreprise dépasse 200 caractères");
             importRow.IsValid = false;
         }
         
@@ -605,6 +789,55 @@ public class LeadImportService : ILeadImportService
         {
             return false;
         }
+    }
+    
+    /// <summary>
+    /// Auto-detect column mapping based on header names
+    /// </summary>
+    private Dictionary<string, string> AutoDetectColumnMapping(string[] headers)
+    {
+        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Patterns for field detection (case-insensitive)
+        var fieldPatterns = new Dictionary<string, string[]>
+        {
+            ["firstname"] = new[] { "first name", "firstname", "prénom", "prenom", "fname", "first_name" },
+            ["lastname"] = new[] { "last name", "lastname", "nom de famille", "nom", "lname", "last_name", "surname" },
+            ["email"] = new[] { "email", "e-mail", "courriel", "mail" },
+            ["phonenumber"] = new[] { "phone", "phone number", "téléphone", "telephone", "tel", "mobile", "phone_number" },
+            ["company"] = new[] { "company", "company name", "entreprise", "société", "societe", "organization", "organisation" },
+            ["jobtitle"] = new[] { "title", "job title", "position", "poste", "fonction", "job_title" },
+            ["source"] = new[] { "source", "origine" },
+            ["notes"] = new[] { "notes", "note", "comment", "comments", "description" },
+            ["estimatedvalue"] = new[] { "value", "estimated value", "valeur", "amount", "montant", "estimated_value" },
+            ["probability"] = new[] { "probability", "probabilité", "probabilite", "chance" }
+        };
+        
+        foreach (var header in headers)
+        {
+            if (string.IsNullOrWhiteSpace(header))
+                continue;
+                
+            var headerLower = header.Trim().ToLowerInvariant();
+            
+            // Check each field pattern
+            foreach (var (fieldName, patterns) in fieldPatterns)
+            {
+                foreach (var pattern in patterns)
+                {
+                    if (headerLower.Contains(pattern.ToLowerInvariant()))
+                    {
+                        mapping[header] = fieldName;
+                        break;
+                    }
+                }
+                
+                if (mapping.ContainsKey(header))
+                    break;
+            }
+        }
+        
+        return mapping;
     }
     
     private string ConvertToGoogleSheetsCsvUrl(string sheetUrl)

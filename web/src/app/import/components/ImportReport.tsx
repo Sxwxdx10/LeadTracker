@@ -61,12 +61,12 @@ export default function ImportReport() {
           </div>
         </div>
         
-        <div className="bg-blue-50 rounded-lg p-4">
+        <div className="bg-brand-50 rounded-lg p-4">
           <div className="flex items-center">
-            <InformationCircleIcon className="h-8 w-8 text-blue-600" />
+            <InformationCircleIcon className="h-8 w-8 text-brand-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-blue-800">Total</p>
-              <p className="text-2xl font-bold text-blue-900">{importResults.total}</p>
+              <p className="text-sm font-medium text-brand-800">Total</p>
+              <p className="text-2xl font-bold text-brand-900">{importResults.total}</p>
             </div>
           </div>
         </div>

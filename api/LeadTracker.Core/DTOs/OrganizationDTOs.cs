@@ -47,7 +47,7 @@ public class UpdateOrganizationDto
     [MaxLength(500)]
     public string? Description { get; set; }
     
-    [MaxLength(10)]
+    [MaxLength(50)]
     public string? TimeZone { get; set; }
     
     [MaxLength(5)]

@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
     <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4"></div>
       <p className="text-gray-600">Chargement en cours...</p>
     </div>
   </div>
@@ -45,7 +45,7 @@ class ErrorBoundary extends React.Component<
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700"
             >
               Recharger la page
             </button>
@@ -137,7 +137,7 @@ export const PageLoading = ({ message = "Chargement de la page..." }: { message?
 
       {/* Loading message */}
       <div className="text-center mt-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto mb-2"></div>
         <p className="text-gray-600">{message}</p>
       </div>
     </div>

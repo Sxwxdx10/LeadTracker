@@ -86,10 +86,35 @@ export interface ResendVerificationRequest {
   organizationDomain: string;
 }
 
+export interface RegisterWithInvitationRequest {
+  invitationToken: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface InvitationValidationResponse {
+  valid: boolean;
+  invitation?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    jobTitle?: string;
+    role: string;
+    organization: {
+      id: string;
+      name: string;
+      domain: string;
+    };
+  };
+  message?: string;
+}
+
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
+  registerWithInvitation: (data: RegisterWithInvitationRequest) => Promise<void>;
   logout: () => void;
   refreshAuth: () => Promise<void>;
   clearError: () => void;
+  updateUser: (user: UserInfo) => void;
 }

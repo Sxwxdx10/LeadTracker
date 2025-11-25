@@ -18,7 +18,7 @@ public class Organization : BaseEntity
     [MaxLength(100)]
     public string Domain { get; set; } = string.Empty; // e.g., "acme-corp"
     
-    [MaxLength(10)]
+    [MaxLength(50)]
     public string? TimeZone { get; set; } = "UTC";
     
     [MaxLength(5)]

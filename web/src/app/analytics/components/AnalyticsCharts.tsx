@@ -161,9 +161,13 @@ export default function AnalyticsCharts() {
                     data={sourceData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    labelLine={true}
+                    label={({ name, percent }) => {
+                      // Only hide labels for very small segments (< 0.5%) to avoid clutter
+                      if (percent < 0.005) return null;
+                      return `${name} ${(percent * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius={70}
                     fill="#8884d8"
                     dataKey="value"
                   >

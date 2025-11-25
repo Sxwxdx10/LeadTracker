@@ -7,6 +7,8 @@ import {
   RefreshTokenRequest,
   VerifyEmailRequest,
   ResendVerificationRequest,
+  RegisterWithInvitationRequest,
+  InvitationValidationResponse,
   AuthResponse, 
   RefreshTokenResponse 
 } from '@/types/auth';
@@ -21,17 +23,35 @@ const authClient = axios.create({
   },
 });
 
+// Flag pour éviter les redirections multiples
+let isAuthRedirecting = false;
+
 // Intercepteur pour gérer les erreurs d'authentification
 authClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Token expiré ou invalide (uniquement côté client)
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('organization');
-      window.location.href = '/login';
+    // Log l'erreur pour le débogage
+    if (error.response) {
+      console.error('Auth API Error:', {
+        status: error.response.status,
+        data: error.response.data,
+        message: error.response.data?.message || error.response.data?.error || error.message
+      });
+    }
+    
+    // Ne pas rediriger si on est déjà en train de rediriger ou si on est sur la page de login
+    if (error.response?.status === 401 && typeof window !== 'undefined' && !isAuthRedirecting) {
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+        isAuthRedirecting = true;
+        // Token expiré ou invalide (uniquement côté client)
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('organization');
+        // Utiliser replace au lieu de href pour éviter l'historique
+        window.location.replace('/login');
+      }
     }
     return Promise.reject(error);
   }
@@ -48,6 +68,18 @@ export const authApi = {
   // Inscription
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response: AxiosResponse<AuthResponse> = await authClient.post('/api/auth/register', data);
+    return response.data;
+  },
+
+  // Inscription via invitation
+  registerWithInvitation: async (data: RegisterWithInvitationRequest): Promise<AuthResponse> => {
+    const response: AxiosResponse<AuthResponse> = await authClient.post('/api/auth/register-with-invitation', data);
+    return response.data;
+  },
+
+  // Valider un token d'invitation
+  validateInvitationToken: async (token: string): Promise<InvitationValidationResponse> => {
+    const response: AxiosResponse<InvitationValidationResponse> = await authClient.get(`/api/auth/validate-invitation?token=${token}`);
     return response.data;
   },
 

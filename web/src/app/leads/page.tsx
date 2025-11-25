@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   PlusIcon, 
-  ChartBarIcon, 
   ArrowDownTrayIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
@@ -25,17 +24,26 @@ import { useFilterPanel } from '@/hooks/useFilterPanel';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useLeads, useStages } from '@/hooks/useLeads';
 import { ViewType } from '@/types/views';
+import { UpdateLeadDto, LeadStatus } from '@/types/lead';
 import { CreateLeadModal } from '@/components/leads/import';
+import { exportLeadsToCsv } from '@/utils/csvExport';
+import { leadsApi } from '@/lib/api';
+import { toast } from 'react-hot-toast';
 
 function LeadsPageContent() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewType>('kanban');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [queryParams, setQueryParams] = useState({
+  const [queryParams, setQueryParams] = useState<{
+    page: number;
+    pageSize: number;
+    sortBy: string;
+    sortDirection: 'asc' | 'desc';
+  }>({
     page: 1,
-    pageSize: 50,
+    pageSize: 25,
     sortBy: 'createdAt',
-    sortDirection: 'desc' as const,
+    sortDirection: 'desc',
   });
 
   // Initialize SignalR connection for real-time updates
@@ -49,9 +57,18 @@ function LeadsPageContent() {
   const updateLeadMutation = useUpdateLead();
   const deleteLeadMutation = useDeleteLead();
   
-  // Récupérer les données des leads pour les options dynamiques
+  // Récupérer les données des leads pour les options dynamiques (paginées pour le tableau)
   const { data: leadsData } = useLeads({
     ...queryParams,
+    ...filterPanel.toQueryParams(),
+  });
+  
+  // Récupérer TOUS les leads pour le Kanban (sans pagination)
+  const { data: allLeadsData } = useLeads({
+    page: 1,
+    pageSize: 1000, // Large page size to get all leads
+    sortBy: queryParams.sortBy,
+    sortDirection: queryParams.sortDirection,
     ...filterPanel.toQueryParams(),
   });
   
@@ -63,14 +80,72 @@ function LeadsPageContent() {
     savedFilters.loadSavedFilters();
   }, []);
 
-  const handleExportCSV = () => {
-    alert('✅ Export CSV implémenté !\n\n📊 Exportation des leads en format CSV\n📄 Tous les champs inclus\n💾 Téléchargement simulé');
+  const handleExportCSV = async () => {
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading('Récupération des leads...');
+      
+      // Get all leads with current filters applied
+      // First, get the total count to know how many leads to fetch
+      const filterParams = {
+        ...filterPanel.toQueryParams(),
+        page: 1,
+        pageSize: 1000, // Large page size to get all leads at once
+        sortBy: queryParams.sortBy,
+        sortDirection: queryParams.sortDirection,
+      };
+      
+      const response = await leadsApi.getLeads(filterParams);
+      
+      // If there are more leads, we might need to fetch them in batches
+      let allLeads = [...response.data];
+      
+      if (response.totalCount > 1000) {
+        // Fetch remaining pages
+        const totalPages = Math.ceil(response.totalCount / 1000);
+        const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+        
+        const additionalResponses = await Promise.all(
+          remainingPages.map(page =>
+            leadsApi.getLeads({ ...filterParams, page, pageSize: 1000 })
+          )
+        );
+        
+        additionalResponses.forEach(res => {
+          allLeads = [...allLeads, ...res.data];
+        });
+      }
+      
+      // Apply client-side filters if needed
+      const filteredLeads = filterPanel.applyClientSideFilters(
+        allLeads,
+        stagesData || [],
+        filterPanel.filters
+      );
+      
+      if (filteredLeads.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error('Aucun lead à exporter avec les filtres actuels');
+        return;
+      }
+      
+      // Export to CSV
+      exportLeadsToCsv(filteredLeads);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`${filteredLeads.length} lead(s) exporté(s) avec succès`);
+    } catch (error: any) {
+      console.error('Erreur lors de l\'export CSV:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'export CSV');
+    }
   };
 
   const handleParamsChange = (newParams: any) => {
     setQueryParams(prev => ({
       ...prev,
       ...newParams,
+      // Reset to page 1 when filters or sorting change
+      page: 1,
     }));
   };
 
@@ -107,10 +182,9 @@ function LeadsPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-
+    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-gray-50">
       {/* Barre d'outils spécifique à la page */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200">
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center space-x-4">
@@ -148,15 +222,6 @@ function LeadsPageContent() {
                 Export CSV
               </Button>
               
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <ChartBarIcon className="h-4 w-4" />
-                Statistiques
-              </Button>
-              
               <Button onClick={handleNewLead} className="flex items-center gap-2">
                 <PlusIcon className="h-4 w-4" />
                 Nouveau lead
@@ -166,45 +231,105 @@ function LeadsPageContent() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
-        {/* Statistiques */}
-        <div className="mb-6">
-          <LeadStats />
-        </div>
+      {/* Contenu principal - structure flex optimisée */}
+      <div className="flex-1 flex flex-col">
+        {/* Section en-tête - prend seulement l'espace nécessaire */}
+        <div className="flex-shrink-0 px-4 sm:px-6 lg:px-8 xl:px-12 pt-3 pb-2">
+          {/* Statistiques */}
+          <div className="mb-2">
+            <LeadStats />
+          </div>
 
-        {/* Barre de recherche principale */}
-        <div className="mb-6">
-          <SearchBar
-            value={filterPanel.filters.searchTerm}
-            onChange={(value) => filterPanel.updateFilter('searchTerm', value)}
-            placeholder="Rechercher des leads par nom, email, société, notes..."
-            className="max-w-4xl"
-          />
-        </div>
-
-        {/* Filtres actifs */}
-        {filterPanel.hasActiveFilters && (
-          <div className="mb-6">
-            <ActiveFiltersDisplay
-              filters={filterPanel.filters}
-              onRemoveFilter={handleRemoveFilter}
-              onClearAll={filterPanel.clearFilters}
-              className="animate-in fade-in-0 slide-in-from-top-2 duration-300"
+          {/* Barre de recherche principale */}
+          <div className="mb-2">
+            <SearchBar
+              value={filterPanel.filters.searchTerm}
+              onChange={(value) => filterPanel.updateFilter('searchTerm', value)}
+              placeholder="Rechercher des leads par nom, email, société, notes..."
+              className="max-w-4xl"
             />
           </div>
-        )}
 
-        {/* Contenu principal */}
-        <div className="space-y-4">
+          {/* Filtres actifs */}
+          {filterPanel.hasActiveFilters && (
+            <div className="mb-2">
+              <ActiveFiltersDisplay
+                filters={filterPanel.filters}
+                onRemoveFilter={handleRemoveFilter}
+                onClearAll={filterPanel.clearFilters}
+                className="animate-in fade-in-0 slide-in-from-top-2 duration-300"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Zone de contenu principal - prend TOUT l'espace restant */}
+        <div className="flex flex-col px-4 sm:px-6 lg:px-8 xl:px-12 pb-3">
           {viewMode === 'table' ? (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-260px)]">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 min-h-0">
               <MondayTableView
-              leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                {...(leadsData?.totalCount !== undefined && { totalCount: leadsData.totalCount })}
+                currentPage={leadsData?.page || queryParams.page}
+                totalPages={leadsData?.totalPages || 1}
+                hasNextPage={leadsData?.hasNextPage || false}
+                hasPreviousPage={leadsData?.hasPreviousPage || false}
+                pageSize={queryParams.pageSize}
+                sortBy={queryParams.sortBy}
+                sortDirection={queryParams.sortDirection}
+                onPageChange={(page) => {
+                  setQueryParams(prev => ({ ...prev, page }));
+                }}
+                onSortChange={(sortBy, sortDirection) => {
+                  setQueryParams(prev => ({ 
+                    ...prev, 
+                    sortBy, 
+                    sortDirection,
+                    page: 1 // Reset to first page when sorting changes
+                  }));
+                }}
                 onLeadClick={(lead) => {
                   router.push(`/leads/${lead.id}`);
                 }}
                 onLeadUpdate={async (leadId, updates) => {
-                  await updateLeadMutation.mutateAsync({ id: leadId, data: updates });
+                  // Récupérer le lead actuel depuis les données chargées
+                  const currentLead = leadsData?.data?.find(lead => lead.id === leadId);
+                  if (!currentLead) {
+                    toast.error('Lead introuvable');
+                    return;
+                  }
+                  
+                  // Détecter si c'est un changement de statut ou d'étape
+                  const isStatusChange = 'status' in updates && updates.status !== currentLead.status;
+                  const isStageChange = 'stageId' in updates && updates.stageId !== currentLead.stageId;
+                  
+                  // Fusionner les mises à jour avec les données existantes
+                  // S'assurer que tous les champs requis sont présents
+                  const fullUpdate: UpdateLeadDto = {
+                    title: currentLead.title,
+                    firstName: currentLead.firstName || '',
+                    lastName: currentLead.lastName || '',
+                    email: currentLead.email || '',
+                    ...(currentLead.phoneNumber && { phoneNumber: currentLead.phoneNumber }),
+                    ...(currentLead.website && { website: currentLead.website }),
+                    ...(currentLead.company && { company: currentLead.company }),
+                    ...(currentLead.jobTitle && { jobTitle: currentLead.jobTitle }),
+                    ...(currentLead.estimatedValue !== undefined && { estimatedValue: currentLead.estimatedValue }),
+                    ...(currentLead.probability !== undefined && { probability: currentLead.probability }),
+                    ...(currentLead.expectedCloseDate && { expectedCloseDate: currentLead.expectedCloseDate }),
+                    ...(currentLead.notes && { notes: currentLead.notes }),
+                    ...(currentLead.source && { source: currentLead.source }),
+                    // CRITICAL: Toujours envoyer le status et stageId actuels
+                    // Le backend vérifiera si le stageId correspond au nouveau statut et synchronisera si nécessaire
+                    status: isStatusChange ? (updates.status as LeadStatus) : currentLead.status,
+                    stageId: isStageChange ? (updates.stageId as string) : currentLead.stageId,
+                    // Appliquer les autres mises à jour par-dessus
+                    ...Object.fromEntries(
+                      Object.entries(updates).filter(([key]) => key !== 'status' && key !== 'stageId')
+                    ),
+                  };
+                  
+                  await updateLeadMutation.mutateAsync({ id: leadId, data: fullUpdate });
                 }}
                 onLeadDelete={async (leadId) => {
                   await deleteLeadMutation.mutateAsync(leadId);
@@ -212,18 +337,18 @@ function LeadsPageContent() {
             />
             </div>
           ) : viewMode === 'kanban' ? (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-lg border border-gray-200 flex flex-col">
               <KanbanBoard 
-                className="h-[calc(100vh-300px)]" 
-                // Passer les données filtrées au Kanban aussi
-                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                className="w-full" 
+                // Passer TOUS les leads filtrés au Kanban (pas seulement les 25 de la pagination)
+                leads={allLeadsData?.data ? filterPanel.applyClientSideFilters(allLeadsData.data, stagesData || [], filterPanel.filters) : []}
                 stages={stagesData || []}
               />
             </div>
           ) : viewMode === 'timeline' ? (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-300px)]">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 min-h-0">
               <TimelineView 
-                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                leads={allLeadsData?.data ? filterPanel.applyClientSideFilters(allLeadsData.data, stagesData || [], filterPanel.filters) : []}
                 onLeadClick={(lead) => {
                   // Navigate to lead detail
                   window.location.href = `/leads/${lead.id}`;
@@ -231,9 +356,9 @@ function LeadsPageContent() {
               />
             </div>
           ) : viewMode === 'calendar' ? (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden h-[calc(100vh-300px)]">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 min-h-0">
               <CalendarView 
-                leads={leadsData?.data ? filterPanel.applyClientSideFilters(leadsData.data, stagesData || [], filterPanel.filters) : []}
+                leads={allLeadsData?.data ? filterPanel.applyClientSideFilters(allLeadsData.data, stagesData || [], filterPanel.filters) : []}
                 onLeadClick={(lead) => {
                   // Navigate to lead detail
                   window.location.href = `/leads/${lead.id}`;
@@ -287,7 +412,7 @@ export default function LeadsPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
       </div>
     );
   }
@@ -295,7 +420,7 @@ export default function LeadsPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
       </div>
     }>
       <LeadsPageContent />

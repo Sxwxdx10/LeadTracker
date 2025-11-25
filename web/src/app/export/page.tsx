@@ -143,7 +143,7 @@ export default function ExportPage() {
                           type="checkbox"
                           checked={field.selected}
                           onChange={() => toggleField(field.id)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
                         />
                         <span className="text-sm font-medium text-gray-900">{field.name}</span>
                       </div>
@@ -166,8 +166,8 @@ export default function ExportPage() {
                   </div>
 
                   {/* Période */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <h4 className="text-sm font-medium text-blue-800 mb-3">Période</h4>
+                  <div className="bg-brand-50 border border-brand-200 rounded-lg p-4 mb-4">
+                    <h4 className="text-sm font-medium text-brand-800 mb-3">Période</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -297,9 +297,9 @@ export default function ExportPage() {
             </div>
 
             {/* Résumé */}
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-blue-800 mb-2">Résumé de l'export</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className="bg-brand-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-brand-800 mb-2">Résumé de l'export</h4>
+              <ul className="text-sm text-brand-700 space-y-1">
                 <li>• Format : {selectedFormat.toUpperCase()}</li>
                 <li>• Champs : {selectedFieldsCount}</li>
                 <li>• Filtres : {filters.length}</li>

@@ -61,7 +61,7 @@ export default function AnalyticsTable() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {row.revenue.toLocaleString('fr-FR')} €
+                  ${row.revenue.toLocaleString('en-US')}
                 </td>
               </tr>
             ))}

@@ -2,7 +2,7 @@
 
 Ce guide présente les améliorations apportées aux états de chargement dans l'application Lead Tracker, incluant les squelettes de chargement, les indicateurs de progression, et les boutons avec états de chargement.
 
-## 🎯 Composants Disponibles
+## Composants Disponibles
 
 ### 1. Squelettes de Chargement (`skeleton.tsx`)
 
@@ -197,7 +197,7 @@ const handleDelete = () => executeWithLoading('delete', deleteData);
 <Button loading={isLoading('delete')}>Supprimer</Button>
 ```
 
-## 🔧 Exemples d'Implémentation
+## Exemples d'Implémentation
 
 ### Dans un composant de tableau
 
@@ -290,7 +290,7 @@ function FileUpload() {
 }
 ```
 
-## 🎨 Personnalisation
+## Personnalisation
 
 ### Variants des composants
 
@@ -335,7 +335,7 @@ Les composants incluent des attributs d'accessibilité appropriés :
 - Support de la navigation clavier
 - Contrastes de couleurs conformes aux standards WCAG
 
-## 🚀 Bonnes Pratiques
+## Bonnes Pratiques
 
 1. **Utilisez les squelettes** pour les chargements de données
 2. **Désactivez les boutons** pendant les requêtes
@@ -351,8 +351,8 @@ Pour déboguer les états de chargement, vous pouvez utiliser :
 ```tsx
 // Logs automatiques dans useLoadingState
 const { isLoading, error } = useLoadingState({
-  onSuccess: () => console.log('✅ Opération réussie'),
-  onError: (error) => console.error('❌ Erreur:', error),
+  onSuccess: () => console.log('Opération réussie'),
+  onError: (error) => console.error('Erreur:', error),
 });
 
 // État des boutons multiples

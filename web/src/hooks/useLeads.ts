@@ -7,7 +7,8 @@ import {
 import { 
   LeadQueryParams, 
   CreateLeadDto, 
-  UpdateLeadDto 
+  UpdateLeadDto,
+  Lead
 } from '@/types/lead';
 
 // Query keys
@@ -32,8 +33,11 @@ export function useLeads(params?: LeadQueryParams) {
   return useQuery({
     queryKey: leadKeys.list(params),
     queryFn: () => leadsApi.getLeads(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider data stale to allow immediate refetch after updates
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when network reconnects
   });
 }
 
@@ -91,13 +95,33 @@ export function useUpdateLead() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateLeadDto }) => 
       leadsApi.updateLead(id, data),
-    onSuccess: (updatedLead, { id }) => {
+    onSuccess: (updatedLead, { id }, variables) => {
       // Mettre à jour le cache pour ce lead spécifique
       queryClient.setQueryData(leadKeys.detail(id), updatedLead);
       
-      // Invalider les listes pour refléter les changements
-      queryClient.invalidateQueries({ queryKey: leadKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: leadKeys.stats() });
+      // Mise à jour optimiste dans toutes les listes de leads
+      queryClient.setQueriesData(
+        { queryKey: leadKeys.lists() },
+        (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.map((lead: Lead) => 
+              lead.id === id ? updatedLead : lead
+            ),
+          };
+        }
+      );
+      
+      // Invalider et refetch immédiatement toutes les queries liées
+      queryClient.invalidateQueries({ queryKey: leadKeys.lists(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: leadKeys.stats(), refetchType: 'active' });
+      // Also invalidate Kanban data since status/stage changes affect Kanban
+      queryClient.invalidateQueries({ queryKey: ['kanban'], refetchType: 'active' });
+      
+      // Force refetch of all active queries
+      queryClient.refetchQueries({ queryKey: leadKeys.lists() });
+      queryClient.refetchQueries({ queryKey: leadKeys.stats() });
       
       toast.success('Lead mis à jour avec succès');
     },

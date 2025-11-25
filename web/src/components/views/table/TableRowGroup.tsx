@@ -80,7 +80,7 @@ export function TableRowGroup({
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
                         "hover:bg-gray-50 border-b border-gray-100",
-                        selectedLeads.has(lead.id) && "bg-blue-50"
+                        selectedLeads.has(lead.id) && "bg-brand-50"
                       )}
                     >
                       {/* Checkbox */}
@@ -89,7 +89,7 @@ export function TableRowGroup({
                           type="checkbox"
                           checked={selectedLeads.has(lead.id)}
                           onChange={() => onToggleLead(lead.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                         />
                       </td>
 
@@ -121,7 +121,7 @@ export function TableRowGroup({
                           {onLeadClick && (
                             <button
                               onClick={() => onLeadClick(lead)}
-                              className="text-blue-600 hover:text-blue-700 text-sm"
+                              className="text-brand-600 hover:text-brand-700 text-sm"
                             >
                               Voir
                             </button>

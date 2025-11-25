@@ -94,7 +94,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       case 'warning':
         return <ExclamationTriangleIcon className={cn(iconClass, "text-yellow-500")} />;
       case 'info':
-        return <InformationCircleIcon className={cn(iconClass, "text-blue-500")} />;
+        return <InformationCircleIcon className={cn(iconClass, "text-brand-500")} />;
       default:
         return <InformationCircleIcon className={cn(iconClass, "text-gray-500")} />;
     }
@@ -109,7 +109,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       case 'warning':
         return 'bg-yellow-50 border-yellow-200';
       case 'info':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-brand-50 border-brand-200';
     }
   };
 
@@ -122,7 +122,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       case 'warning':
         return 'text-yellow-800';
       case 'info':
-        return 'text-blue-800';
+        return 'text-brand-800';
     }
   };
 
@@ -135,7 +135,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       case 'warning':
         return 'text-yellow-700';
       case 'info':
-        return 'text-blue-700';
+        return 'text-brand-700';
     }
   };
 
@@ -177,7 +177,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
                     toast.type === 'success' && "text-green-800 hover:text-green-900 focus:ring-green-500",
                     toast.type === 'error' && "text-red-800 hover:text-red-900 focus:ring-red-500",
                     toast.type === 'warning' && "text-yellow-800 hover:text-yellow-900 focus:ring-yellow-500",
-                    toast.type === 'info' && "text-blue-800 hover:text-blue-900 focus:ring-blue-500"
+                    toast.type === 'info' && "text-brand-800 hover:text-brand-900 focus:ring-brand-500"
                   )}
                 >
                   {toast.action.label}
@@ -193,7 +193,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
                 toast.type === 'success' && "text-green-400 hover:text-green-500 focus:ring-green-500",
                 toast.type === 'error' && "text-red-400 hover:text-red-500 focus:ring-red-500",
                 toast.type === 'warning' && "text-yellow-400 hover:text-yellow-500 focus:ring-yellow-500",
-                toast.type === 'info' && "text-blue-400 hover:text-blue-500 focus:ring-blue-500"
+                toast.type === 'info' && "text-brand-400 hover:text-brand-500 focus:ring-brand-500"
               )}
               onClick={handleClose}
             >

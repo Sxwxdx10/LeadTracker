@@ -40,7 +40,7 @@ export function ViewSelector({ currentView, onViewChange, className }: ViewSelec
               "flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200",
               "hover:bg-white hover:shadow-sm",
               currentView === config.type
-                ? "bg-white shadow-sm text-blue-600 font-medium"
+                ? "bg-white shadow-sm text-brand-600 font-medium"
                 : "text-gray-600 hover:text-gray-900"
             )}
             title={config.description}
@@ -70,7 +70,7 @@ export function ViewSwitcher({ currentView, onViewChange }: ViewSelectorProps) {
               "p-2 rounded-md transition-all duration-200",
               "hover:bg-gray-200",
               currentView === config.type
-                ? "bg-blue-100 text-blue-600"
+                ? "bg-brand-100 text-brand-600"
                 : "text-gray-600 hover:text-gray-900"
             )}
             title={config.name}

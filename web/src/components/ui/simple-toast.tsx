@@ -104,7 +104,7 @@ function SimpleToastItem({ toast, onRemove }: SimpleToastItemProps) {
       case 'warning':
         return <ExclamationTriangleIcon className={cn(iconClass, "text-yellow-500")} />;
       case 'info':
-        return <InformationCircleIcon className={cn(iconClass, "text-blue-500")} />;
+        return <InformationCircleIcon className={cn(iconClass, "text-brand-500")} />;
     }
   };
 
@@ -117,7 +117,7 @@ function SimpleToastItem({ toast, onRemove }: SimpleToastItemProps) {
       case 'warning':
         return 'bg-yellow-50 border-yellow-200';
       case 'info':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-brand-50 border-brand-200';
     }
   };
 
@@ -130,7 +130,7 @@ function SimpleToastItem({ toast, onRemove }: SimpleToastItemProps) {
       case 'warning':
         return 'text-yellow-800';
       case 'info':
-        return 'text-blue-800';
+        return 'text-brand-800';
     }
   };
 

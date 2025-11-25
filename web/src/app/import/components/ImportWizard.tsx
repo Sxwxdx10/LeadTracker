@@ -82,7 +82,7 @@ export default function ImportWizard() {
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                currentStep >= step.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                currentStep >= step.id ? 'bg-brand-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 {currentStep > step.id ? (
                   <CheckCircleIcon className="h-5 w-5" />
@@ -92,7 +92,7 @@ export default function ImportWizard() {
               </div>
               <div className="ml-3">
                 <p className={`text-sm font-medium ${
-                  currentStep >= step.id ? 'text-blue-600' : 'text-gray-500'
+                  currentStep >= step.id ? 'text-brand-600' : 'text-gray-500'
                 }`}>
                   {step.name}
                 </p>
@@ -100,7 +100,7 @@ export default function ImportWizard() {
               </div>
               {index < steps.length - 1 && (
                 <div className={`ml-8 w-16 h-0.5 ${
-                  currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200'
+                  currentStep > step.id ? 'bg-brand-600' : 'bg-gray-200'
                 }`} />
               )}
             </div>
@@ -257,10 +257,10 @@ export default function ImportWizard() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">4. Import en cours</h3>
           <div className="text-center">
-            <ArrowPathIcon className="mx-auto h-12 w-12 text-blue-600 animate-spin" />
+            <ArrowPathIcon className="mx-auto h-12 w-12 text-brand-600 animate-spin" />
             <p className="mt-4 text-gray-600">Import des données en cours...</p>
             <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              <div className="bg-brand-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
             </div>
           </div>
         </div>

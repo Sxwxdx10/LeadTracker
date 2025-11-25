@@ -5,7 +5,7 @@ import { KanbanMetrics as KanbanMetricsType } from '@/types/kanban';
 import { formatCurrency, formatPercentage, formatDays } from '@/utils/cardUtils';
 import { 
   ChartBarIcon,
-  CurrencyEuroIcon,
+  CurrencyDollarIcon,
   ClockIcon,
   ArrowTrendingUpIcon,
   UserGroupIcon,
@@ -34,13 +34,13 @@ export function KanbanMetrics({ metrics }: KanbanMetricsProps) {
       title: 'Total Leads',
       value: metrics.totalLeads.toString(),
       icon: UserGroupIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-brand-600',
+      bgColor: 'bg-brand-100',
     },
     {
       title: 'Valeur Totale',
       value: formatCurrency(metrics.totalValue),
-      icon: CurrencyEuroIcon,
+      icon: CurrencyDollarIcon,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
@@ -61,7 +61,7 @@ export function KanbanMetrics({ metrics }: KanbanMetricsProps) {
     {
       title: 'Deal Moyen',
       value: formatCurrency(metrics.averageDealSize),
-      icon: CurrencyEuroIcon,
+      icon: CurrencyDollarIcon,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-100',
     },
@@ -138,9 +138,13 @@ export function KanbanMetrics({ metrics }: KanbanMetricsProps) {
                 ]}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
+                labelLine={true}
+                label={({ name, percent }) => {
+                  // Only hide labels for very small segments (< 0.5%) to avoid clutter
+                  if (percent < 0.005) return null;
+                  return `${name}: ${(percent * 100).toFixed(0)}%`;
+                }}
+                outerRadius={70}
                 fill="#8884d8"
                 dataKey="value"
               >

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using LeadTracker.Core.Models;
 using LeadTracker.Core.Entities;
 using LeadTracker.Core.Services;
+using LeadTracker.Core.DTOs;
 using LeadTracker.Infrastructure;
 
 namespace LeadTracker.Infrastructure.Services;
@@ -18,6 +19,7 @@ public class AuthService : IAuthService
     private readonly IJwtService _jwtService;
     private readonly LeadTrackerDbContext _context;
     private readonly ILogger<AuthService> _logger;
+    private readonly IUserInvitationService _invitationService;
     private readonly Func<string, Task<Organization?>>? _getOrganizationByDomain;
 
     public AuthService(
@@ -26,6 +28,7 @@ public class AuthService : IAuthService
         IJwtService jwtService,
         LeadTrackerDbContext context,
         ILogger<AuthService> logger,
+        IUserInvitationService invitationService,
         Func<string, Task<Organization?>>? getOrganizationByDomain = null)
     {
         _userManager = userManager;
@@ -33,6 +36,7 @@ public class AuthService : IAuthService
         _jwtService = jwtService;
         _context = context;
         _logger = logger;
+        _invitationService = invitationService;
         _getOrganizationByDomain = getOrganizationByDomain;
         
         _logger.LogInformation("AuthService initialized with mock: {HasMock}", _getOrganizationByDomain != null);
@@ -49,13 +53,14 @@ public class AuthService : IAuthService
                 .FirstOrDefaultAsync(o => o.Domain == request.OrganizationDomain);
             
             Organization organization;
+            bool isFirstUser = false;
             
             if (existingOrg != null)
             {
-                // Use existing organization if domain already exists
-                organization = existingOrg;
-                _logger.LogInformation("User {Email} joining existing organization {OrgName} with domain {Domain}", 
-                    request.Email, organization.Name, organization.Domain);
+                // Organization already exists - registration is only allowed via invitation
+                _logger.LogWarning("Registration attempt for existing organization {OrgName} with domain {Domain} by {Email}. Invitation required.", 
+                    existingOrg.Name, existingOrg.Domain, request.Email);
+                throw new InvalidOperationException("Cette organisation existe déjà. Veuillez contacter un administrateur pour recevoir une invitation.");
             }
             else
             {
@@ -81,6 +86,9 @@ public class AuthService : IAuthService
                     
                     _logger.LogInformation("Created new organization {OrgName} with domain {Domain} and ID {OrgId} for user {Email}", 
                         organization.Name, organization.Domain, organization.Id, request.Email);
+                    
+                    // This is the first user of the organization
+                    isFirstUser = true;
                 }
                 catch (Exception ex)
                 {
@@ -96,6 +104,9 @@ public class AuthService : IAuthService
                         {
                             throw new InvalidOperationException($"Failed to create or find organization with domain {request.OrganizationDomain}");
                         }
+                        
+                        // Organization was created by another process - invitation required
+                        throw new InvalidOperationException("Cette organisation existe déjà. Veuillez contacter un administrateur pour recevoir une invitation.");
                     }
                     else
                     {
@@ -125,8 +136,16 @@ public class AuthService : IAuthService
             // Ensure the user is properly saved before adding roles
             await _context.SaveChangesAsync();
 
-            // Add user to default role
-            await _userManager.AddToRoleAsync(user, "User");
+            // Assign role: Admin for first user, User for others
+            // Note: isFirstUser is only true when we just created the organization
+            var userRole = isFirstUser ? "Admin" : "User";
+            await _userManager.AddToRoleAsync(user, userRole);
+            
+            if (isFirstUser)
+            {
+                _logger.LogInformation("First user {Email} assigned Admin role for organization {OrgName}", 
+                    user.Email, organization.Name);
+            }
 
             // Create domain User entity
             var domainUser = new User
@@ -187,6 +206,121 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during user registration for email {Email}", request.Email);
+            throw;
+        }
+    }
+
+    public async Task<AuthResponse> RegisterWithInvitationAsync(AcceptInvitationRequest request)
+    {
+        try
+        {
+            // Validate invitation token
+            var invitation = await _invitationService.ValidateInvitationTokenAsync(request.InvitationToken);
+            if (invitation == null)
+            {
+                throw new InvalidOperationException("Ce lien d'invitation est invalide ou a expiré.");
+            }
+
+            // Get organization
+            var organization = await _context.Organizations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.Id == invitation.OrganizationId);
+            
+            if (organization == null)
+            {
+                throw new InvalidOperationException("Organisation introuvable pour cette invitation.");
+            }
+
+            // Create ApplicationUser
+            var user = new ApplicationUser
+            {
+                UserName = invitation.Email,
+                Email = invitation.Email,
+                FirstName = invitation.FirstName,
+                LastName = invitation.LastName,
+                JobTitle = invitation.JobTitle,
+                OrganizationId = invitation.OrganizationId,
+                IsActive = true
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                throw new InvalidOperationException($"Échec de la création du compte: {string.Join(", ", errors)}");
+            }
+
+            // Ensure the user is properly saved before adding roles
+            await _context.SaveChangesAsync();
+
+            // Add user to role specified in invitation
+            await _userManager.AddToRoleAsync(user, invitation.Role);
+
+            // Create domain User entity
+            var domainUser = new User
+            {
+                FirstName = invitation.FirstName,
+                LastName = invitation.LastName,
+                Email = invitation.Email,
+                JobTitle = invitation.JobTitle,
+                IsActive = true,
+                OrganizationId = invitation.OrganizationId,
+                IdentityUserId = user.Id
+            };
+
+            _context.BusinessUsers.Add(domainUser);
+            await _context.SaveChangesAsync();
+
+            // Update ApplicationUser with domain user reference
+            user.DomainUserId = domainUser.Id;
+            await _userManager.UpdateAsync(user);
+
+            // Mark invitation as accepted
+            invitation.IsAccepted = true;
+            invitation.AcceptedAt = DateTime.UtcNow;
+            invitation.AcceptedUserId = user.Id;
+            await _context.SaveChangesAsync();
+
+            // Generate tokens
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _jwtService.GenerateAccessToken(user, roles);
+            var refreshToken = _jwtService.GenerateRefreshToken();
+
+            // Update last login
+            user.LastLoginAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+            _logger.LogInformation("User {Email} registered successfully via invitation for organization {OrgName}", 
+                user.Email, organization.Name);
+
+            return new AuthResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(15), // Should match JWT config
+                User = new UserInfo
+                {
+                    Id = domainUser.Id, // Use DomainUser.Id for task assignments
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email!,
+                    FullName = user.FullName,
+                    JobTitle = user.JobTitle,
+                    Roles = roles.ToList()
+                },
+                Organization = new OrganizationInfo
+                {
+                    Id = organization.Id,
+                    Name = organization.Name,
+                    Domain = organization.Domain,
+                    TimeZone = organization.TimeZone,
+                    Currency = organization.Currency
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user registration with invitation token {Token}", request.InvitationToken);
             throw;
         }
     }

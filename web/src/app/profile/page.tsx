@@ -22,6 +22,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { usersApi } from '@/lib/users-api';
+import { useToast } from '@/hooks/useToast';
 
 interface ProfileFormData {
   firstName: string;
@@ -47,7 +49,8 @@ interface NotificationSettings {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, organization, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, organization, isLoading: authLoading, isAuthenticated, updateUser } = useAuth();
+  const toast = useToast();
   
   // États pour l'édition
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -141,18 +144,39 @@ export default function ProfilePage() {
   };
 
   // Soumission du profil
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProfileSubmit = async (
+    e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e?.preventDefault();
     setIsLoadingProfile(true);
     setProfileError('');
 
     try {
-      // TODO: Intégrer avec l'API
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulation
-      console.log('Profil mis à jour:', profileData);
+      const payload = {
+        firstName: profileData.firstName.trim(),
+        lastName: profileData.lastName.trim(),
+        email: profileData.email.trim(),
+        jobTitle: profileData.jobTitle?.trim() ?? '',
+      };
+
+      const updatedUser = await usersApi.updateCurrentUser(payload);
+      updateUser(updatedUser);
+      setProfileData({
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        jobTitle: updatedUser.jobTitle || '',
+      });
       setIsEditingProfile(false);
+      toast.success('Profil mis à jour', 'Vos informations ont été enregistrées.');
     } catch (error) {
-      setProfileError('Erreur lors de la mise à jour du profil');
+      console.error('Erreur mise à jour du profil:', error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as Error)?.message ||
+        'Erreur lors de la mise à jour du profil';
+      setProfileError(message);
+      toast.error('Impossible de sauvegarder', message);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -265,9 +289,16 @@ export default function ProfilePage() {
                 <UserIcon className="h-10 w-10 text-brand-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {user.firstName} {user.lastName}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </h2>
+                  {user.roles && (user.roles.includes('Admin') || user.roles.includes('admin')) && (
+                    <Badge className="bg-brand-600 text-white">
+                      Admin
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-gray-600">{user.email}</p>
                 {user.jobTitle && (
                   <p className="text-sm text-gray-500">{user.jobTitle}</p>

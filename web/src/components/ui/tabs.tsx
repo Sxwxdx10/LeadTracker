@@ -137,13 +137,13 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
       pills: cn(
         'rounded-full px-4 py-2',
         isActive
-          ? 'bg-blue-100 text-blue-700'
+          ? 'bg-brand-100 text-brand-700'
           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
       ),
       underline: cn(
         'px-4 py-2 border-b-2 -mb-px',
         isActive
-          ? 'border-blue-500 text-blue-600'
+          ? 'border-brand-500 text-brand-600'
           : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
       )
     };
@@ -180,7 +180,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
           <span 
             className={cn(
               'px-2 py-1 text-xs rounded-full',
-              isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
+              isActive ? 'bg-brand-200 text-brand-800' : 'bg-gray-200 text-gray-600'
             )}
             aria-label={`${badge} éléments`}
           >

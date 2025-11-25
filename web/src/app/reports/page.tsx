@@ -106,9 +106,9 @@ export default function ReportsPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'CAD',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -204,7 +204,7 @@ export default function ReportsPage() {
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                  <div className="w-8 h-8 bg-brand-500 rounded-md flex items-center justify-center">
                     <ChartBarIcon className="h-4 w-4 text-white" />
                   </div>
                 </div>
@@ -437,9 +437,13 @@ export default function ReportsPage() {
                         data={conversionData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={({ stage, percentage }) => `${stage}: ${percentage}%`}
-                        outerRadius={80}
+                        labelLine={true}
+                        label={({ stage, percentage, percent }) => {
+                          // Only hide labels for very small segments (< 0.5%) to avoid clutter
+                          if (percent < 0.005) return null;
+                          return `${stage}: ${percentage}%`;
+                        }}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="count"
                       >
@@ -473,7 +477,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Leads gagnés</span>
-                      <Badge variant="default" className="bg-blue-100 text-blue-800">
+                      <Badge variant="default" className="bg-brand-100 text-brand-800">
                         {performanceMetrics.wonLeads}
                       </Badge>
                     </div>
@@ -569,7 +573,7 @@ export default function ReportsPage() {
                     <div className="text-sm text-gray-600">Revenus totaux</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-brand-600">
                       {formatCurrency(performanceMetrics.averageDealSize)}
                     </div>
                     <div className="text-sm text-gray-600">Valeur moyenne par deal</div>

@@ -486,7 +486,7 @@ export function LeadFiltersPanel({
                 <Button
                   onClick={handleSaveFilter}
                   disabled={!saveFilterName.trim()}
-                  className="rounded-xl bg-blue-600 hover:bg-blue-700"
+                  className="rounded-xl bg-brand-600 hover:bg-brand-700"
                 >
                   Sauvegarder
                 </Button>

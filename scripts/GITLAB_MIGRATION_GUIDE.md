@@ -1,6 +1,6 @@
-# Guide de Migration GitHub → GitLab
+# Guide de Migration GitHub vers GitLab
 
-## 🔧 Configuration préalable
+## Configuration préalable
 
 ### 1. Obtenir un token GitLab
 1. Allez sur https://depot.dinf.usherbrooke.ca/-/profile/personal_access_tokens
@@ -14,7 +14,7 @@
 export GITLAB_TOKEN="votre_token_ici"
 ```
 
-## 🚀 Migration automatique
+## Migration automatique
 
 ### Étape 1 : Créer les milestones
 ```bash
@@ -26,7 +26,7 @@ export GITLAB_TOKEN="votre_token_ici"
 python3 scripts/import_issues_gitlab.py
 ```
 
-## 📋 Migration manuelle
+## Migration manuelle
 
 ### Créer les milestones manuellement
 
@@ -64,16 +64,16 @@ Labels à créer sur GitLab :
 
 Utilisez le fichier `scripts/BACKLOG_SEED_FIXED.csv` comme référence pour créer les 19 issues principales.
 
-## 🔍 Vérification
+## Vérification
 
 Après migration, vérifiez que :
-- ✅ 4 milestones sont créés
-- ✅ 19+ issues sont créées
-- ✅ Labels sont assignés correctement
-- ✅ Issues sont assignées aux bons milestones
-- ✅ Critères d'acceptation et tests sont présents
+- 4 milestones sont créés
+- 19+ issues sont créées
+- Labels sont assignés correctement
+- Issues sont assignées aux bons milestones
+- Critères d'acceptation et tests sont présents
 
-## 🆘 Dépannage
+## Dépannage
 
 ### Erreur de token
 ```bash

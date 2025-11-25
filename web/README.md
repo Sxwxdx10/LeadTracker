@@ -2,56 +2,56 @@
 
 Interface utilisateur moderne pour la gestion de leads multi-tenant construite avec Next.js 14 et React 18.
 
-## 🚀 Fonctionnalités implémentées
+## Fonctionnalités implémentées
 
-### ✅ Issue #7 - UI Liste Leads + Détail - **TERMINÉ**
+### Issue #7 - UI Liste Leads + Détail (Terminé)
 
 #### Liste des leads
-- **Tableau paginé** avec tri par colonnes (nom, email, valeur, date, etc.)
-- **Filtres avancés** : recherche texte, étape du pipeline, statut
-- **Pagination** avec métadonnées (total, pages, navigation)
-- **Actions rapides** : voir, modifier, supprimer
-- **Statistiques en temps réel** : total leads, qualifiés, valeur, taux de conversion
+- Tableau paginé avec tri par colonnes (nom, email, valeur, date, etc.)
+- Filtres avancés : recherche texte, étape du pipeline, statut
+- Pagination avec métadonnées (total, pages, navigation)
+- Actions rapides : voir, modifier, supprimer
+- Statistiques en temps réel : total leads, qualifiés, valeur, taux de conversion
 
 #### Page de détail
-- **Vue complète du lead** avec informations de contact et commerciales
-- **Onglets organisés** : Détails, Notes, Tâches (en développement)
-- **Interface responsive** optimisée mobile-first
-- **Actions contextuelles** : modifier, supprimer, retour
+- Vue complète du lead avec informations de contact et commerciales
+- Onglets organisés : Détails, Notes, Tâches (en développement)
+- Interface responsive optimisée mobile-first
+- Actions contextuelles : modifier, supprimer, retour
 
 #### Création de leads
-- **Formulaire complet** avec validation
-- **Champs organisés** par sections (base, entreprise, commercial, notes)
-- **Validation en temps réel** avec messages d'erreur
-- **Support du format canadien** pour les numéros de téléphone
+- Formulaire complet avec validation
+- Champs organisés par sections (base, entreprise, commercial, notes)
+- Validation en temps réel avec messages d'erreur
+- Support du format canadien pour les numéros de téléphone
 
-## 🛠 Stack technique
+## Stack technique
 
 ### Framework et outils principaux
-- **Next.js 14** - Framework React avec App Router
-- **React 18** - Bibliothèque UI avec hooks modernes
-- **TypeScript** - Typage statique
-- **Tailwind CSS** - Framework CSS utilitaire
+- Next.js 14 - Framework React avec App Router
+- React 18 - Bibliothèque UI avec hooks modernes
+- TypeScript - Typage statique
+- Tailwind CSS - Framework CSS utilitaire
 
 ### Gestion d'état et données
-- **TanStack Query (React Query)** - Cache et synchronisation des données
-- **React Hook Form** - Gestion des formulaires
-- **Zod** - Validation des schémas
-- **Axios** - Client HTTP
+- TanStack Query (React Query) - Cache et synchronisation des données
+- React Hook Form - Gestion des formulaires
+- Zod - Validation des schémas
+- Axios - Client HTTP
 
 ### Composants UI
-- **Headless UI** - Composants accessibles
-- **Heroicons** - Icônes SVG
-- **React Hot Toast** - Notifications
-- **Framer Motion** - Animations
+- Headless UI - Composants accessibles
+- Heroicons - Icônes SVG
+- React Hot Toast - Notifications
+- Framer Motion - Animations
 
 ### Développement et tests
-- **ESLint** - Linting du code
-- **Prettier** - Formatage du code
-- **Jest** - Framework de tests
-- **Playwright** - Tests end-to-end
+- ESLint - Linting du code
+- Prettier - Formatage du code
+- Jest - Framework de tests
+- Playwright - Tests end-to-end
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 src/
@@ -87,20 +87,20 @@ src/
     └── lead.ts          # Types TypeScript
 ```
 
-## 🎨 Design System
+## Design System
 
 ### Couleurs
-- **Brand** : Palette bleue pour les éléments de marque
-- **Sémantiques** : Success (vert), Warning (jaune), Error (rouge)
-- **Pipeline** : Couleurs spécifiques pour chaque étape
+- Brand : Palette bleue pour les éléments de marque
+- Sémantiques : Success (vert), Warning (jaune), Error (rouge)
+- Pipeline : Couleurs spécifiques pour chaque étape
 
 ### Composants
-- **Design cohérent** avec variants et tailles standardisées
-- **Accessibilité** intégrée (focus, keyboard navigation)
-- **Responsive** mobile-first
-- **Loading states** et gestion d'erreurs
+- Design cohérent avec variants et tailles standardisées
+- Accessibilité intégrée (focus, keyboard navigation)
+- Responsive mobile-first
+- Loading states et gestion d'erreurs
 
-## 🚀 Démarrage
+## Démarrage
 
 ### Prérequis
 - Node.js 18+
@@ -132,37 +132,39 @@ npm run test:e2e     # Tests end-to-end
 npm run format       # Formatage du code
 ```
 
-## 🔌 API Integration
+## API Integration
 
 ### Configuration
-- **Base URL** : `http://localhost:5000` (configurable via env)
-- **Authentication** : JWT Bearer token (à implémenter)
-- **Tenant Context** : Headers `X-Org-Id` automatiques
+- Base URL : `http://localhost:5000` (configurable via env)
+- Authentication : JWT Bearer token (à implémenter)
+- Tenant Context : Headers `X-Org-Id` automatiques
 
 ### Services API
-- **Leads** : CRUD complet avec pagination, tri, filtres
-- **Stages** : Récupération des étapes du pipeline
-- **Stats** : Statistiques en temps réel
+- Leads : CRUD complet avec pagination, tri, filtres
+- Stages : Récupération des étapes du pipeline
+- Stats : Statistiques en temps réel
 
 ### Gestion d'erreurs
-- **Retry automatique** pour les requêtes échouées
-- **Toast notifications** pour les succès/erreurs
-- **Fallback UI** pour les états d'erreur
+- Retry automatique pour les requêtes échouées
+- Toast notifications pour les succès/erreurs
+- Fallback UI pour les états d'erreur
 
-## 📱 Responsive Design
+## Responsive Design
 
 ### Breakpoints Tailwind
-- **Mobile** : < 640px
-- **Tablet** : 640px - 1024px
-- **Desktop** : > 1024px
+- Mobile : < 640px
+- Tablet : 640px - 1024px
+- Desktop : > 1024px
 
 ### Adaptations
-- **Navigation** : Menu hamburger sur mobile
-- **Tableaux** : Scroll horizontal avec colonnes prioritaires
-- **Formulaires** : Colonnes adaptatives
-- **Modales** : Plein écran sur mobile
+- Navigation : Menu hamburger sur mobile
+- Tableaux : Scroll horizontal avec colonnes prioritaires
+- Formulaires : Colonnes adaptatives
+- Modales : Plein écran sur mobile
 
-## 🧪 Tests (À implémenter)
+## Tests
+
+Note : À implémenter
 
 ### Tests unitaires
 - Composants React avec Testing Library
@@ -179,7 +181,7 @@ npm run format       # Formatage du code
 - Tests cross-browser
 - Tests de performance
 
-## 🔮 Prochaines étapes
+## Prochaines étapes
 
 ### Issue #8 - Recherche & Filtres avancés
 - Recherche full-text
@@ -188,29 +190,29 @@ npm run format       # Formatage du code
 - Auto-complétion
 
 ### Fonctionnalités additionnelles
-- **Authentication** : Login/logout, gestion des sessions
-- **Édition inline** : Modification rapide des champs
-- **Drag & Drop** : Réorganisation des leads
-- **Export/Import** : CSV, Excel
-- **Notifications temps réel** : WebSocket
-- **Dark mode** : Thème sombre
-- **Offline support** : PWA
+- Authentication : Login/logout, gestion des sessions
+- Édition inline : Modification rapide des champs
+- Drag & Drop : Réorganisation des leads
+- Export/Import : CSV, Excel
+- Notifications temps réel : WebSocket
+- Dark mode : Thème sombre
+- Offline support : PWA
 
-## 📊 Performance
+## Performance
 
 ### Optimisations implémentées
-- **Code splitting** automatique avec Next.js
-- **Image optimization** avec Next.js Image
-- **Lazy loading** des composants lourds
-- **Memoization** avec React.memo et useMemo
-- **Query caching** avec React Query
+- Code splitting automatique avec Next.js
+- Image optimization avec Next.js Image
+- Lazy loading des composants lourds
+- Memoization avec React.memo et useMemo
+- Query caching avec React Query
 
 ### Métriques cibles
-- **First Contentful Paint** : < 1.5s
-- **Largest Contentful Paint** : < 2.5s
-- **Cumulative Layout Shift** : < 0.1
-- **Time to Interactive** : < 3s
+- First Contentful Paint : < 1.5s
+- Largest Contentful Paint : < 2.5s
+- Cumulative Layout Shift : < 0.1
+- Time to Interactive : < 3s
 
 ---
 
-*Développé avec ❤️ pour Lead Tracker*
+Développé pour Lead Tracker

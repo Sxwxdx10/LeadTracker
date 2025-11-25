@@ -52,7 +52,7 @@ export function SwimLane({
     <div 
       className={cn(
         "mb-4 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-200",
-        isOver && "border-blue-400 bg-blue-50 shadow-md"
+        isOver && "border-brand-400 bg-brand-50 shadow-md"
       )}
     >
       {/* Lane Header */}

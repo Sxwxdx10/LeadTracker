@@ -14,9 +14,9 @@ export function LeadStats() {
   const { data: stats, isLoading, error } = useLeadStats();
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-CA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'CAD',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(value ?? 0);
   };
@@ -44,7 +44,7 @@ export function LeadStats() {
       name: 'Total Leads',
       value: stats.totalLeads ?? 0,
       icon: UserGroupIcon,
-      color: 'bg-blue-500',
+      color: 'bg-brand-500',
       format: (val: number) => (val ?? 0).toString(),
     },
     {

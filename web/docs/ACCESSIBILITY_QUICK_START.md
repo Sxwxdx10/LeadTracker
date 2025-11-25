@@ -1,13 +1,13 @@
-# 🚀 Guide de démarrage rapide - Accessibilité
+# Guide de démarrage rapide - Accessibilité
 
-## En 5 minutes
+Temps estimé : 5 minutes
 
-### 1. Utiliser les composants accessibles
+## 1. Utiliser les composants accessibles
 
 Tous les composants UI ont été améliorés pour l'accessibilité. Utilisez-les comme d'habitude, mais avec quelques props supplémentaires :
 
 ```tsx
-// ✅ Button accessible
+// Button accessible
 <Button 
   loading={isLoading}
   ariaLabel="Enregistrer le document"
@@ -15,7 +15,7 @@ Tous les composants UI ont été améliorés pour l'accessibilité. Utilisez-les
   Enregistrer
 </Button>
 
-// ✅ Input accessible avec validation
+// Input accessible avec validation
 <Input
   label="Email"
   type="email"
@@ -24,7 +24,7 @@ Tous les composants UI ont été améliorés pour l'accessibilité. Utilisez-les
   required
 />
 
-// ✅ Modal accessible avec focus trap
+// Modal accessible avec focus trap
 <Modal
   isOpen={showModal}
   onClose={() => setShowModal(false)}
@@ -33,7 +33,7 @@ Tous les composants UI ont été améliorés pour l'accessibilité. Utilisez-les
   <p>Êtes-vous sûr de vouloir continuer ?</p>
 </Modal>
 
-// ✅ Select accessible avec navigation clavier
+// Select accessible avec navigation clavier
 <Select
   label="Statut"
   options={statusOptions}
@@ -42,19 +42,19 @@ Tous les composants UI ont été améliorés pour l'accessibilité. Utilisez-les
 />
 ```
 
-### 2. Navigation au clavier
+## 2. Navigation au clavier
 
 Tous les composants supportent maintenant la navigation au clavier :
 
 | Composant | Touches |
 |-----------|---------|
-| **Tous** | `Tab` / `Shift+Tab` pour naviguer |
-| **Boutons** | `Enter` ou `Space` pour activer |
-| **Select** | `↑↓` pour naviguer, `Enter` pour sélectionner |
-| **Tabs** | `←→` pour changer d'onglet |
-| **Modal** | `Escape` pour fermer |
+| Tous | `Tab` / `Shift+Tab` pour naviguer |
+| Boutons | `Enter` ou `Space` pour activer |
+| Select | `↑↓` pour naviguer, `Enter` pour sélectionner |
+| Tabs | `←→` pour changer d'onglet |
+| Modal | `Escape` pour fermer |
 
-### 3. Utiliser les hooks d'accessibilité
+## 3. Utiliser les hooks d'accessibilité
 
 ```tsx
 import { 
@@ -81,7 +81,7 @@ function MyComponent() {
 }
 ```
 
-### 4. Cacher du contenu aux lecteurs d'écran
+## 4. Cacher du contenu aux lecteurs d'écran
 
 ```tsx
 import { ScreenReaderOnly, LiveRegion } from '@/components/ui/ScreenReaderOnly';
@@ -100,7 +100,7 @@ import { ScreenReaderOnly, LiveRegion } from '@/components/ui/ScreenReaderOnly';
 <span aria-hidden="true">★</span>
 ```
 
-### 5. Vérifier les contrastes
+## 5. Vérifier les contrastes
 
 ```typescript
 import { logContrastResults } from '@/lib/contrast-checker';
@@ -150,7 +150,7 @@ Avant de commiter du code, vérifiez :
 # Ouvrez la console
 import { logContrastResults } from '@/lib/contrast-checker';
 logContrastResults();
-# Vérifiez qu'il n'y a pas d'❌
+# Vérifiez qu'il n'y a pas d'erreurs
 ```
 
 ### 3. Test lecteur d'écran (2 min)
@@ -260,8 +260,8 @@ function ConfirmModal({ isOpen, onClose, onConfirm }) {
 ## Ressources
 
 ### Documentation complète
-- 📖 [Guide complet d'accessibilité](./ACCESSIBILITY.md)
-- 📝 [Changelog des modifications](../ACCESSIBILITY_CHANGELOG.md)
+- [Guide complet d'accessibilité](./ACCESSIBILITY.md)
+- [Changelog des modifications](../ACCESSIBILITY_CHANGELOG.md)
 
 ### Standards
 - [WCAG 2.1 Quick Reference](https://www.w3.org/WAI/WCAG21/quickref/)
@@ -310,13 +310,13 @@ console.log(isAccessible); // true ou false
 
 ## Bonnes pratiques rapides
 
-### ✅ À faire
+### À faire
 - Utiliser des éléments HTML sémantiques (`<button>`, `<input>`, etc.)
 - Ajouter des labels à tous les champs de formulaire
 - Tester au clavier régulièrement
 - Cacher les icônes décoratives avec `aria-hidden="true"`
 
-### ❌ À éviter
+### À éviter
 - Utiliser `<div>` avec `onClick` au lieu de `<button>`
 - Oublier les labels sur les formulaires
 - Supprimer les outlines de focus
@@ -332,5 +332,4 @@ Une fois à l'aise avec ces bases, consultez le [guide complet](./ACCESSIBILITY.
 
 ---
 
-**Rappel** : L'accessibilité n'est pas une fonctionnalité, c'est une exigence. Chaque utilisateur mérite une expérience de qualité ! 🎯
-
+**Rappel** : L'accessibilité n'est pas une fonctionnalité, c'est une exigence. Chaque utilisateur mérite une expérience de qualité.

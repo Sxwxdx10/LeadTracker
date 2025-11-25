@@ -67,7 +67,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
           <div
             className={cn(
               'flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors',
-              item.active ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' : 'text-gray-700 hover:bg-gray-50',
+              item.active ? 'bg-brand-50 text-brand-700 border-r-2 border-brand-700' : 'text-gray-700 hover:bg-gray-50',
               paddingLeft
             )}
             onClick={() => {
@@ -91,7 +91,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               {item.badge && (
                 <span className={cn(
                   'px-2 py-1 text-xs rounded-full',
-                  item.active ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                  item.active ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'
                 )}>
                   {item.badge}
                 </span>
