@@ -411,10 +411,11 @@ try
     // SignalR hubs
     app.MapHub<LeadTracker.Api.Hubs.KanbanHub>("/kanbanhub");
 
-    // Database Migration
+    // Database Migration and Role Initialization
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<LeadTrackerDbContext>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         
         try
@@ -425,13 +426,43 @@ try
                 logger.LogInformation("Applying database migrations...");
                 await context.Database.MigrateAsync();
                 logger.LogInformation("Database migrations applied successfully.");
+                
+                // Initialize default roles if they don't exist
+                logger.LogInformation("Initializing default roles...");
+                await EnsureRoleExistsAsync(roleManager, "Admin", logger);
+                await EnsureRoleExistsAsync(roleManager, "User", logger);
+                logger.LogInformation("Default roles initialized successfully.");
             }
             
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while migrating the database");
+            logger.LogError(ex, "An error occurred while migrating the database or initializing roles");
             throw;
+        }
+    }
+    
+    // Helper method to ensure a role exists
+    static async Task EnsureRoleExistsAsync(RoleManager<IdentityRole<Guid>> roleManager, string roleName, ILogger logger)
+    {
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            logger.LogInformation("Creating role {RoleName}...", roleName);
+            var role = new IdentityRole<Guid> { Name = roleName };
+            var result = await roleManager.CreateAsync(role);
+            if (result.Succeeded)
+            {
+                logger.LogInformation("Role {RoleName} created successfully", roleName);
+            }
+            else
+            {
+                logger.LogWarning("Failed to create role {RoleName}: {Errors}", 
+                    roleName, string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+        else
+        {
+            logger.LogDebug("Role {RoleName} already exists", roleName);
         }
     }
 
