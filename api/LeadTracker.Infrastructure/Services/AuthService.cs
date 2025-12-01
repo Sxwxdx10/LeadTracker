@@ -139,6 +139,10 @@ public class AuthService : IAuthService
             // Assign role: Admin for first user, User for others
             // Note: isFirstUser is only true when we just created the organization
             var userRole = isFirstUser ? "Admin" : "User";
+            
+            // Ensure role exists before assigning it
+            await EnsureRoleExistsAsync(userRole);
+            
             await _userManager.AddToRoleAsync(user, userRole);
             
             if (isFirstUser)
@@ -253,6 +257,9 @@ public class AuthService : IAuthService
             // Ensure the user is properly saved before adding roles
             await _context.SaveChangesAsync();
 
+            // Ensure role exists before assigning it
+            await EnsureRoleExistsAsync(invitation.Role);
+            
             // Add user to role specified in invitation
             await _userManager.AddToRoleAsync(user, invitation.Role);
 
@@ -617,5 +624,29 @@ public class AuthService : IAuthService
             .Replace("_", "-")
             .Replace(".", "-")
             .Trim('-');
+    }
+
+    /// <summary>
+    /// Ensures a role exists in the database, creating it if it doesn't exist
+    /// </summary>
+    private async Task EnsureRoleExistsAsync(string roleName)
+    {
+        var normalizedRoleName = roleName.ToUpper();
+        var roleExists = await _context.Roles.AnyAsync(r => r.NormalizedName == normalizedRoleName);
+        
+        if (!roleExists)
+        {
+            _logger.LogInformation("Role {Role} does not exist, creating it", roleName);
+            var role = new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+            {
+                Id = Guid.NewGuid(),
+                Name = roleName,
+                NormalizedName = normalizedRoleName,
+                ConcurrencyStamp = Guid.NewGuid().ToString()
+            };
+            _context.Roles.Add(role);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Role {Role} created successfully", roleName);
+        }
     }
 }
