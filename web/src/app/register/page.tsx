@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import Loading from '@/components/ui/loading';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register, registerWithInvitation, isAuthenticated, isLoading, error, clearError } = useAuth();
@@ -150,7 +150,7 @@ export default function RegisterPage() {
     );
   }
 
-  const isInvitationMode = invitationToken && invitationData;
+  const isInvitationMode = !!(invitationToken && invitationData);
 
   return (
     <ProtectedRoute requireAuth={false}>
@@ -414,5 +414,17 @@ export default function RegisterPage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/auth';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { toast } from 'react-hot-toast';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -409,5 +409,19 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute requireAuth={false}>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+        </div>
+      </ProtectedRoute>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
