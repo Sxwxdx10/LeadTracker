@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using LeadTracker.Infrastructure;
 using LeadTracker.Core.Entities;
@@ -15,11 +16,16 @@ public class RepairController : ControllerBase
 {
     private readonly LeadTrackerDbContext _context;
     private readonly ILogger<RepairController> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public RepairController(LeadTrackerDbContext context, ILogger<RepairController> logger)
+    public RepairController(
+        LeadTrackerDbContext context, 
+        ILogger<RepairController> logger,
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _logger = logger;
+        _userManager = userManager;
     }
 
     /// <summary>
@@ -165,6 +171,137 @@ public class RepairController : ControllerBase
         {
             _logger.LogError(ex, "Error checking user {Email}", email);
             return StatusCode(500, new { message = "Error checking user", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Fix users without roles by assigning appropriate roles
+    /// </summary>
+    [HttpPost("fix-users-without-roles")]
+    [AllowAnonymous] // Temporary for repair - should be protected in production
+    public async Task<IActionResult> FixUsersWithoutRoles()
+    {
+        try
+        {
+            _logger.LogInformation("Starting repair: Fixing users without roles");
+
+            // Ensure Admin and User roles exist
+            await EnsureRoleExistsAsync("Admin");
+            await EnsureRoleExistsAsync("User");
+
+            // Get all ApplicationUsers
+            var allUsers = await _context.Users
+                .IgnoreQueryFilters()
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} total users", allUsers.Count);
+
+            var fixed = 0;
+            var alreadyHasRole = 0;
+            var errors = new List<string>();
+
+            foreach (var user in allUsers)
+            {
+                try
+                {
+                    // Check if user has any roles
+                    var roles = await _userManager.GetRolesAsync(user);
+                    
+                    if (roles == null || roles.Count == 0)
+                    {
+                        // Determine if this is the first user of the organization
+                        var isFirstUser = await IsFirstUserOfOrganizationAsync(user.OrganizationId, user.Id);
+                        var roleToAssign = isFirstUser ? "Admin" : "User";
+
+                        _logger.LogInformation("User {Email} has no roles, assigning {Role} role (isFirstUser: {IsFirstUser})", 
+                            user.Email, roleToAssign, isFirstUser);
+
+                        // Ensure role exists
+                        await EnsureRoleExistsAsync(roleToAssign);
+
+                        // Assign role
+                        var result = await _userManager.AddToRoleAsync(user, roleToAssign);
+                        if (result.Succeeded)
+                        {
+                            fixed++;
+                            _logger.LogInformation("Successfully assigned {Role} role to user {Email}", roleToAssign, user.Email);
+                        }
+                        else
+                        {
+                            var errorMsg = $"Failed to assign role to {user.Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                            errors.Add(errorMsg);
+                            _logger.LogError(errorMsg);
+                        }
+                    }
+                    else
+                    {
+                        alreadyHasRole++;
+                        _logger.LogInformation("User {Email} already has roles: {Roles}", user.Email, string.Join(", ", roles));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var errorMsg = $"Error processing user {user.Email}: {ex.Message}";
+                    errors.Add(errorMsg);
+                    _logger.LogError(ex, errorMsg);
+                }
+            }
+
+            _logger.LogInformation("Repair complete: {Fixed} fixed, {AlreadyHasRole} already had roles", fixed, alreadyHasRole);
+
+            return Ok(new
+            {
+                message = "Repair completed",
+                totalUsers = allUsers.Count,
+                fixed = fixed,
+                alreadyHasRole = alreadyHasRole,
+                errors = errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during role repair");
+            return StatusCode(500, new { message = "Error during repair", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Check if a user is the first user of their organization
+    /// </summary>
+    private async Task<bool> IsFirstUserOfOrganizationAsync(Guid organizationId, Guid userId)
+    {
+        // Check if this user is the oldest user in the organization
+        var oldestUser = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.OrganizationId == organizationId)
+            .OrderBy(u => u.CreatedAt)
+            .ThenBy(u => u.Id) // Secondary sort for consistency
+            .FirstOrDefaultAsync();
+
+        return oldestUser != null && oldestUser.Id == userId;
+    }
+
+    /// <summary>
+    /// Ensures a role exists in the database, creating it if it doesn't exist
+    /// </summary>
+    private async Task EnsureRoleExistsAsync(string roleName)
+    {
+        var normalizedRoleName = roleName.ToUpper();
+        var roleExists = await _context.Roles.AnyAsync(r => r.NormalizedName == normalizedRoleName);
+        
+        if (!roleExists)
+        {
+            _logger.LogInformation("Role {Role} does not exist, creating it", roleName);
+            var role = new IdentityRole<Guid>
+            {
+                Id = Guid.NewGuid(),
+                Name = roleName,
+                NormalizedName = normalizedRoleName,
+                ConcurrencyStamp = Guid.NewGuid().ToString()
+            };
+            _context.Roles.Add(role);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Role {Role} created successfully", roleName);
         }
     }
 }
