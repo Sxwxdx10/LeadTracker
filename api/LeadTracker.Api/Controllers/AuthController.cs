@@ -183,8 +183,18 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during login for email {Email}", request.Email);
+            _logger.LogError(ex, "Unexpected error during login for email {Email}: {Message}", request.Email, ex.Message);
+            
+            // Include exception details in development mode for debugging
+            #if DEBUG
+            return StatusCode(500, new { 
+                message = "An unexpected error occurred during login",
+                details = ex.Message,
+                stackTrace = ex.StackTrace
+            });
+            #else
             return StatusCode(500, new { message = "An unexpected error occurred during login" });
+            #endif
         }
     }
 

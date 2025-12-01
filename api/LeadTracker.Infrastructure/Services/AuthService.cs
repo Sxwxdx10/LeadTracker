@@ -405,7 +405,46 @@ public class AuthService : IAuthService
             }
 
             // Generate tokens
-            var roles = await _userManager.GetRolesAsync(user);
+            IList<string> roles;
+            try
+            {
+                roles = await _userManager.GetRolesAsync(user);
+                if (roles == null || roles.Count == 0)
+                {
+                    _logger.LogWarning("User {Email} has no roles assigned, using empty list", user.Email);
+                    roles = new List<string>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving roles for user {Email}, using empty list", user.Email);
+                roles = new List<string>();
+            }
+
+            // Ensure DomainUserId is set (should be set during registration)
+            if (!user.DomainUserId.HasValue)
+            {
+                _logger.LogWarning("User {Email} has no DomainUserId set, attempting to find or create DomainUser", user.Email);
+                
+                // Try to find existing DomainUser by email and organization
+                var domainUser = await _context.BusinessUsers
+                    .FirstOrDefaultAsync(u => u.Email == user.Email && u.OrganizationId == organization.Id);
+                
+                if (domainUser != null)
+                {
+                    // Link the DomainUser to the ApplicationUser
+                    user.DomainUserId = domainUser.Id;
+                    await _userManager.UpdateAsync(user);
+                    _logger.LogInformation("Linked existing DomainUser {DomainUserId} to ApplicationUser {Email}", 
+                        domainUser.Id, user.Email);
+                }
+                else
+                {
+                    _logger.LogError("User {Email} has no DomainUserId and no matching DomainUser found", user.Email);
+                    throw new InvalidOperationException("User account is not properly configured. Please contact support.");
+                }
+            }
+
             var accessToken = _jwtService.GenerateAccessToken(user, roles);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
@@ -417,13 +456,6 @@ public class AuthService : IAuthService
             await _userManager.UpdateAsync(user);
 
             _logger.LogInformation("User {Email} logged in successfully", user.Email);
-
-            // Ensure DomainUserId is set (should be set during registration)
-            if (!user.DomainUserId.HasValue)
-            {
-                _logger.LogError("User {Email} has no DomainUserId set", user.Email);
-                throw new InvalidOperationException("User account is not properly configured");
-            }
 
             return new AuthResponse
             {
