@@ -15,6 +15,7 @@ namespace LeadTracker.Infrastructure.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IJwtService _jwtService;
     private readonly LeadTrackerDbContext _context;
@@ -24,6 +25,7 @@ public class AuthService : IAuthService
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager,
         SignInManager<ApplicationUser> signInManager,
         IJwtService jwtService,
         LeadTrackerDbContext context,
@@ -32,6 +34,7 @@ public class AuthService : IAuthService
         Func<string, Task<Organization?>>? getOrganizationByDomain = null)
     {
         _userManager = userManager;
+        _roleManager = roleManager;
         _signInManager = signInManager;
         _jwtService = jwtService;
         _context = context;
@@ -679,72 +682,75 @@ public class AuthService : IAuthService
 
     /// <summary>
     /// Ensures a role exists in the database, creating it if it doesn't exist
+    /// Uses RoleManager to ensure compatibility with ASP.NET Identity
     /// </summary>
     private async Task EnsureRoleExistsAsync(string roleName)
     {
-        var normalizedRoleName = roleName.ToUpper();
-        
-        // Check if role exists (ignore query filters to ensure we see all roles)
-        var roleExists = await _context.Roles
-            .IgnoreQueryFilters()
-            .AnyAsync(r => r.NormalizedName == normalizedRoleName);
+        // Check if role exists using RoleManager (this is the proper way for Identity)
+        var roleExists = await _roleManager.RoleExistsAsync(roleName);
         
         if (!roleExists)
         {
-            _logger.LogInformation("Role {Role} does not exist, creating it", roleName);
+            _logger.LogInformation("Role {Role} does not exist, creating it using RoleManager", roleName);
             
             try
             {
-                var role = new Microsoft.AspNetCore.Identity.IdentityRole<Guid>
+                var role = new IdentityRole<Guid>
                 {
-                    Id = Guid.NewGuid(),
-                    Name = roleName,
-                    NormalizedName = normalizedRoleName,
-                    ConcurrencyStamp = Guid.NewGuid().ToString()
+                    Name = roleName
                 };
-                _context.Roles.Add(role);
-                await _context.SaveChangesAsync();
                 
-                // Verify the role was created successfully (ignore query filters)
-                roleExists = await _context.Roles
-                    .IgnoreQueryFilters()
-                    .AnyAsync(r => r.NormalizedName == normalizedRoleName);
-                    
-                if (roleExists)
+                var result = await _roleManager.CreateAsync(role);
+                
+                if (result.Succeeded)
                 {
-                    _logger.LogInformation("Role {Role} created and verified successfully", roleName);
+                    _logger.LogInformation("Role {Role} created successfully using RoleManager", roleName);
+                    
+                    // Verify the role was created
+                    roleExists = await _roleManager.RoleExistsAsync(roleName);
+                    if (!roleExists)
+                    {
+                        _logger.LogWarning("Role {Role} creation reported success but role not found, retrying...", roleName);
+                        await Task.Delay(100); // Small delay
+                        roleExists = await _roleManager.RoleExistsAsync(roleName);
+                        
+                        if (!roleExists)
+                        {
+                            throw new InvalidOperationException($"Role {roleName} was not created successfully");
+                        }
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning("Role {Role} creation may have failed - role not found after save", roleName);
-                    // Try one more time with a fresh query
-                    await Task.Delay(100); // Small delay to ensure database consistency
-                    roleExists = await _context.Roles
-                        .IgnoreQueryFilters()
-                        .AnyAsync(r => r.NormalizedName == normalizedRoleName);
-                        
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    _logger.LogWarning("Failed to create role {Role}: {Errors}", roleName, errors);
+                    
+                    // Check if role exists now (might have been created by another request)
+                    roleExists = await _roleManager.RoleExistsAsync(roleName);
                     if (!roleExists)
                     {
-                        throw new InvalidOperationException($"Role {roleName} was not created successfully");
+                        throw new InvalidOperationException($"Failed to create role {roleName}: {errors}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Role {Role} exists after creation error (likely race condition)", roleName);
                     }
                 }
             }
             catch (Exception ex)
             {
-                // If role creation fails (e.g., duplicate key), check if it exists now
-                _logger.LogWarning(ex, "Error creating role {Role}, checking if it exists now", roleName);
-                roleExists = await _context.Roles
-                    .IgnoreQueryFilters()
-                    .AnyAsync(r => r.NormalizedName == normalizedRoleName);
+                // If role creation fails, check if it exists now
+                _logger.LogWarning(ex, "Exception creating role {Role}, checking if it exists now", roleName);
+                roleExists = await _roleManager.RoleExistsAsync(roleName);
                 
                 if (!roleExists)
                 {
-                    _logger.LogError("Failed to create role {Role} and it still doesn't exist", roleName);
+                    _logger.LogError("Failed to create role {Role} and it still doesn't exist: {Error}", roleName, ex.Message);
                     throw new InvalidOperationException($"Failed to create role {roleName}: {ex.Message}");
                 }
                 else
                 {
-                    _logger.LogInformation("Role {Role} exists after error (likely race condition)", roleName);
+                    _logger.LogInformation("Role {Role} exists after exception (likely race condition)", roleName);
                 }
             }
         }
