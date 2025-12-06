@@ -57,6 +57,7 @@ build/
 
 # Cursor IDE
 .cursor-context
+.cursorrules
 
 # Secrets and credentials
 dockerhub-gitlab-config.txt
