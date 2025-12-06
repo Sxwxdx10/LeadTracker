@@ -1,0 +1,14 @@
+# Configuration Docker Hub pour GitLab CI/CD
+# Date: Thu Sep 25 01:52:52 EDT 2025
+
+DOCKERHUB_USERNAME=your_username
+DOCKERHUB_PASSWORD=your_docker_pat_token
+
+# Instructions pour GitLab:
+# 1. Aller dans Settings > CI/CD > Variables
+# 2. Ajouter ces variables avec "Mask variable" et "Protect variable" activés
+# 3. Le fichier .gitlab-ci.yml a été mis à jour automatiquement
+
+# Images Docker qui seront créées:
+# - your_username/leadtracker-api:latest
+# - your_username/leadtracker-web:latest
