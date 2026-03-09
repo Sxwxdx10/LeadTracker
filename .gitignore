@@ -15,7 +15,7 @@ obj/
 *.suo
 
 # Logs
-api/logs/
+**/logs/
 
 # IDE
 .vs/
