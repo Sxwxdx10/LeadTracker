@@ -374,7 +374,7 @@ function RegisterForm() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-red-600 font-medium">{error || passwordError}</p>
-                      {error && error !== 'Erreur d\'inscription' && (
+                      {error && error !== 'Erreur d\'inscription' && !error.includes('Impossible de joindre le serveur') && (
                         <p className="text-xs text-red-500 mt-1">
                           Si cette organisation existe déjà, veuillez contacter un administrateur pour recevoir une invitation.
                         </p>

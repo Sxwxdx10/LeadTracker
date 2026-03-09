@@ -196,7 +196,7 @@ public class RepairController : ControllerBase
 
             _logger.LogInformation("Found {Count} total users", allUsers.Count);
 
-            var fixed = 0;
+            var fixedCount = 0;
             var alreadyHasRole = 0;
             var errors = new List<string>();
 
@@ -223,7 +223,7 @@ public class RepairController : ControllerBase
                         var result = await _userManager.AddToRoleAsync(user, roleToAssign);
                         if (result.Succeeded)
                         {
-                            fixed++;
+                            fixedCount++;
                             _logger.LogInformation("Successfully assigned {Role} role to user {Email}", roleToAssign, user.Email);
                         }
                         else
@@ -247,13 +247,13 @@ public class RepairController : ControllerBase
                 }
             }
 
-            _logger.LogInformation("Repair complete: {Fixed} fixed, {AlreadyHasRole} already had roles", fixed, alreadyHasRole);
+            _logger.LogInformation("Repair complete: {Fixed} fixed, {AlreadyHasRole} already had roles", fixedCount, alreadyHasRole);
 
             return Ok(new
             {
                 message = "Repair completed",
                 totalUsers = allUsers.Count,
-                fixed = fixed,
+                fixedCount = fixedCount,
                 alreadyHasRole = alreadyHasRole,
                 errors = errors
             });
@@ -284,7 +284,7 @@ public class RepairController : ControllerBase
     /// <summary>
     /// Ensures a role exists in the database, creating it if it doesn't exist
     /// </summary>
-    private async Task EnsureRoleExistsAsync(string roleName)
+    private async System.Threading.Tasks.Task EnsureRoleExistsAsync(string roleName)
     {
         var normalizedRoleName = roleName.ToUpper();
         var roleExists = await _context.Roles.AnyAsync(r => r.NormalizedName == normalizedRoleName);

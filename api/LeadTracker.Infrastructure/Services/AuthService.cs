@@ -684,7 +684,7 @@ public class AuthService : IAuthService
     /// Ensures a role exists in the database, creating it if it doesn't exist
     /// Uses RoleManager to ensure compatibility with ASP.NET Identity
     /// </summary>
-    private async Task EnsureRoleExistsAsync(string roleName)
+    private async System.Threading.Tasks.Task EnsureRoleExistsAsync(string roleName)
     {
         // Check if role exists using RoleManager (this is the proper way for Identity)
         var roleExists = await _roleManager.RoleExistsAsync(roleName);
@@ -711,7 +711,7 @@ public class AuthService : IAuthService
                     if (!roleExists)
                     {
                         _logger.LogWarning("Role {Role} creation reported success but role not found, retrying...", roleName);
-                        await Task.Delay(100); // Small delay
+                        await System.Threading.Tasks.Task.Delay(100); // Small delay
                         roleExists = await _roleManager.RoleExistsAsync(roleName);
                         
                         if (!roleExists)

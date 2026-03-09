@@ -286,7 +286,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('Connexion réussie !');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Erreur de connexion';
+      let errorMessage = 'Erreur de connexion';
+      if (error.response) {
+        errorMessage = error.response?.data?.message || error.response?.data?.error || error.response?.statusText || errorMessage;
+      } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        errorMessage = 'Impossible de joindre le serveur. Vérifiez que l\'API est démarrée (port 8080).';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
       console.error('Login error:', errorMessage, error);
       throw error;
@@ -322,8 +329,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                       error.response.data?.error || 
                       error.response.statusText || 
                       'Erreur d\'inscription';
+      } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        errorMessage = 'Impossible de joindre le serveur. Vérifiez que l\'API est démarrée (port 8080) et que Postgres/Redis sont disponibles.';
       } else if (error.message) {
-        // Erreur réseau ou autre
         errorMessage = error.message;
       }
       
@@ -362,8 +370,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                       error.response.data?.error || 
                       error.response.statusText || 
                       'Erreur d\'inscription via invitation';
+      } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        errorMessage = 'Impossible de joindre le serveur. Vérifiez que l\'API est démarrée (port 8080).';
       } else if (error.message) {
-        // Erreur réseau ou autre
         errorMessage = error.message;
       }
       

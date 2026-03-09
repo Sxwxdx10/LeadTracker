@@ -443,7 +443,7 @@ try
     }
     
     // Helper method to ensure a role exists
-    static async Task EnsureRoleExistsAsync(RoleManager<IdentityRole<Guid>> roleManager, string roleName, ILogger logger)
+    static async System.Threading.Tasks.Task EnsureRoleExistsAsync(RoleManager<IdentityRole<Guid>> roleManager, string roleName, Microsoft.Extensions.Logging.ILogger logger)
     {
         if (!await roleManager.RoleExistsAsync(roleName))
         {
